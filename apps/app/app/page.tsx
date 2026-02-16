@@ -1,11 +1,7 @@
-import Alert from "@/components/atoms/alert";
-import Button from "@/components/atoms/button";
-
-export default function Home() {
+export default function Dashboard() {
   return (
     <main>
-      <Button variant="destructive">Hello World!</Button>
-      <Alert title="Alert Title" description="This is an alert description." />
+      <p>Dashboard</p>
     </main>
   );
 }
