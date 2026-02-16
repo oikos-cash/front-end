@@ -7,6 +7,12 @@ export interface AlertProps {
   variant?: "default" | "destructive" | "success" | "warning" | "info";
 }
 
+export interface SelectProps {
+  className?: string;
+  disabled?: boolean;
+  placeholder?: string;
+  items: { value: string; label: string; href?: string }[];
+}
 
 // =================================================
 //                     MOLECULES
