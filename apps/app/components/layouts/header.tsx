@@ -1,3 +1,5 @@
+"use client";
+
 // Components
 import Link from "next/link";
 import Badge from "@/components/atoms/badge";
@@ -8,12 +10,14 @@ import Accordion from "@/components/atoms/accordion";
 
 // Hooks
 import { useTranslations } from "next-intl";
+import { useWallet } from "@/stores/wallet";
 
 // Icons
 import { Menu, Wallet, X } from "lucide-react";
 
 export default function Header() {
   const t = useTranslations("header");
+  const { isConnected, address, handleConnect, handleDisconnect } = useWallet();
 
   const navItems = [
     { value: "exchange", label: t("nav.exchange"), href: "/" },
@@ -68,10 +72,17 @@ export default function Header() {
           placeholder={t("nav.exchange")}
         />
 
-        <Button variant="default">
-          <Wallet className="size-4" />
-          {t("connectWallet")}
-        </Button>
+        {isConnected ? (
+          <Button variant="outline" onClick={handleDisconnect}>
+            <Wallet className="size-4" />
+            {address}
+          </Button>
+        ) : (
+          <Button variant="default" onClick={handleConnect}>
+            <Wallet className="size-4" />
+            {t("connectWallet")}
+          </Button>
+        )}
       </div>
 
       {/* Mobile */}
@@ -120,10 +131,17 @@ export default function Header() {
                   },
                 ]}
               />
-              <Button variant="default" className="w-full">
-                <Wallet className="size-4" />
-                {t("connectWallet")}
-              </Button>
+              {isConnected ? (
+                <Button variant="outline" className="w-full" onClick={handleDisconnect}>
+                  <Wallet className="size-4" />
+                  {address}
+                </Button>
+              ) : (
+                <Button variant="default" className="w-full" onClick={handleConnect}>
+                  <Wallet className="size-4" />
+                  {t("connectWallet")}
+                </Button>
+              )}
             </div>
           }
         >
