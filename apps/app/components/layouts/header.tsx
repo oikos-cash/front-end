@@ -31,7 +31,7 @@ export default function Header() {
   const networkItems = [{ value: "bsc-mainnet", label: t("network") }];
 
   return (
-    <header className="border-b border-border">
+    <header className="sticky top-0 z-50 border-b border-border bg-background">
       <div className="flex items-center justify-between px-4 py-2 lg:px-6">
       <div className="flex items-center gap-3">
         <Link
