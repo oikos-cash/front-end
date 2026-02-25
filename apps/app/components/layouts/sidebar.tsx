@@ -1,13 +1,14 @@
 import { SidebarProps } from "@/types/interfaces";
+import PriceTable from "@/components/organism/price-table";
 
 export default function Sidebar({ children }: SidebarProps) {
   return (
-    <div className="flex flex-col gap-3 px-4 lg:flex-row lg:gap-6 lg:px-6">
-      <aside className="w-full shrink-0 border-b border-border lg:w-96 lg:border-b-0 lg:border-r bg-red-300">
-        <p>left</p>
+    <div className="flex min-h-[calc(100vh-54px)] flex-col lg:flex-row">
+      <aside className="w-full shrink-0 border-b border-border px-4 lg:w-96 lg:border-b-0 lg:border-r lg:px-6">
+        <PriceTable />
       </aside>
-      <main className="min-w-0 flex-1 bg-yellow-300">{children}</main>
-      <aside className="w-full shrink-0 border-t border-border lg:w-96 lg:border-t-0 lg:border-l bg-red-900">
+      <main className="min-w-0 flex-1 px-4 lg:px-6">{children}</main>
+      <aside className="w-full shrink-0 border-t border-border px-4 lg:w-96 lg:border-t-0 lg:border-l lg:px-6">
         <p>right</p>
       </aside>
     </div>

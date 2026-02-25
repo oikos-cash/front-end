@@ -1,0 +1,9 @@
+{
+  "priceTable": {
+    "price": "Precio",
+    "change24h": "Cambio 24h",
+    "token": "Token",
+    "24h": "24h",
+    "fdv": "FDV"
+  }
+}
