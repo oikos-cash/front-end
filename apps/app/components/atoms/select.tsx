@@ -38,7 +38,7 @@ export default function Select({
   return (
     <Primitive disabled={disabled} onValueChange={(v) => handleClickItem(v)}>
       <SelectTrigger
-        className={clsx("w-full", !disabled && "cursor-not-allowed", className)}
+        className={clsx("w-full", disabled && "cursor-not-allowed", className)}
       >
         <SelectValue placeholder={placeholder || ""} />
       </SelectTrigger>
