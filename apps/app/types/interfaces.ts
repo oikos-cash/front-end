@@ -89,3 +89,22 @@ export interface SidebarProps {
 // =================================================
 //                     FUNCTIONS
 // =================================================
+
+// =================================================
+//                      STORES
+// =================================================
+export interface TokenBalance {
+  token: string;
+  iconUrl?: string;
+  amount: string;
+  usd: string;
+}
+
+export interface WalletState {
+  isConnected: boolean;
+  address: string | null;
+  balances: TokenBalance[];
+  totalValue: string;
+  handleConnect: () => void;
+  handleDisconnect: () => void;
+}
