@@ -7,6 +7,18 @@ export interface AlertProps {
   variant?: "default" | "destructive" | "success" | "warning" | "info";
 }
 
+export interface BadgeProps {
+  children: React.ReactNode;
+  className?: string;
+  variant?:
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "outline"
+    | "ghost"
+    | "link";
+}
+
 export interface SelectProps {
   className?: string;
   disabled?: boolean;
