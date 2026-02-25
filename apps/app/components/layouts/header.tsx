@@ -1,5 +1,3 @@
-"use client";
-
 // Components
 import Link from "next/link";
 import Badge from "@/components/atoms/badge";
@@ -29,7 +27,8 @@ export default function Header() {
   const networkItems = [{ value: "bsc-mainnet", label: t("network") }];
 
   return (
-    <header className="flex items-center justify-between border-b border-border px-4 py-2">
+    <header className="border-b border-border">
+      <div className="flex items-center justify-between px-4 py-2 lg:px-6">
       <div className="flex items-center gap-3">
         <Link
           target="_blank"
@@ -132,6 +131,7 @@ export default function Header() {
             <Menu className="size-5" />
           </Button>
         </Drawer>
+      </div>
       </div>
     </header>
   );

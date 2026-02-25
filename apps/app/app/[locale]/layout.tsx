@@ -1,6 +1,6 @@
 // Components
-import Footer from "@/components/layouts/footer";
 import Header from "@/components/layouts/header";
+import SideBar from "@/components/layouts/sidebar";
 
 // Styles
 import "@/styles/globals.css";
@@ -58,8 +58,7 @@ export default async function RootLayout({
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Header />
-          {children}
-          <Footer />
+          <SideBar>{children}</SideBar>
         </NextIntlClientProvider>
       </body>
     </html>

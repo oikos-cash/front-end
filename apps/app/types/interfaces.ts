@@ -53,6 +53,9 @@ export interface SelectProps {
 // =================================================
 //                      LAYOUTS
 // =================================================
+export interface SidebarProps {
+  children: React.ReactNode;
+}
 
 // =================================================
 //                     TEMPLATES
