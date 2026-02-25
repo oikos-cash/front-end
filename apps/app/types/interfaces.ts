@@ -60,6 +60,8 @@ export interface SelectProps {
   className?: string;
   disabled?: boolean;
   placeholder?: string;
+  defaultValue?: string;
+  onValueChange?: (value: string) => void;
   items: { value: string; label: string; href?: string }[];
 }
 
@@ -78,6 +80,22 @@ export interface StatsCardProps {
 // =================================================
 //                     ORGANISMS
 // =================================================
+export interface Trade {
+  id: string;
+  type: "buy" | "sell";
+  token: string;
+  amount: number;
+  price: number;
+  bnbAmount: number;
+  usdValue: number;
+  wallet: string;
+  txHash: string;
+  timestamp: Date;
+}
+
+export interface TradesHistoryProps {
+  token?: string;
+}
 
 // =================================================
 //                      LAYOUTS

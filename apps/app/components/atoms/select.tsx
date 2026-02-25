@@ -24,19 +24,27 @@ export default function Select({
   disabled,
   className,
   placeholder,
+  defaultValue,
+  onValueChange,
 }: SelectProps) {
   const router = useRouter();
 
   // Methods
-  const handleClickItem = (value?: string) => {
+  const handleValueChange = (value: string) => {
     const item = items?.find((item) => item.value === value);
     if (item?.href) {
       router.push(item.href);
+    } else if (onValueChange) {
+      onValueChange(value);
     }
   };
 
   return (
-    <Primitive disabled={disabled} onValueChange={(v) => handleClickItem(v)}>
+    <Primitive
+      disabled={disabled}
+      defaultValue={defaultValue}
+      onValueChange={handleValueChange}
+    >
       <SelectTrigger
         className={clsx("w-full", disabled && "cursor-not-allowed", className)}
       >
