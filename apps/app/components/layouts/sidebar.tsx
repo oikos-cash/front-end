@@ -1,5 +1,6 @@
 import { SidebarProps } from "@/types/interfaces";
 import PriceTable from "@/components/organism/price-table";
+import WalletPanel from "@/components/organism/wallet-panel";
 
 export default function Sidebar({ children }: SidebarProps) {
   return (
@@ -9,7 +10,7 @@ export default function Sidebar({ children }: SidebarProps) {
       </aside>
       <main className="min-w-0 flex-1 px-4 lg:px-6">{children}</main>
       <aside className="w-full shrink-0 border-t border-border px-4 lg:w-96 lg:border-t-0 lg:border-l lg:px-6">
-        <p>right</p>
+        <WalletPanel />
       </aside>
     </div>
   );
