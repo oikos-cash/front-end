@@ -66,6 +66,14 @@ export interface SelectProps {
 // =================================================
 //                     MOLECULES
 // =================================================
+export interface StatsCardProps {
+  variant: "spot" | "volume" | "marketCap" | "imv";
+  title: string;
+  subtitle?: string;
+  value: string;
+  change?: string;
+  secondary: string;
+}
 
 // =================================================
 //                     ORGANISMS
