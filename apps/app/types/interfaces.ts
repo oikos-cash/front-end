@@ -35,6 +35,12 @@ export interface DrawerProps {
   description?: string;
 }
 
+export interface TableProps<TData, TValue> {
+  columns: import("@tanstack/react-table").ColumnDef<TData, TValue>[];
+  data: TData[];
+  className?: string;
+}
+
 export interface SelectProps {
   className?: string;
   disabled?: boolean;
