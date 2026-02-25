@@ -1,5 +1,9 @@
 {
   "home": {
-    "title": "Dashboard"
+    "title": "Dashboard",
+    "spot": "SPOT",
+    "volume": "VOLUMEN 1M",
+    "marketCap": "CAP. DE MERCADO",
+    "imv": "IMV"
   }
 }
