@@ -1,0 +1,17 @@
+{
+  "tradesHistory": {
+    "global": "Global",
+    "myTrades": "My Trades",
+    "clearHistory": "Clear History",
+    "buy": "BUY",
+    "sell": "SELL",
+    "type": "Type",
+    "details": "Details",
+    "value": "Value",
+    "wallet": "Wallet",
+    "time": "Time",
+    "loading": "Loading trades...",
+    "emptyTitle": "No trades yet",
+    "emptyDescription": "Trades will appear here once activity begins."
+  }
+}
