@@ -1,6 +1,12 @@
 // =================================================
 //                      ATOMS
 // =================================================
+export interface AccordionProps {
+  type?: "single" | "multiple";
+  className?: string;
+  items: { value: string; trigger: React.ReactNode; content: React.ReactNode }[];
+}
+
 export interface AlertProps {
   title: string;
   description: string;
@@ -17,6 +23,16 @@ export interface BadgeProps {
     | "outline"
     | "ghost"
     | "link";
+}
+
+export interface DrawerProps {
+  title: string;
+  close?: React.ReactNode;
+  footer?: React.ReactNode;
+  content?: React.ReactNode;
+  children: React.ReactNode;
+  direction?: "top" | "bottom" | "left" | "right";
+  description?: string;
 }
 
 export interface SelectProps {

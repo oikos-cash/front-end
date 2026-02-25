@@ -5,12 +5,14 @@ import Link from "next/link";
 import Badge from "@/components/atoms/badge";
 import Button from "@/components/atoms/button";
 import Select from "@/components/atoms/select";
+import Drawer from "@/components/atoms/drawer";
+import Accordion from "@/components/atoms/accordion";
 
 // Hooks
 import { useTranslations } from "next-intl";
 
 // Icons
-import { Wallet } from "lucide-react";
+import { Menu, Wallet, X } from "lucide-react";
 
 export default function Header() {
   const t = useTranslations("header");
@@ -49,8 +51,9 @@ export default function Header() {
         <Badge variant="default">{t("beta")}</Badge>
       </div>
 
-      <div className="flex items-center gap-3">
-        <Badge variant="outline" className="hidden sm:inline-flex">
+      {/* Desktop */}
+      <div className="hidden items-center gap-3 md:flex">
+        <Badge variant="outline">
           BNB/USD $630.0900 <span className="text-success">+7.19%</span>
         </Badge>
 
@@ -70,6 +73,65 @@ export default function Header() {
           <Wallet className="size-4" />
           {t("connectWallet")}
         </Button>
+      </div>
+
+      {/* Mobile */}
+      <div className="md:hidden">
+        <Drawer
+          title=""
+          close={
+            <Button variant="ghost" size="icon">
+              <X className="size-4" />
+            </Button>
+          }
+          content={
+            <div className="flex flex-col gap-3">
+              <div className="text-center w-full">
+                <Badge variant="outline" className="w-fit">
+                  BNB/USD $630.0900 <span className="text-success">+7.19%</span>
+                </Badge>
+              </div>
+              <Accordion
+                items={[
+                  {
+                    value: "nav",
+                    trigger: t("nav.exchange"),
+                    content: (
+                      <nav className="flex flex-col gap-1">
+                        {navItems.map((item) => (
+                          <Link
+                            key={item.value}
+                            href={item.href}
+                            className="rounded-md px-3 py-2 text-sm font-medium hover:bg-accent"
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </nav>
+                    ),
+                  },
+                  {
+                    value: "network",
+                    trigger: t("network"),
+                    content: (
+                      <span className="text-sm text-muted-foreground">
+                        BSC Mainnet
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+              <Button variant="default" className="w-full">
+                <Wallet className="size-4" />
+                {t("connectWallet")}
+              </Button>
+            </div>
+          }
+        >
+          <Button variant="ghost" size="icon">
+            <Menu className="size-5" />
+          </Button>
+        </Drawer>
       </div>
     </header>
   );
