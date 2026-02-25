@@ -25,6 +25,15 @@ export interface BadgeProps {
     | "link";
 }
 
+export interface EmptyProps {
+  icon?: React.ReactNode;
+  title: string;
+  description?: string;
+  children?: React.ReactNode;
+  className?: string;
+  iconVariant?: "default" | "icon";
+}
+
 export interface DrawerProps {
   title: string;
   close?: React.ReactNode;
@@ -39,6 +48,12 @@ export interface TableProps<TData, TValue> {
   columns: import("@tanstack/react-table").ColumnDef<TData, TValue>[];
   data: TData[];
   className?: string;
+}
+
+export interface TokenIconProps {
+  token: string;
+  iconUrl?: string;
+  size?: number;
 }
 
 export interface SelectProps {
