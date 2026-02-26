@@ -1,5 +1,23 @@
 {
   "liquidity": {
-    "title": "Liquidez"
+    "title": "Liquidez",
+    "spotPrice": "Precio Spot",
+    "liquidityRatio": "Ratio de Liquidez",
+    "circulatingSupply": "Suministro Circulante",
+    "imvPrice": "Precio IMV",
+    "shift": "Shift",
+    "slide": "Slide",
+    "protocolHealth": "Salud del Protocolo",
+    "floorProtection": "Protección de Piso",
+    "refresh": "Actualizar",
+    "details": "Detalles",
+    "floor": "Piso",
+    "anchor": "Ancla",
+    "discovery": "Descubrimiento",
+    "reservesWbnb": "Reservas (WBNB)",
+    "reservesOks": "Reservas (OKS)",
+    "capacityOks": "Capacidad (OKS)",
+    "tickLower": "Tick Inferior",
+    "tickUpper": "Tick Superior"
   }
 }

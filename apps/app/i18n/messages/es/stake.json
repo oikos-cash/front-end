@@ -1,5 +1,8 @@
 {
   "stake": {
-    "title": "Stake"
+    "title": "Stake",
+    "connectTitle": "Conectar Monedero",
+    "connectDescription": "Conecta tu monedero para empezar a hacer staking.",
+    "connectButton": "Conectar Monedero"
   }
 }

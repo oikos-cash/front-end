@@ -1,0 +1,10 @@
+{
+  "wallet": {
+    "title": "Billetera",
+    "wrap": "Wrap",
+    "totalValue": "Valor Total",
+    "connectTitle": "Conecta tu Billetera",
+    "connectDescription": "Conecta tu billetera para acceder a las funciones de trading y gestionar tu portafolio",
+    "connectButton": "Conectar Billetera"
+  }
+}

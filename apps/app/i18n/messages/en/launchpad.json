@@ -1,5 +1,8 @@
 {
   "launchpad": {
-    "title": "Launchpad"
+    "title": "Launchpad",
+    "connectTitle": "Connect Wallet",
+    "connectDescription": "Connect your wallet to access the launchpad.",
+    "connectButton": "Connect Wallet"
   }
 }

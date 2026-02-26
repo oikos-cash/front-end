@@ -1,5 +1,8 @@
 {
   "stake": {
-    "title": "Stake"
+    "title": "Stake",
+    "connectTitle": "Connect Wallet",
+    "connectDescription": "Connect your wallet to start staking.",
+    "connectButton": "Connect Wallet"
   }
 }

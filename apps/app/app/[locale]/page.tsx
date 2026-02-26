@@ -1,11 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import Template from "@/components/templates/home";
 
-export default async function Dashboard() {
-  const t = await getTranslations("home");
-
-  return (
-    <main>
-      <p>{t("title")}</p>
-    </main>
-  );
+export default function Dashboard() {
+  return <Template />;
 }
