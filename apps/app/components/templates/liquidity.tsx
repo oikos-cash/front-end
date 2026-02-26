@@ -8,6 +8,7 @@ import ButtonGroup from "@/components/atoms/button-group";
 import Tooltip from "@/components/atoms/tooltip";
 import StatsCard from "@/components/molecules/stats-card";
 import LiquidityChart from "@/components/organism/liquidity-chart";
+import LiquidityDetails from "@/components/organism/liquidity-details";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -74,6 +75,7 @@ export default function LiquidityTemplate() {
         </Tooltip>
       </div>
       <LiquidityChart bars={data.bars} spotPrice={data.spotBnb} />
+      <LiquidityDetails details={data.details} />
     </div>
   );
 }

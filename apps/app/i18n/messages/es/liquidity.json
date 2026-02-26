@@ -9,6 +9,15 @@
     "slide": "Slide",
     "protocolHealth": "Salud del Protocolo",
     "floorProtection": "Protección de Piso",
-    "refresh": "Actualizar"
+    "refresh": "Actualizar",
+    "details": "Detalles",
+    "floor": "Piso",
+    "anchor": "Ancla",
+    "discovery": "Descubrimiento",
+    "reservesWbnb": "Reservas (WBNB)",
+    "reservesOks": "Reservas (OKS)",
+    "capacityOks": "Capacidad (OKS)",
+    "tickLower": "Tick Inferior",
+    "tickUpper": "Tick Superior"
   }
 }

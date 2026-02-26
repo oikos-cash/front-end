@@ -9,6 +9,15 @@
     "slide": "Slide",
     "protocolHealth": "Protocol Health",
     "floorProtection": "Floor Protection",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "details": "Details",
+    "floor": "Floor",
+    "anchor": "Anchor",
+    "discovery": "Discovery",
+    "reservesWbnb": "Reserves (WBNB)",
+    "reservesOks": "Reserves (OKS)",
+    "capacityOks": "Capacity (OKS)",
+    "tickLower": "Tick Lower",
+    "tickUpper": "Tick Upper"
   }
 }
