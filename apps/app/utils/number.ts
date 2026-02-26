@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -81,4 +81,23 @@ export function generateMockOHLCV(
   }
 
   return bars;
+}
+
+export const LIQUIDITY_CHART_MARGIN = { top: 10, right: 10, bottom: 30, left: 10 };
+
+export function generateMockLiquidity(): LiquidityData {
+  const spotBnb = 0.0002 + Math.random() * 0.0003;
+  const spotPrice = spotBnb * (580 + Math.random() * 80);
+  const liquidityRatio = 1.0 + Math.random() * 1.5;
+  const circulatingSupply = Math.floor(140000 + Math.random() * 60000);
+  const imvPrice = spotPrice * (0.3 + Math.random() * 0.3);
+
+  const boundary = spotBnb + 0.0001 + Math.random() * 0.0002;
+  const bars: LiquidityBar[] = [
+    { from: spotBnb * 0.8, to: spotBnb * 0.85, height: 0.7 + Math.random() * 0.3, fill: "#f5c843" },
+    { from: spotBnb * 0.85, to: boundary, height: 0.1 + Math.random() * 0.2, fill: "#d4a84b" },
+    { from: boundary + 0.0001, to: 0.0012, height: 0.2 + Math.random() * 0.2, fill: "#86efac" },
+  ];
+
+  return { spotPrice, spotBnb, liquidityRatio, circulatingSupply, imvPrice, bars };
 }

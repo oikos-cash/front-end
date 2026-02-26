@@ -154,6 +154,19 @@ export interface LiquidityBar {
   fill: string;
 }
 
+export interface LiquidityTick {
+  price: number;
+  usd: number;
+  tick: number;
+}
+
+export interface LiquidityDetail {
+  label: string;
+  floor: string;
+  anchor: string;
+  discovery: string;
+}
+
 export interface LiquidityData {
   spotPrice: number;
   spotBnb: number;
@@ -161,6 +174,7 @@ export interface LiquidityData {
   circulatingSupply: number;
   imvPrice: number;
   bars: LiquidityBar[];
+  details: LiquidityDetail[];
 }
 
 // =================================================

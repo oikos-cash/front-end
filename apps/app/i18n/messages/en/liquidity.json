@@ -1,5 +1,14 @@
 {
   "liquidity": {
-    "title": "Liquidity"
+    "title": "Liquidity",
+    "spotPrice": "Spot Price",
+    "liquidityRatio": "Liquidity Ratio",
+    "circulatingSupply": "Circulating Supply",
+    "imvPrice": "IMV Price",
+    "shift": "Shift",
+    "slide": "Slide",
+    "protocolHealth": "Protocol Health",
+    "floorProtection": "Floor Protection",
+    "refresh": "Refresh"
   }
 }
