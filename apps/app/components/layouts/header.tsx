@@ -22,8 +22,8 @@ export default function Header() {
   const navItems = [
     { value: "exchange", label: t("nav.exchange"), href: "/" },
     { value: "liquidity", label: t("nav.liquidity"), href: "/liquidity/oks" },
-    { value: "borrow", label: t("nav.borrow"), href: "/borrow/bnb" },
-    { value: "stake", label: t("nav.stake"), href: "/stake/bnb" },
+    { value: "borrow", label: t("nav.borrow"), href: "/borrow/oks" },
+    { value: "stake", label: t("nav.stake"), href: "/stake/oks" },
     { value: "markets", label: t("nav.markets"), href: "/markets" },
     { value: "launchpad", label: t("nav.launchpad"), href: "/launchpad" },
   ];
