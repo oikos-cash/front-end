@@ -56,6 +56,19 @@ export interface TokenIconProps {
   size?: number;
 }
 
+export interface ButtonGroupProps {
+  children: React.ReactNode;
+  className?: string;
+  orientation?: "horizontal" | "vertical";
+}
+
+export interface TooltipProps {
+  children: React.ReactNode;
+  content: React.ReactNode;
+  side?: "top" | "right" | "bottom" | "left";
+  sideOffset?: number;
+}
+
 export interface SelectProps {
   className?: string;
   disabled?: boolean;
@@ -96,6 +109,24 @@ export interface Trade {
 export interface TradesHistoryProps {
   token?: string;
 }
+
+export interface PriceChartProps {
+  token?: string;
+}
+
+export interface OHLCVBar {
+  time: import("lightweight-charts").UTCTimestamp;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export const CHART_INTERVALS = ["1h", "4h", "1d", "1w"] as const;
+export const CHART_PERIODS = ["1d", "5d", "1m", "3m", "6m", "1y"] as const;
+export type ChartPeriod = (typeof CHART_PERIODS)[number];
+export type ChartType = "bars" | "line";
 
 // =================================================
 //                      LAYOUTS
