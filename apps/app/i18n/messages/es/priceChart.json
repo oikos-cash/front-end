@@ -1,0 +1,17 @@
+{
+  "priceChart": {
+    "interval": "Intervalo",
+    "period": "Período",
+    "1d": "1D",
+    "5d": "5D",
+    "1m": "1M",
+    "3m": "3M",
+    "6m": "6M",
+    "1y": "1Y",
+    "refresh": "Actualizar",
+    "bars": "Barras",
+    "line": "Línea",
+    "price": "Precio",
+    "volume": "Volumen"
+  }
+}

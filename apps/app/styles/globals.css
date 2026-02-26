@@ -132,4 +132,13 @@
   body {
     @apply bg-background text-foreground;
   }
+  .chart-reset *,
+  .chart-reset *::before,
+  .chart-reset *::after {
+    border-style: none;
+  }
+  .chart-reset a[href*="tradingview"] {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
 }

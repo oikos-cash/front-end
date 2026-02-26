@@ -2,6 +2,7 @@
 
 // Components
 import StatsCard from "@/components/molecules/stats-card";
+import PriceChart from "@/components/organism/price-chart";
 import TradesHistory from "@/components/organism/trades-history";
 
 // Hooks
@@ -40,6 +41,7 @@ export default function HomeTemplate() {
           secondary="0.00012571 OKS/BNB"
         />
       </div>
+      <PriceChart />
       <TradesHistory />
     </div>
   );
