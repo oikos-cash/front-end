@@ -1,5 +1,8 @@
 {
   "launchpad": {
-    "title": "Launchpad"
+    "title": "Launchpad",
+    "connectTitle": "Conectar Monedero",
+    "connectDescription": "Conecta tu monedero para acceder al launchpad.",
+    "connectButton": "Conectar Monedero"
   }
 }

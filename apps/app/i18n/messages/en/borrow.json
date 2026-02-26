@@ -1,5 +1,8 @@
 {
   "borrow": {
-    "title": "Borrow"
+    "title": "Borrow",
+    "connectTitle": "Connect Wallet",
+    "connectDescription": "Connect your wallet to start borrowing.",
+    "connectButton": "Connect Wallet"
   }
 }
