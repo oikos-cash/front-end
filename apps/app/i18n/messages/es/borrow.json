@@ -1,5 +1,8 @@
 {
   "borrow": {
-    "title": "Préstamo"
+    "title": "Préstamo",
+    "connectTitle": "Conectar Monedero",
+    "connectDescription": "Conecta tu monedero para empezar a pedir préstamos.",
+    "connectButton": "Conectar Monedero"
   }
 }

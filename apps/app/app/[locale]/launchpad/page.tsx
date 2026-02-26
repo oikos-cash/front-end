@@ -1,11 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import LaunchpadTemplate from "@/components/templates/launchpad";
 
-export default async function LaunchpadPage() {
-  const t = await getTranslations("launchpad");
-
-  return (
-    <main>
-      <h1>{t("title")}</h1>
-    </main>
-  );
+export default function LaunchpadPage() {
+  return <LaunchpadTemplate />;
 }

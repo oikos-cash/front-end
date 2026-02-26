@@ -1,5 +1,15 @@
 {
   "header": {
-    "title": "Header"
+    "beta": "BETA",
+    "network": "BSC Mainnet",
+    "connectWallet": "Connect Wallet",
+    "nav": {
+      "exchange": "Exchange",
+      "liquidity": "Liquidity",
+      "borrow": "Borrow",
+      "stake": "Stake",
+      "markets": "Markets",
+      "launchpad": "Launchpad"
+    }
   }
 }

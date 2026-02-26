@@ -1,0 +1,10 @@
+{
+  "wallet": {
+    "title": "Wallet",
+    "wrap": "Wrap",
+    "totalValue": "Total Value",
+    "connectTitle": "Connect Wallet to Trade",
+    "connectDescription": "Connect your wallet to access trading features and manage your portfolio",
+    "connectButton": "Connect Wallet"
+  }
+}

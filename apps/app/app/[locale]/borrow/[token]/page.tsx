@@ -1,16 +1,5 @@
-import { getTranslations } from "next-intl/server";
+import BorrowTemplate from "@/components/templates/borrow";
 
-export default async function BorrowPage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
-  const { token } = await params;
-  const t = await getTranslations("borrow");
-
-  return (
-    <main>
-      <h1>{t("title")} - {token}</h1>
-    </main>
-  );
+export default function BorrowPage() {
+  return <BorrowTemplate />;
 }
