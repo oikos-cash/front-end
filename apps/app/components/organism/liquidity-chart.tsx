@@ -21,18 +21,28 @@ interface LiquidityChartProps {
   spotPrice: number;
 }
 
+interface TooltipData {
+  bar: LiquidityBar;
+  x: number;
+  y: number;
+}
+
 function Chart({
   width,
   height,
   bars,
   spotPrice,
   onReady,
+  onHover,
+  onLeave,
 }: {
   width: number;
   height: number;
   bars: LiquidityBar[];
   spotPrice: number;
   onReady: () => void;
+  onHover: (data: TooltipData) => void;
+  onLeave: () => void;
 }) {
   useEffect(() => {
     if (width > 0) onReady();
@@ -68,6 +78,17 @@ function Chart({
               width={Math.max(barWidth, 2)}
               height={barHeight}
               fill={bar.fill}
+              onMouseMove={(e) => {
+                const svg = (e.target as SVGElement).closest("svg");
+                if (!svg) return;
+                const rect = svg.getBoundingClientRect();
+                onHover({
+                  bar,
+                  x: e.clientX - rect.left,
+                  y: e.clientY - rect.top,
+                });
+              }}
+              onMouseLeave={onLeave}
             />
           );
         })}
@@ -114,6 +135,7 @@ function Chart({
 
 export default function LiquidityChart({ bars, spotPrice }: LiquidityChartProps) {
   const [ready, setReady] = useState(false);
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null);
 
   return (
     <div className="relative h-75 rounded-md border border-border">
@@ -127,10 +149,32 @@ export default function LiquidityChart({ bars, spotPrice }: LiquidityChartProps)
               bars={bars}
               spotPrice={spotPrice}
               onReady={() => setReady(true)}
+              onHover={setTooltip}
+              onLeave={() => setTooltip(null)}
             />
           )}
         </ParentSize>
       </div>
+      {tooltip && (
+        <div
+          className="pointer-events-none absolute z-50 rounded border border-border bg-background px-3 py-2 text-xs shadow-lg"
+          style={{ left: tooltip.x + 16, top: tooltip.y - 40 }}
+        >
+          <p className="font-bold">{tooltip.bar.name}</p>
+          <p>
+            <span className="text-muted-foreground">Amount0:</span>{" "}
+            <span className="font-mono">{tooltip.bar.amount0.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Amount1:</span>{" "}
+            <span className="font-mono">{tooltip.bar.amount1.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+          </p>
+          <p>
+            <span className="text-muted-foreground">Price Range:</span>{" "}
+            <span className="font-mono">{tooltip.bar.from.toFixed(16)} – {tooltip.bar.to.toFixed(16)}</span>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

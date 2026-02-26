@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -94,10 +94,63 @@ export function generateMockLiquidity(): LiquidityData {
 
   const boundary = spotBnb + 0.0001 + Math.random() * 0.0002;
   const bars: LiquidityBar[] = [
-    { from: spotBnb * 0.8, to: spotBnb * 0.85, height: 0.7 + Math.random() * 0.3, fill: "#f5c843" },
-    { from: spotBnb * 0.85, to: boundary, height: 0.1 + Math.random() * 0.2, fill: "#d4a84b" },
-    { from: boundary + 0.0001, to: 0.0012, height: 0.2 + Math.random() * 0.2, fill: "#86efac" },
+    { name: "Floor", from: spotBnb * 0.8, to: spotBnb * 0.85, height: 0.7 + Math.random() * 0.3, fill: "#f5c843", amount0: Math.random() * 0.01, amount1: 15 + Math.random() * 15 },
+    { name: "Anchor", from: spotBnb * 0.85, to: boundary, height: 0.1 + Math.random() * 0.2, fill: "#d4a84b", amount0: 5000 + Math.random() * 8000, amount1: 2 + Math.random() * 5 },
+    { name: "Discovery", from: boundary + 0.0001, to: 0.0012, height: 0.2 + Math.random() * 0.2, fill: "#86efac", amount0: 300000 + Math.random() * 300000, amount1: 0 },
   ];
 
-  return { spotPrice, spotBnb, liquidityRatio, circulatingSupply, imvPrice, bars };
+  const tickFmt = (price: number, usd: number, tick: number) =>
+    `${price.toFixed(9)}  ($${usd.toFixed(4)}) Tick: ${tick}`;
+
+  const floorResBnb = 15 + Math.random() * 15;
+  const anchorResBnb = 2 + Math.random() * 5;
+
+  const floorResOks = Math.random() * 0.01;
+  const anchorResOks = 5000 + Math.random() * 8000;
+  const discoveryResOks = 300000 + Math.random() * 300000;
+
+  const floorCap = 150000 + Math.random() * 50000;
+  const anchorCap = 20000 + Math.random() * 20000;
+
+  const floorTickLower = { price: imvPrice / spotPrice * spotBnb * 0.99, usd: imvPrice * 0.99, tick: -89820 + Math.floor(Math.random() * 200) };
+  const floorTickUpper = { price: imvPrice / spotPrice * spotBnb * 1.01, usd: imvPrice * 1.01, tick: -89760 + Math.floor(Math.random() * 200) };
+  const anchorTickLower = { price: spotBnb * 0.98, usd: spotPrice * 0.98, tick: -89760 + Math.floor(Math.random() * 200) };
+  const anchorTickUpper = { price: spotBnb * 1.5, usd: spotPrice * 1.5, tick: -77280 + Math.floor(Math.random() * 200) };
+  const discoveryTickLower = { price: spotBnb * 1.5, usd: spotPrice * 1.5, tick: -76860 + Math.floor(Math.random() * 200) };
+  const discoveryTickUpper = { price: spotBnb * 3.5, usd: spotPrice * 3.5, tick: -68100 + Math.floor(Math.random() * 200) };
+
+  const details: LiquidityDetail[] = [
+    {
+      label: "reservesWbnb",
+      floor: floorResBnb.toFixed(7),
+      anchor: anchorResBnb.toFixed(7),
+      discovery: "0.0000000",
+    },
+    {
+      label: "reservesOks",
+      floor: floorResOks.toFixed(5),
+      anchor: anchorResOks.toFixed(5),
+      discovery: discoveryResOks.toFixed(5),
+    },
+    {
+      label: "capacityOks",
+      floor: floorCap.toFixed(7),
+      anchor: anchorCap.toFixed(7),
+      discovery: "n/a",
+    },
+    {
+      label: "tickLower",
+      floor: tickFmt(floorTickLower.price, floorTickLower.usd, floorTickLower.tick),
+      anchor: tickFmt(anchorTickLower.price, anchorTickLower.usd, anchorTickLower.tick),
+      discovery: tickFmt(discoveryTickLower.price, discoveryTickLower.usd, discoveryTickLower.tick),
+    },
+    {
+      label: "tickUpper",
+      floor: tickFmt(floorTickUpper.price, floorTickUpper.usd, floorTickUpper.tick),
+      anchor: tickFmt(anchorTickUpper.price, anchorTickUpper.usd, anchorTickUpper.tick),
+      discovery: tickFmt(discoveryTickUpper.price, discoveryTickUpper.usd, discoveryTickUpper.tick),
+    },
+  ];
+
+  return { spotPrice, spotBnb, liquidityRatio, circulatingSupply, imvPrice, bars, details };
 }

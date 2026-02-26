@@ -148,10 +148,13 @@ export interface SidebarProps {
 //                     FUNCTIONS
 // =================================================
 export interface LiquidityBar {
+  name: string;
   from: number;
   to: number;
   height: number;
   fill: string;
+  amount0: number;
+  amount1: number;
 }
 
 export interface LiquidityTick {
