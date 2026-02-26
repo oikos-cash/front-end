@@ -5,6 +5,7 @@ import { ColumnDef } from "@tanstack/react-table";
 // Components
 import Table from "@/components/atoms/table";
 import Button from "@/components/atoms/button";
+import Tooltip from "@/components/atoms/tooltip";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -76,9 +77,11 @@ export default function PriceTable() {
           <span>{t("price")}</span>
           <span className="text-muted-foreground">{t("change24h")}</span>
         </div>
-        <Button variant="ghost" size="icon" className="size-7">
-          <RefreshCw className="size-3.5" />
-        </Button>
+        <Tooltip content={t("refresh")}>
+          <Button variant="ghost" size="icon" className="size-7">
+            <RefreshCw className="size-3.5" />
+          </Button>
+        </Tooltip>
       </div>
       <Table columns={columns} data={tokens} />
     </div>

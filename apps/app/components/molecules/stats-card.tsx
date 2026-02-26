@@ -11,17 +11,21 @@ export default function StatsCard({
   value,
   change,
   secondary,
+  actions,
 }: StatsCardProps) {
   const isNegative = change?.startsWith("-");
 
   return (
     <div className="flex flex-col gap-1.5 rounded-md border border-border p-3">
-      <span className="text-xs font-medium text-muted-foreground">
-        {title}
-        {subtitle && (
-          <span className="ml-1 text-muted-foreground">{subtitle}</span>
-        )}
-      </span>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground">
+          {title}
+          {subtitle && (
+            <span className="ml-1 text-muted-foreground">{subtitle}</span>
+          )}
+        </span>
+        {actions}
+      </div>
 
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-1.5">

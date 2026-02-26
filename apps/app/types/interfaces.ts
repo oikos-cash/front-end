@@ -88,6 +88,7 @@ export interface StatsCardProps {
   value: string;
   change?: string;
   secondary: string;
+  actions?: React.ReactNode;
 }
 
 // =================================================
@@ -146,6 +147,21 @@ export interface SidebarProps {
 // =================================================
 //                     FUNCTIONS
 // =================================================
+export interface LiquidityBar {
+  from: number;
+  to: number;
+  height: number;
+  fill: string;
+}
+
+export interface LiquidityData {
+  spotPrice: number;
+  spotBnb: number;
+  liquidityRatio: number;
+  circulatingSupply: number;
+  imvPrice: number;
+  bars: LiquidityBar[];
+}
 
 // =================================================
 //                      STORES
