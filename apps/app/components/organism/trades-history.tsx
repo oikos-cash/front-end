@@ -7,6 +7,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import Table from "@/components/atoms/table";
 import Badge from "@/components/atoms/badge";
 import Empty from "@/components/atoms/empty";
+import Skeleton from "@/components/atoms/skeleton";
 import Select from "@/components/atoms/select";
 import Button from "@/components/atoms/button";
 
@@ -14,7 +15,7 @@ import Button from "@/components/atoms/button";
 import { useTranslations } from "next-intl";
 
 // Icons
-import { Loader2, BarChart3 } from "lucide-react";
+import { ArrowUpRight, Loader2 } from "lucide-react";
 
 // Types
 import { Trade, TradesHistoryProps } from "@/types/interfaces";
@@ -66,7 +67,7 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
   // State
   const [trades, setTrades] = useState<Trade[]>([]);
   const [view, setView] = useState("global");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
 
   // Refs
@@ -119,9 +120,10 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
           href={`https://bscscan.com/tx/${row.original.txHash}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-primary hover:underline"
+          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
         >
           {truncateAddress(row.getValue("wallet") as string)}
+          <ArrowUpRight className="size-3 text-muted-foreground/50" />
         </a>
       ),
     },
@@ -202,9 +204,10 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
       {/* Header */}
       <div className="flex items-center gap-2">
         <Select
-          defaultValue="global"
-          onValueChange={handleViewChange}
           className="w-32"
+          defaultValue="global"
+          disabled={isLoading && trades.length === 0}
+          onValueChange={handleViewChange}
           items={[
             { value: "global", label: t("global") },
             { value: "myTrades", label: t("myTrades") },
@@ -212,7 +215,12 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
         />
         <Badge variant="outline">{token}</Badge>
         <div className="flex-1" />
-        <Button variant="ghost" size="sm" onClick={handleClearHistory}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={isLoading && trades.length === 0}
+          onClick={handleClearHistory}
+        >
           {t("clearHistory")}
         </Button>
       </div>
@@ -228,17 +236,39 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
             </div>
           )}
         </div>
-      ) : !isLoading ? (
+      ) : isLoading ? (
+        <div className="overflow-hidden rounded-md border">
+          <div className="relative w-full overflow-x-auto">
+            <table className="w-full caption-bottom text-sm">
+              <thead className="[&_tr]:border-b">
+                <tr className="border-b">
+                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-10" /></th>
+                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-14" /></th>
+                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-12" /></th>
+                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-14" /></th>
+                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-10" /></th>
+                </tr>
+              </thead>
+              <tbody className="[&_tr:last-child]:border-0">
+                {Array.from({ length: 8 }, (_, i) => (
+                  <tr key={i} className="border-b">
+                    <td className="p-2 align-middle"><Skeleton className="h-5 w-10 rounded-full" /></td>
+                    <td className="p-2 align-middle"><Skeleton className="h-3 w-44" /></td>
+                    <td className="p-2 align-middle"><Skeleton className="h-3 w-40" /></td>
+                    <td className="p-2 align-middle"><Skeleton className="h-3 w-24" /></td>
+                    <td className="p-2 align-middle"><Skeleton className="h-3 w-14" /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
         <Empty
-          icon={<BarChart3 className="size-8" />}
+          className="py-12"
           title={t("emptyTitle")}
           description={t("emptyDescription")}
-          className="py-12"
         />
-      ) : (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="size-4 animate-spin text-muted-foreground" />
-        </div>
       )}
     </div>
   );
