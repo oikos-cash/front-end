@@ -1,5 +1,5 @@
-import LiquidityTemplate from "@/components/templates/liquidity";
+import Template from "@/components/templates/liquidity";
 
-export default function LiquidityPage() {
-  return <LiquidityTemplate />;
+export default function Page() {
+  return <Template />;
 }

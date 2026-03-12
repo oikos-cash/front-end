@@ -1,5 +1,5 @@
-import BorrowTemplate from "@/components/templates/borrow";
+import Template from "@/components/templates/borrow";
 
-export default function BorrowPage() {
-  return <BorrowTemplate />;
+export default function Page() {
+  return <Template />;
 }

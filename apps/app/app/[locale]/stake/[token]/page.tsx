@@ -1,5 +1,5 @@
-import StakeTemplate from "@/components/templates/stake";
+import Template from "@/components/templates/stake";
 
-export default function StakePage() {
-  return <StakeTemplate />;
+export default function Page() {
+  return <Template />;
 }

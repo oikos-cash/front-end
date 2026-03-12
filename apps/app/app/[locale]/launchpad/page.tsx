@@ -1,5 +1,5 @@
-import LaunchpadTemplate from "@/components/templates/launchpad";
+import Template from "@/components/templates/launchpad";
 
-export default function LaunchpadPage() {
-  return <LaunchpadTemplate />;
+export default function Page() {
+  return <Template />;
 }
