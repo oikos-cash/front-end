@@ -1,5 +1,23 @@
 {
   "markets": {
-    "title": "Mercados"
+    "title": "Mercados",
+    "searchPlaceholder": "Buscar por nombre, símbolo o descripción...",
+    "trade": "Operar",
+    "buy": "Comprar",
+    "marketCap": "Cap. de Mercado",
+    "created": "Creado",
+    "totalSupply": "Suministro Total",
+    "circSupply": "Suministro Circ.",
+    "raised": "Recaudado",
+    "hardCap": "Hard Cap",
+    "graduated": "Graduado",
+    "inProgress": "En Progreso",
+    "finalized": "Finalizado",
+    "preparing": "Preparando",
+    "healthy": "Saludable",
+    "warning": "Advertencia",
+    "critical": "Crítico",
+    "emptyTitle": "No se encontraron tokens",
+    "emptyDescription": "Intenta con otro término de búsqueda"
   }
 }

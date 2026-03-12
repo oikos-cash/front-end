@@ -1,5 +1,23 @@
 {
   "markets": {
-    "title": "Markets"
+    "title": "Markets",
+    "searchPlaceholder": "Search by name, symbol or description...",
+    "trade": "Trade",
+    "buy": "Buy",
+    "marketCap": "Market Cap",
+    "created": "Created",
+    "totalSupply": "Total Supply",
+    "circSupply": "Circ. Supply",
+    "raised": "Raised",
+    "hardCap": "Hard Cap",
+    "graduated": "Graduated",
+    "inProgress": "In Progress",
+    "finalized": "Finalized",
+    "preparing": "Preparing",
+    "healthy": "Healthy",
+    "warning": "Warning",
+    "critical": "Critical",
+    "emptyTitle": "No tokens found",
+    "emptyDescription": "Try a different search term"
   }
 }

@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -153,4 +153,66 @@ export function generateMockLiquidity(): LiquidityData {
   ];
 
   return { spotPrice, spotBnb, liquidityRatio, circulatingSupply, imvPrice, bars, details };
+}
+
+const TOKEN_POOL: { name: string; symbol: string; description: string }[] = [
+  { name: "SolarFlare", symbol: "SFL", description: "Decentralized solar energy trading on the blockchain" },
+  { name: "NexusDAO", symbol: "NXD", description: "Community-governed protocol for cross-chain governance" },
+  { name: "AquaFi", symbol: "AQF", description: "Liquidity aggregator optimizing yields across DeFi pools" },
+  { name: "VortexSwap", symbol: "VTX", description: "High-speed AMM with concentrated liquidity positions" },
+  { name: "ZenithPay", symbol: "ZNP", description: "Instant crypto payments for merchants worldwide" },
+  { name: "IronVault", symbol: "IRV", description: "Non-custodial asset management with multi-sig security" },
+  { name: "PulseNet", symbol: "PLS", description: "Real-time oracle network for on-chain data feeds" },
+  { name: "EmberChain", symbol: "EMB", description: "Layer-2 scaling solution with near-instant finality" },
+  { name: "CrystalDEX", symbol: "CRX", description: "Transparent order-book DEX with zero front-running" },
+  { name: "NovaLend", symbol: "NVL", description: "Algorithmic lending protocol with dynamic interest rates" },
+  { name: "TitanStake", symbol: "TTN", description: "Liquid staking derivatives for proof-of-stake networks" },
+  { name: "FrostBridge", symbol: "FRB", description: "Trustless cross-chain bridge with slashing protection" },
+  { name: "BloomYield", symbol: "BLY", description: "Auto-compounding yield optimizer for LP tokens" },
+  { name: "QuantumBit", symbol: "QBT", description: "Quantum-resistant cryptography for blockchain security" },
+  { name: "DriftProtocol", symbol: "DRF", description: "Perpetual futures exchange with deep liquidity" },
+  { name: "ArcanaNFT", symbol: "ARC", description: "Generative art and collectibles marketplace on-chain" },
+  { name: "LunarPad", symbol: "LNR", description: "Decentralized launchpad for vetted token offerings" },
+  { name: "CoralReef", symbol: "CRL", description: "Carbon-offset protocol rewarding eco-friendly validators" },
+  { name: "ApexVault", symbol: "APX", description: "Institutional-grade custody with insurance coverage" },
+  { name: "NebulaSwap", symbol: "NBL", description: "Gasless token swaps powered by meta-transactions" },
+];
+
+const STATUSES: TokenStatus[] = ["graduated", "inProgress", "finalized", "preparing"];
+const HEALTHS: TokenHealth[] = ["healthy", "warning", "critical"];
+
+export function generateMockMarketTokens(count: number, offset: number): MarketToken[] {
+  return Array.from({ length: count }, (_, i) => {
+    const index = offset + i;
+    const pool = TOKEN_POOL[index % TOKEN_POOL.length]!;
+    const isPresale = index % 5 >= 3; // ~40% presale
+    const status = isPresale
+      ? STATUSES[1 + (index % 3)]!
+      : STATUSES[index % 2 === 0 ? 0 : 2]!;
+    const health = HEALTHS[index % 3]!;
+
+    const base: MarketToken = {
+      id: `token-${index}`,
+      name: pool.name,
+      symbol: pool.symbol,
+      description: pool.description,
+      status,
+      health,
+      isPresale,
+    };
+
+    if (isPresale) {
+      const hardCap = 50000 + (index * 7331) % 450000;
+      const raised = Math.floor(hardCap * (0.1 + ((index * 1733) % 80) / 100));
+      return { ...base, raised, hardCap };
+    }
+
+    return {
+      ...base,
+      marketCap: 10000 + (index * 4973) % 4990000,
+      totalSupply: 100000 + (index * 8171) % 9900000,
+      circulatingSupply: 50000 + (index * 6143) % 4950000,
+      createdAt: new Date(Date.now() - ((index * 86400000 * 3) + (index * 3600000 * 7))),
+    };
+  });
 }

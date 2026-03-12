@@ -1,4 +1,12 @@
 /**
+ * Returns a short month + year string from a given date.
+ * Example: "Mar 2026"
+ */
+export function formatShortDate(date: Date): string {
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+/**
  * Returns a human-readable relative time string from a given date.
  * Example: "5s ago", "3m ago", "2h ago", "1d ago"
  */

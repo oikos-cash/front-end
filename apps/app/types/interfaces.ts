@@ -78,9 +78,43 @@ export interface SelectProps {
   items: { value: string; label: string; href?: string }[];
 }
 
+export interface ProgressBarProps {
+  value: number;
+  max: number;
+  className?: string;
+}
+
 // =================================================
 //                     MOLECULES
 // =================================================
+export type TokenStatus = "graduated" | "inProgress" | "finalized" | "preparing";
+export type TokenHealth = "healthy" | "warning" | "critical";
+
+export interface MarketToken {
+  id: string;
+  name: string;
+  symbol: string;
+  description: string;
+  iconUrl?: string;
+  status: TokenStatus;
+  health: TokenHealth;
+  isPresale: boolean;
+  marketCap?: number;
+  totalSupply?: number;
+  circulatingSupply?: number;
+  createdAt?: Date;
+  raised?: number;
+  hardCap?: number;
+}
+
+export interface TokenCardProps {
+  token: MarketToken;
+}
+
+export interface TokenCardSkeletonProps {
+  count?: number;
+}
+
 export interface StatsCardProps {
   variant: "spot" | "volume" | "marketCap" | "imv";
   title: string;
