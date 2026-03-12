@@ -4,11 +4,15 @@ import { useTranslations } from "next-intl";
 // Components
 import Badge from "@/components/atoms/badge";
 import Button from "@/components/atoms/button";
+import Tooltip from "@/components/atoms/tooltip";
 import TokenIcon from "@/components/atoms/token-icon";
 import ProgressBar from "@/components/atoms/progress-bar";
 
 // Types
 import { TokenCardProps } from "@/types/interfaces";
+
+// Icons
+import { Landmark } from "lucide-react";
 
 // Utils
 import { formatShortDate } from "@/utils/date";
@@ -48,6 +52,17 @@ export default function TokenCard({ token }: TokenCardProps) {
             {token.symbol}
           </Badge>
         </div>
+        {token.status === "graduated" && (
+          <Tooltip content={t("viewDividends")}>
+            <Link
+              href={`/dividends/${token.symbol.toLowerCase()}`}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Landmark className="size-4" />
+            </Link>
+          </Tooltip>
+        )}
       </div>
 
       {/* Description */}

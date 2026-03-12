@@ -17,6 +17,7 @@
     "healthy": "Saludable",
     "warning": "Advertencia",
     "critical": "Crítico",
+    "viewDividends": "Ver Dividendos",
     "emptyTitle": "No se encontraron tokens",
     "emptyDescription": "Intenta con otro término de búsqueda"
   }

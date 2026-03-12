@@ -17,6 +17,7 @@
     "healthy": "Healthy",
     "warning": "Warning",
     "critical": "Critical",
+    "viewDividends": "View Dividends",
     "emptyTitle": "No tokens found",
     "emptyDescription": "Try a different search term"
   }
