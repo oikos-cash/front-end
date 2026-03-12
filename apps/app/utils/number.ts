@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -153,6 +153,44 @@ export function generateMockLiquidity(): LiquidityData {
   ];
 
   return { spotPrice, spotBnb, liquidityRatio, circulatingSupply, imvPrice, bars, details };
+}
+
+// =================================================
+//                TRADE MOCK (AMM constant-product)
+// =================================================
+const RESERVE_BNB = 25;
+const RESERVE_OKS = 1_340_000;
+const BNB_USD = 650;
+
+export function calculateReceivingAmount(amount: number, side: TradeSide): number {
+  if (amount <= 0) return 0;
+  if (side === "buy") {
+    return RESERVE_OKS - (RESERVE_BNB * RESERVE_OKS) / (RESERVE_BNB + amount);
+  }
+  return RESERVE_BNB - (RESERVE_BNB * RESERVE_OKS) / (RESERVE_OKS + amount);
+}
+
+export function calculatePriceImpact(amount: number, side: TradeSide): number {
+  if (amount <= 0) return 0;
+  const spotPrice = side === "buy" ? RESERVE_OKS / RESERVE_BNB : RESERVE_BNB / RESERVE_OKS;
+  const received = calculateReceivingAmount(amount, side);
+  const effectivePrice = received / amount;
+  return Math.abs(1 - effectivePrice / spotPrice) * 100;
+}
+
+export function calculateMinReceived(receiving: number, slippagePct: number): number {
+  return receiving * (1 - slippagePct / 100);
+}
+
+export function formatCompactNumber(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
+  if (value >= 1) return value.toFixed(2);
+  return value.toFixed(6);
+}
+
+export function getMockNetworkFee(): NetworkFee {
+  return { gwei: 1.0, bnb: 0.00025, usd: 0.00025 * BNB_USD };
 }
 
 const TOKEN_POOL: { name: string; symbol: string; description: string }[] = [

@@ -21,6 +21,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
     ...(await import(`./messages/${locale}/wallet.json`)).default,
     ...(await import(`./messages/${locale}/tradesHistory.json`)).default,
     ...(await import(`./messages/${locale}/priceChart.json`)).default,
+    ...(await import(`./messages/${locale}/trade.json`)).default,
   };
 
   return { locale, messages };

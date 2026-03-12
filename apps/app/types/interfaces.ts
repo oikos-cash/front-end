@@ -7,6 +7,14 @@ export interface AccordionProps {
   items: { value: string; trigger: React.ReactNode; content: React.ReactNode }[];
 }
 
+export interface CheckboxProps {
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+  disabled?: boolean;
+  className?: string;
+  id?: string;
+}
+
 export interface AlertProps {
   title: string;
   description: string;
@@ -128,6 +136,14 @@ export interface StatsCardProps {
 // =================================================
 //                     ORGANISMS
 // =================================================
+export type TradeSide = "buy" | "sell";
+export type SlippageOption = "0.1" | "0.5" | "1" | "custom";
+
+export interface NetworkFee {
+  gwei: number;
+  bnb: number;
+  usd: number;
+}
 export interface Trade {
   id: string;
   type: "buy" | "sell";
