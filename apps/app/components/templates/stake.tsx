@@ -3,6 +3,7 @@
 // Components
 import Button from "@/components/atoms/button";
 import Empty from "@/components/atoms/empty";
+import StakeFormPanel from "@/components/organism/stake-form-panel";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -33,9 +34,13 @@ export default function StakeTemplate() {
   }
 
   return (
-    <div className="py-4">
-      <h1 className="text-lg font-bold">{t("title")}</h1>
-      <p className="text-muted-foreground">Hello World</p>
+    <div className="flex flex-col gap-6 py-4">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("description")}</p>
+      </div>
+
+      <StakeFormPanel />
     </div>
   );
 }

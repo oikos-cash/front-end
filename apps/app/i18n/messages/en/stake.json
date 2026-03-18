@@ -1,8 +1,21 @@
 {
   "stake": {
-    "title": "Stake",
+    "title": "Staking",
+    "description": "Stake your tokens to earn rewards. The longer you stake, the more you earn.",
     "connectTitle": "Connect Wallet",
     "connectDescription": "Connect your wallet to start staking.",
-    "connectButton": "Connect Wallet"
+    "connectButton": "Connect Wallet",
+    "stakeToken": "Stake {token}",
+    "amountToStake": "Amount to Stake",
+    "useMax": "Use max ({amount} {token})",
+    "youllReceive": "You'll receive",
+    "currentApr": "Current APR",
+    "stakeAction": "Stake",
+    "unstakeAll": "Unstake All",
+    "cooldownTooltip": "Please wait for cooldown to complete ({time} remaining)",
+    "errors": {
+      "required": "Amount is required",
+      "mustBePositive": "Amount must be greater than 0"
+    }
   }
 }

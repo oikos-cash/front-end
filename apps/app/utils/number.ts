@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -153,6 +153,46 @@ export function generateMockLiquidity(): LiquidityData {
   ];
 
   return { spotPrice, spotBnb, liquidityRatio, circulatingSupply, imvPrice, bars, details };
+}
+
+// =================================================
+//                STAKING MOCK
+// =================================================
+const COOLDOWN_DAYS = 3;
+const COOLDOWN_MS = COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+
+export function generateMockStakeData(token = "OKS"): StakeMockData {
+  const totalStaked = 850000 + Math.random() * 400000;
+  const totalRewards = 12000 + Math.random() * 8000;
+  const apr30d = 8 + Math.random() * 18;
+  const userStaked = 1200 + Math.random() * 3000;
+  const userRewards = userStaked * (apr30d / 100) * (30 / 365);
+  const userSTokenBalance = userStaked + userRewards;
+  const userBalance = 500 + Math.random() * 2000;
+
+  const hasCooldown = Math.random() > 0.5;
+  const cooldownEndsAt = hasCooldown
+    ? Date.now() + Math.random() * COOLDOWN_MS
+    : null;
+
+  return {
+    tokenSymbol: token,
+    sTokenSymbol: `s${token}`,
+    totalStaked: parseFloat(totalStaked.toFixed(2)),
+    apr30d: parseFloat(apr30d.toFixed(2)),
+    totalRewards: parseFloat(totalRewards.toFixed(4)),
+    userStaked: parseFloat(userStaked.toFixed(4)),
+    userSTokenBalance: parseFloat(userSTokenBalance.toFixed(4)),
+    userRewards: parseFloat(userRewards.toFixed(4)),
+    cooldownEndsAt,
+    userBalance: parseFloat(userBalance.toFixed(4)),
+  };
+}
+
+export function formatStakeNumber(value: number, decimals = 4): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
+  return value.toFixed(decimals);
 }
 
 // =================================================

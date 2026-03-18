@@ -1,6 +1,24 @@
 // =================================================
 //                      ATOMS
 // =================================================
+export interface ButtonAtomProps
+  extends React.ComponentProps<"button"> {
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+  size?: "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
+  asChild?: boolean;
+  isLoading?: boolean;
+}
+
+export interface CardProps {
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  header?: React.ReactNode;
+  footer?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}
+
 export interface AccordionProps {
   type?: "single" | "multiple";
   className?: string;
@@ -13,6 +31,8 @@ export interface CheckboxProps {
   disabled?: boolean;
   className?: string;
   id?: string;
+  label?: string;
+  description?: string;
 }
 
 export interface AlertProps {
@@ -58,10 +78,11 @@ export interface TableProps<TData, TValue> {
   className?: string;
 }
 
-export interface TokenIconProps {
-  token: string;
-  iconUrl?: string;
-  size?: number;
+export interface AvatarProps {
+  name: string;
+  src?: string;
+  size?: "sm" | "default" | "lg";
+  className?: string;
 }
 
 export interface ButtonGroupProps {
@@ -90,6 +111,27 @@ export interface ProgressBarProps {
   value: number;
   max: number;
   className?: string;
+}
+
+export interface InputProps extends React.ComponentProps<"input"> {
+  className?: string;
+}
+
+export interface TextareaProps extends React.ComponentProps<"textarea"> {
+  className?: string;
+}
+
+export interface FieldProps {
+  name: string;
+  control: import("react-hook-form").Control<any>;
+  label?: string;
+  description?: React.ReactNode;
+  children:
+    | React.ReactNode
+    | ((field: import("react-hook-form").ControllerRenderProps<any, string>) => React.ReactNode);
+  className?: string;
+  orientation?: "vertical" | "horizontal" | "responsive";
+  t?: (key: string) => string;
 }
 
 // =================================================
@@ -126,6 +168,7 @@ export interface TokenCardSkeletonProps {
 export interface StatsCardProps {
   variant: "spot" | "volume" | "marketCap" | "imv";
   title: string;
+  description?: string;
   subtitle?: string;
   value: string;
   change?: string;
@@ -134,8 +177,91 @@ export interface StatsCardProps {
 }
 
 // =================================================
+//                   FIELD RENDERER
+// =================================================
+interface FieldItemBase {
+  name: string;
+  label?: string;
+  description?: React.ReactNode;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  ariaLabel?: string;
+  endContent?: React.ReactNode;
+}
+
+export interface InputFieldItem extends FieldItemBase {
+  type: "text" | "number" | "email" | "tel" | "password" | "url" | "search";
+  min?: string | number;
+  max?: string | number;
+  step?: string | number;
+  pattern?: string;
+  autoComplete?: string;
+  readOnly?: boolean;
+  inputClassName?: string;
+}
+
+export interface SelectFieldItem extends FieldItemBase {
+  type: "select";
+  items: { value: string; label: string; href?: string }[];
+  defaultValue?: string;
+}
+
+export interface CheckboxFieldItem extends FieldItemBase {
+  type: "checkbox";
+}
+
+export interface TextareaFieldItem extends FieldItemBase {
+  type: "textarea";
+  rows?: number;
+  maxLength?: number;
+  textareaClassName?: string;
+}
+
+export type FieldItem =
+  | InputFieldItem
+  | SelectFieldItem
+  | CheckboxFieldItem
+  | TextareaFieldItem;
+
+export interface FieldRendererProps {
+  fields: FieldItem[];
+  control: import("react-hook-form").Control<any>;
+  t?: (key: string) => string;
+  className?: string;
+}
+
+// =================================================
 //                     ORGANISMS
 // =================================================
+export interface StakeFormPanelProps {
+  token?: string;
+}
+
+export interface StakeFormValues {
+  amount: string;
+}
+
+export interface TradeFormValues {
+  amount: string;
+  customSlippage: string;
+  useWbnb: boolean;
+  approveMax: boolean;
+}
+
+export interface StakeMockData {
+  tokenSymbol: string;
+  sTokenSymbol: string;
+  totalStaked: number;
+  apr30d: number;
+  totalRewards: number;
+  userStaked: number;
+  userSTokenBalance: number;
+  userRewards: number;
+  cooldownEndsAt: number | null;
+  userBalance: number;
+}
+
 export type TradeSide = "buy" | "sell";
 export type SlippageOption = "0.1" | "0.5" | "1" | "custom";
 
@@ -189,6 +315,9 @@ export interface SidebarProps {
 // =================================================
 //                     TEMPLATES
 // =================================================
+export interface StakeTemplateProps {
+  token?: string;
+}
 
 // =================================================
 //                       PAGES

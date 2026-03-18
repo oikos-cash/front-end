@@ -1,8 +1,21 @@
 {
   "stake": {
-    "title": "Stake",
+    "title": "Staking",
+    "description": "Stakea tus tokens para ganar recompensas. Mientras mas tiempo los mantengas, mas ganas.",
     "connectTitle": "Conectar Monedero",
     "connectDescription": "Conecta tu monedero para empezar a hacer staking.",
-    "connectButton": "Conectar Monedero"
+    "connectButton": "Conectar Monedero",
+    "stakeToken": "Stakear {token}",
+    "amountToStake": "Cantidad a Stakear",
+    "useMax": "Usar maximo ({amount} {token})",
+    "youllReceive": "Recibiras",
+    "currentApr": "APR Actual",
+    "stakeAction": "Stakear",
+    "unstakeAll": "Retirar Todo",
+    "cooldownTooltip": "Espera a que finalice el periodo de espera ({time} restante)",
+    "errors": {
+      "required": "La cantidad es requerida",
+      "mustBePositive": "La cantidad debe ser mayor a 0"
+    }
   }
 }
