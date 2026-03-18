@@ -1,5 +1,3 @@
-"use client";
-
 // Components
 import KpiCard from "@/components/molecules/kpi-card";
 import PriceChart from "@/components/organism/price-chart";

@@ -24,24 +24,26 @@ export default function Select({
   disabled,
   className,
   placeholder,
+  value,
   defaultValue,
   onValueChange,
 }: SelectProps) {
   const router = useRouter();
 
   // Methods
-  const handleValueChange = (value: string) => {
-    const item = items?.find((item) => item.value === value);
+  const handleValueChange = (newValue: string) => {
+    const item = items?.find((item) => item.value === newValue);
     if (item?.href) {
       router.push(item.href);
     } else if (onValueChange) {
-      onValueChange(value);
+      onValueChange(newValue);
     }
   };
 
   return (
     <Primitive
       disabled={disabled}
+      value={value}
       defaultValue={defaultValue}
       onValueChange={handleValueChange}
     >

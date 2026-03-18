@@ -1,5 +1,3 @@
-"use client";
-
 // Components
 import MarketsCatalog from "@/components/organism/markets-catalog";
 

@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Badge from "@/components/atoms/badge";
 import Card from "@/components/atoms/card";
 import Empty from "@/components/atoms/empty";
+import TradeInfo from "@/components/molecules/trade-info";
 import Button from "@/components/atoms/button";
 import ButtonGroup from "@/components/atoms/button-group";
 import FieldRenderer from "@/components/molecules/field-renderer";
@@ -189,39 +190,25 @@ export default function TradePanel() {
           {/* Use WBNB + Amount */}
           <FieldRenderer fields={amountFields} control={form.control} t={t} />
 
-          {/* Details Card */}
+          {/* Details */}
           {numericAmount > 0 && (
-            <Card className="bg-muted/50">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {t("receiving")}
-                  </span>
-                  <span className="text-xs font-medium">
-                    ≈ {formatCompactNumber(receiving)}{" "}
-                    {side === "buy" ? "OKS" : "BNB"}
-                  </span>
-                </div>
-                <div className="border-t border-border/50" />
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {t("priceImpact")}
-                  </span>
-                  <span className="text-xs font-medium">
-                    {priceImpact.toFixed(3)}%
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">
-                    {t("minReceived")}
-                  </span>
-                  <span className="text-xs font-medium">
-                    {formatCompactNumber(minReceived)}{" "}
-                    {side === "buy" ? "OKS" : "BNB"}
-                  </span>
-                </div>
-              </div>
-            </Card>
+            <TradeInfo
+              rows={[
+                {
+                  label: t("receiving"),
+                  value: `≈ ${formatCompactNumber(receiving)} ${side === "buy" ? "OKS" : "BNB"}`,
+                },
+                {
+                  label: t("priceImpact"),
+                  value: `${priceImpact.toFixed(3)}%`,
+                  variant: priceImpact > 1 ? "destructive" : "success",
+                },
+                {
+                  label: t("minReceived"),
+                  value: `${formatCompactNumber(minReceived)} ${side === "buy" ? "OKS" : "BNB"}`,
+                },
+              ]}
+            />
           )}
 
           {/* Slippage */}

@@ -102,6 +102,7 @@ export interface SelectProps {
   className?: string;
   disabled?: boolean;
   placeholder?: string;
+  value?: string;
   defaultValue?: string;
   onValueChange?: (value: string) => void;
   items: { value: string; label: string; href?: string }[];
@@ -276,6 +277,23 @@ export interface AvatarInfoProps {
 export interface BreadcrumbItem {
   label: string;
   href?: string;
+}
+
+export interface TradeInfoRow {
+  label: string;
+  value: string;
+  variant?: "default" | "success" | "destructive";
+}
+
+export interface TradeInfoProps {
+  rows: TradeInfoRow[];
+  className?: string;
+}
+
+export interface BannerProps {
+  namespace: string;
+  href: string;
+  variant?: "default" | "outline";
 }
 
 export interface PageHeaderProps {
@@ -501,6 +519,28 @@ export interface StudioStats {
   totalVolume: number;
   totalHolders: number;
   totalLiquidity: number;
+}
+
+export interface SwapToken {
+  symbol: string;
+  name: string;
+  balance: number;
+  price: number;
+}
+
+export interface SwapFormValues {
+  fromToken: string;
+  toToken: string;
+  fromAmount: string;
+}
+
+export interface RecentSwap {
+  id: string;
+  fromToken: string;
+  toToken: string;
+  fromAmount: number;
+  toAmount: number;
+  timestamp: Date;
 }
 
 // =================================================

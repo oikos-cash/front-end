@@ -1,5 +1,3 @@
-"use client";
-
 // Components
 import PageHeader from "@/components/molecules/page-header";
 import LaunchpadPoolForm from "@/components/organism/launchpad-pool-form";
