@@ -16,7 +16,7 @@
 - [x] **Presale** — `Presale.tsx` → `templates/presale.tsx` (KPI cards, contribution form with RHF/Zod, progress bar with live countdown, my contribution card)
 - [x] **Dividends** — `Dividends.tsx` → `templates/dividends.tsx` (KPI cards, OKS balance card, dividend token list with Lock/Withdraw, claim history with infinite scroll)
 - [x] **Studio** — `Studio.tsx` → `templates/studio.tsx` (KPI cards, token list with stats, creator dashboard)
-- [x] **Swap** — `Swap.tsx` → redundante (TradePanel en sidebar ya cumple esta funcion)
+- [x] **Swap** — `Swap.tsx` → `templates/swap.tsx` (universal DEX swap: token selectors, calculated output, exchange rate, price impact, recent swaps)
 - [ ] **Migrate** — `Migrate.tsx` → no creada (token migration: version selector, amount input)
 - [ ] **Linktree** — `Linktree.tsx` → no creada (link aggregation page con branding) — baja prioridad
 - [ ] **Home / Landing** — `Home.tsx` → no creada (landing page con hero section) — baja prioridad
@@ -43,6 +43,7 @@
 - [x] **Dividend Token List** — `Dividends.tsx` → `organism/dividend-token-list.tsx`
 - [x] **Dividend Claim History** — `Dividends.tsx` → `organism/dividend-claim-history.tsx`
 - [x] **Studio Token List** — `Studio.tsx` → `organism/studio-token-list.tsx`
+- [x] **Swap Form** — `Swap.tsx` → `organism/swap-form.tsx`
 
 ## No se migran
 

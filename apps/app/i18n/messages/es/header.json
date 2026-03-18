@@ -4,6 +4,7 @@
     "network": "BSC Mainnet",
     "connectWallet": "Conectar Billetera",
     "nav": {
+      "swap": "Intercambio",
       "exchange": "Intercambio",
       "liquidity": "Liquidez",
       "borrow": "Prestamo",

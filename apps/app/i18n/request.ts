@@ -25,6 +25,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
     ...(await import(`./messages/${locale}/presale.json`)).default,
     ...(await import(`./messages/${locale}/dividends.json`)).default,
     ...(await import(`./messages/${locale}/studio.json`)).default,
+    ...(await import(`./messages/${locale}/swap.json`)).default,
+    ...(await import(`./messages/${locale}/sidebar.json`)).default,
   };
 
   return { locale, messages };

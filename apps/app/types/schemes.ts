@@ -20,6 +20,28 @@ export const stakeSchema = z.object({
 });
 
 // =================================================
+//                      SWAP
+// =================================================
+
+/**
+ * Schema for the swap form.
+ * `fromToken` and `toToken` must be selected.
+ * `fromAmount` must be a positive number string.
+ * Error messages are i18n keys resolved by the component via useTranslations.
+ */
+export const swapSchema = z.object({
+  fromToken: z.string().min(1, "errors.required"),
+  toToken: z.string().min(1, "errors.required"),
+  fromAmount: z
+    .string()
+    .min(1, "errors.required")
+    .refine(
+      (v: string) => !isNaN(Number(v)) && Number(v) > 0,
+      "errors.mustBePositive"
+    ),
+});
+
+// =================================================
 //                     BORROW
 // =================================================
 

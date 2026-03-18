@@ -1,0 +1,29 @@
+{
+  "swap": {
+    "title": "Intercambio",
+    "description": "Intercambia cualquier token por otro al instante",
+    "from": "De",
+    "to": "A",
+    "selectToken": "Seleccionar token",
+    "amount": "Cantidad",
+    "useMax": "Usar maximo ({amount})",
+    "estimatedOutput": "Salida estimada",
+    "exchangeRate": "Tasa de Cambio",
+    "priceImpact": "Impacto de Precio",
+    "minReceived": "Minimo a Recibir",
+    "swapAction": "Intercambiar",
+    "flipTokens": "Invertir tokens",
+    "recentSwaps": "Intercambios Recientes",
+    "recentSwapsDesc": "Tus ultimas transacciones de intercambio",
+    "noRecentSwaps": "Sin intercambios recientes",
+    "time": "Tiempo",
+    "balance": "Balance",
+    "connectTitle": "Conectar Billetera",
+    "connectDescription": "Conecta tu billetera para empezar a intercambiar tokens",
+    "connectButton": "Conectar Billetera",
+    "errors": {
+      "required": "Este campo es obligatorio",
+      "mustBePositive": "La cantidad debe ser mayor a 0"
+    }
+  }
+}

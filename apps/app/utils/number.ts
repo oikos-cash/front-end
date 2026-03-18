@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData, StakeHistoryItem, LoanHistoryItem, PresaleMockData, DividendToken, DividendClaimHistory, StudioToken, StudioStats } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData, StakeHistoryItem, LoanHistoryItem, PresaleMockData, DividendToken, DividendClaimHistory, StudioToken, StudioStats, SwapToken, RecentSwap } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -506,6 +506,56 @@ export function generateMockDividendTokens(): DividendToken[] {
       totalDistributed,
       unvested,
       vested,
+    };
+  });
+}
+
+// =================================================
+//                SWAP MOCK
+// =================================================
+
+const SWAP_TOKEN_DATA: { symbol: string; name: string; price: number }[] = [
+  { symbol: "BNB", name: "BNB", price: 630 },
+  { symbol: "WBNB", name: "WBNB", price: 630 },
+  { symbol: "OKS", name: "OKS", price: 0.15 },
+  { symbol: "SFL", name: "SolarFlare", price: 1.25 },
+  { symbol: "NXD", name: "NexusDAO", price: 0.48 },
+  { symbol: "AQF", name: "AquaFi", price: 2.1 },
+  { symbol: "VTX", name: "VortexSwap", price: 0.72 },
+  { symbol: "USDT", name: "USDT", price: 1.0 },
+];
+
+export function generateMockSwapTokens(): SwapToken[] {
+  return SWAP_TOKEN_DATA.map((t) => ({
+    symbol: t.symbol,
+    name: t.name,
+    balance: parseFloat((100 + Math.random() * 9900).toFixed(4)),
+    price: t.price,
+  }));
+}
+
+export function calculateSwapOutput(fromAmount: number, fromPrice: number, toPrice: number): number {
+  if (fromAmount <= 0 || fromPrice <= 0 || toPrice <= 0) return 0;
+  return (fromAmount * fromPrice) / toPrice;
+}
+
+export function generateMockRecentSwaps(count: number, offset: number): RecentSwap[] {
+  const symbols = SWAP_TOKEN_DATA.map((t) => t.symbol);
+  return Array.from({ length: count }, (_, i) => {
+    const index = offset + i;
+    const fromIdx = index % symbols.length;
+    const toIdx = (index + 2) % symbols.length;
+    const fromAmount = parseFloat((0.5 + Math.random() * 100).toFixed(4));
+    const fromPrice = SWAP_TOKEN_DATA[fromIdx]!.price;
+    const toPrice = SWAP_TOKEN_DATA[toIdx]!.price;
+    const toAmount = (fromAmount * fromPrice) / toPrice;
+    return {
+      id: `swap-${index}`,
+      fromToken: symbols[fromIdx]!,
+      toToken: symbols[toIdx]!,
+      fromAmount,
+      toAmount: parseFloat(toAmount.toFixed(4)),
+      timestamp: new Date(Date.now() - index * 120000 - Math.random() * 300000),
     };
   });
 }

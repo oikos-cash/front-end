@@ -116,3 +116,20 @@ export const LAUNCHPAD_STEP_LABELS = [
   "stepPresale",
   "stepPreview",
 ] as const;
+
+// =================================================
+//                      SWAP
+// =================================================
+export const SWAP_HISTORY_PAGE_SIZE = 15;
+export const SWAP_HISTORY_MAX_ITEMS = 60;
+
+export const SWAP_TOKENS: { value: string; label: string }[] = [
+  { value: "BNB", label: "BNB" },
+  { value: "WBNB", label: "WBNB" },
+  { value: "OKS", label: "OKS" },
+  { value: "SFL", label: "SolarFlare" },
+  { value: "NXD", label: "NexusDAO" },
+  { value: "AQF", label: "AquaFi" },
+  { value: "VTX", label: "VortexSwap" },
+  { value: "USDT", label: "USDT" },
+];
