@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData, StakeHistoryItem, LoanHistoryItem, PresaleMockData, DividendToken, DividendClaimHistory } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData, StakeHistoryItem, LoanHistoryItem, PresaleMockData, DividendToken, DividendClaimHistory, StudioToken, StudioStats } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -444,6 +444,54 @@ const DIVIDEND_TOKEN_POOL = [
   { symbol: "AQF", name: "AquaFi", address: "0x4d5E6f7890AbCdEf1234567890AbCdEf04000000" },
   { symbol: "VTX", name: "VortexSwap", address: "0x5e6F7890aBcDeF1234567890AbCdEf0500000000" },
 ];
+
+// =================================================
+//                STUDIO MOCK
+// =================================================
+
+const STUDIO_TOKEN_POOL: { name: string; symbol: string }[] = [
+  { name: "SolarFlare", symbol: "SFL" },
+  { name: "NexusDAO", symbol: "NXD" },
+  { name: "AquaFi", symbol: "AQF" },
+  { name: "VortexSwap", symbol: "VTX" },
+  { name: "ZenithPay", symbol: "ZNP" },
+  { name: "IronVault", symbol: "IRV" },
+];
+
+const STUDIO_STATUSES: StudioToken["status"][] = ["active", "presale", "paused"];
+
+export function generateMockStudioData(): { tokens: StudioToken[]; stats: StudioStats } {
+  const count = 3 + Math.floor(Math.random() * 4);
+  const tokens: StudioToken[] = STUDIO_TOKEN_POOL.slice(0, count).map((pool, i) => {
+    const status = i < 2 ? "active" : STUDIO_STATUSES[i % 3]!;
+    const volume24h = parseFloat((1000 + Math.random() * 49000).toFixed(2));
+    const totalVolume = parseFloat((50000 + Math.random() * 450000).toFixed(2));
+    const holders = Math.floor(10 + Math.random() * 490);
+    const liquidity = parseFloat((5000 + Math.random() * 95000).toFixed(2));
+    const createdAt = new Date(Date.now() - Math.floor(Math.random() * 60) * 86400000);
+
+    return {
+      id: `studio-${i}`,
+      name: pool.name,
+      symbol: pool.symbol,
+      status,
+      volume24h,
+      totalVolume,
+      holders,
+      liquidity,
+      createdAt,
+    };
+  });
+
+  const stats: StudioStats = {
+    totalTokens: tokens.length,
+    totalVolume: parseFloat(tokens.reduce((sum, tk) => sum + tk.totalVolume, 0).toFixed(2)),
+    totalHolders: tokens.reduce((sum, tk) => sum + tk.holders, 0),
+    totalLiquidity: parseFloat(tokens.reduce((sum, tk) => sum + tk.liquidity, 0).toFixed(2)),
+  };
+
+  return { tokens, stats };
+}
 
 export function generateMockDividendTokens(): DividendToken[] {
   const count = 3 + Math.floor(Math.random() * 4);

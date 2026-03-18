@@ -15,8 +15,8 @@
 - [x] **Launchpad** — `Launchpad.tsx` → 4 pages (token/pool/presale/preview) with sidebar layout, Zustand persist store, i18n-driven cards, file upload, deploy mock
 - [x] **Presale** — `Presale.tsx` → `templates/presale.tsx` (KPI cards, contribution form with RHF/Zod, progress bar with live countdown, my contribution card)
 - [x] **Dividends** — `Dividends.tsx` → `templates/dividends.tsx` (KPI cards, OKS balance card, dividend token list with Lock/Withdraw, claim history with infinite scroll)
-- [ ] **Studio** — `Studio.tsx` → no creada (creator dashboard: analytics grid, token list, stats cards)
-- [ ] **Swap** — `Swap.tsx` → no creada (DEX swap simplificado: token selector, amount inputs, balance display)
+- [x] **Studio** — `Studio.tsx` → `templates/studio.tsx` (KPI cards, token list with stats, creator dashboard)
+- [x] **Swap** — `Swap.tsx` → redundante (TradePanel en sidebar ya cumple esta funcion)
 - [ ] **Migrate** — `Migrate.tsx` → no creada (token migration: version selector, amount input)
 - [ ] **Linktree** — `Linktree.tsx` → no creada (link aggregation page con branding) — baja prioridad
 - [ ] **Home / Landing** — `Home.tsx` → no creada (landing page con hero section) — baja prioridad
@@ -42,6 +42,7 @@
 - [x] **Presale Contribution Form** — `Presale.tsx` → `organism/presale-contribution-form.tsx`
 - [x] **Dividend Token List** — `Dividends.tsx` → `organism/dividend-token-list.tsx`
 - [x] **Dividend Claim History** — `Dividends.tsx` → `organism/dividend-claim-history.tsx`
+- [x] **Studio Token List** — `Studio.tsx` → `organism/studio-token-list.tsx`
 
 ## No se migran
 

@@ -27,6 +27,7 @@ export default function Header() {
     { value: "markets", label: t("nav.markets"), href: "/markets" },
     { value: "dividends", label: t("nav.dividends"), href: "/dividends" },
     { value: "launchpad", label: t("nav.launchpad"), href: "/launchpad" },
+    { value: "studio", label: t("nav.studio"), href: "/studio" },
   ];
 
   const networkItems = [{ value: "bsc-mainnet", label: t("network") }];
