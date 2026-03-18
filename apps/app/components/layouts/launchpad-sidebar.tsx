@@ -25,7 +25,7 @@ export default function LaunchpadSidebar({
   const t = useTranslations("launchpad");
   const pathname = usePathname();
   const router = useRouter();
-  const { completedSteps, enablePresale, markStepCompleted, isReadyToDeploy, reset } =
+  const { completedSteps, enablePresale, tokenSymbol, markStepCompleted, isReadyToDeploy, reset } =
     useLaunchpadStore();
   const [isDeploying, setIsDeploying] = useState(false);
 
@@ -98,11 +98,17 @@ export default function LaunchpadSidebar({
               isLoading={isDeploying}
               onClick={async () => {
                 setIsDeploying(true);
+                const symbol = tokenSymbol.toLowerCase();
+                const hasPresale = enablePresale;
                 await new Promise((r) => setTimeout(r, 3000));
                 markStepCompleted(3);
                 reset();
                 setIsDeploying(false);
-                router.push("/launchpad/token");
+                router.push(
+                  hasPresale
+                    ? `/presale/${symbol}`
+                    : `/liquidity/${symbol}`
+                );
               }}
             >
               {t("deployButton")}

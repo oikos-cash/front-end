@@ -66,7 +66,7 @@ export default function TokenCard({ token }: TokenCardProps) {
             <Link
               href={
                 token.isPresale
-                  ? "/launchpad"
+                  ? `/presale/${token.symbol.toLowerCase()}`
                   : `/trade/${token.symbol.toLowerCase()}`
               }
             >

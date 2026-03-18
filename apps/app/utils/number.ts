@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData, StakeHistoryItem, LoanHistoryItem } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData, StakeHistoryItem, LoanHistoryItem, PresaleMockData, DividendToken, DividendClaimHistory } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -283,6 +283,54 @@ export function calculateCollateralRequired(borrowAmount: number, imv: number): 
 export function calculateLoanFees(borrowAmount: number, duration: number, dailyRate: number): number {
   if (borrowAmount <= 0 || duration <= 0 || dailyRate <= 0) return 0;
   return parseFloat((borrowAmount * dailyRate * duration).toFixed(4));
+}
+
+// =================================================
+//                PRESALE MOCK
+// =================================================
+
+export function generateMockPresaleData(token = "OKS"): PresaleMockData {
+  const price = parseFloat((0.0001 + Math.random() * 0.0009).toFixed(6));
+  const hardCap = parseFloat((10 + Math.random() * 40).toFixed(2));
+  const softCap = parseFloat((hardCap * (0.3 + Math.random() * 0.2)).toFixed(2));
+  const raised = parseFloat((Math.random() * hardCap).toFixed(4));
+  const totalSupply = Math.floor(hardCap / price);
+  const contributors = Math.floor(5 + Math.random() * 45);
+  const endsAt = Date.now() + Math.floor((1 + Math.random() * 13) * 24 * 60 * 60 * 1000);
+  const softCapReached = raised >= softCap;
+
+  const statusRoll = Math.random();
+  const status: PresaleMockData["status"] =
+    statusRoll < 0.7 ? "active" : statusRoll < 0.85 ? "ended" : "finalized";
+
+  const minContribution = 0.01;
+  const maxContribution = parseFloat((2 + Math.random() * 3).toFixed(2));
+  const userContribution = Math.random() > 0.4
+    ? parseFloat((Math.random() * maxContribution).toFixed(4))
+    : 0;
+  const userTokens = userContribution > 0
+    ? parseFloat((userContribution / price).toFixed(4))
+    : 0;
+
+  return {
+    tokenName: token === "OKS" ? "Oikos" : token,
+    tokenSymbol: token,
+    tokenDescription: `${token} is a community-driven token launched on the Oikos platform.`,
+    tokenLogoUrl: "",
+    price,
+    hardCap,
+    softCap,
+    totalSupply,
+    raised,
+    contributors,
+    endsAt,
+    status,
+    softCapReached,
+    minContribution,
+    maxContribution,
+    userContribution,
+    userTokens,
+  };
 }
 
 // =================================================

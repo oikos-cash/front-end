@@ -70,6 +70,25 @@ export const tradeSchema = z.object({
 });
 
 // =================================================
+//                     PRESALE
+// =================================================
+
+/**
+ * Schema for the presale contribution form.
+ * `amount` must be a non-empty string representing a positive number.
+ * Error messages are i18n keys resolved by the component via useTranslations.
+ */
+export const presaleContributionSchema = z.object({
+  amount: z
+    .string()
+    .min(1, "errors.required")
+    .refine(
+      (v: string) => !isNaN(Number(v)) && Number(v) > 0,
+      "errors.mustBePositive"
+    ),
+});
+
+// =================================================
 //                    LAUNCHPAD
 // =================================================
 

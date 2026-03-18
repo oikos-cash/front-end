@@ -12,8 +12,8 @@
 - [x] **Liquidity** — `Liquidity.tsx` → `templates/liquidity.tsx` (chart + details table)
 - [x] **Stake** — `Stake.tsx` → `templates/stake.tsx` (KPI cards, staking form with RHF/Zod, cooldown timer, stake history with infinite scroll)
 - [x] **Borrow** — `Borrow.tsx` → `templates/borrow.tsx` (KPI cards, borrow form with RHF/Zod, loan history with infinite scroll)
-- [ ] **Launchpad** — `Launchpad.tsx` → `templates/launchpad.tsx` (placeholder — falta: multi-step wizard, presale creation form, token config)
-- [ ] **Presale** — `Presale.tsx` → no creada (progress bar, contribution form, stats, countdown timer)
+- [x] **Launchpad** — `Launchpad.tsx` → 4 pages (token/pool/presale/preview) with sidebar layout, Zustand persist store, i18n-driven cards, file upload, deploy mock
+- [x] **Presale** — `Presale.tsx` → `templates/presale.tsx` (KPI cards, contribution form with RHF/Zod, progress bar with live countdown, my contribution card)
 - [ ] **Dividends** — `Dividends.tsx` → no creada (multi-token dividend display, claim buttons, historical claims table)
 - [ ] **Studio** — `Studio.tsx` → no creada (creator dashboard: analytics grid, token list, stats cards)
 - [ ] **Swap** — `Swap.tsx` → no creada (DEX swap simplificado: token selector, amount inputs, balance display)
@@ -35,6 +35,11 @@
 - [x] **Stake History** — `Stake.tsx` → `organism/stake-history.tsx`
 - [x] **Borrow Form Panel** — `Borrow.tsx` → `organism/borrow-form-panel.tsx`
 - [x] **Loan History** — `Borrow.tsx` → `organism/loan-history.tsx`
+- [x] **Launchpad Token Form** — `Launchpad.tsx` → `organism/launchpad-token-form.tsx`
+- [x] **Launchpad Pool Form** — `Launchpad.tsx` → `organism/launchpad-pool-form.tsx`
+- [x] **Launchpad Presale Form** — `Launchpad.tsx` → `organism/launchpad-presale-form.tsx`
+- [x] **Presale Progress** — `Presale.tsx` → `organism/presale-progress.tsx`
+- [x] **Presale Contribution Form** — `Presale.tsx` → `organism/presale-contribution-form.tsx`
 
 ## No se migran
 

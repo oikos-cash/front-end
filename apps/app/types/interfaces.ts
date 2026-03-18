@@ -415,6 +415,62 @@ export const CHART_PERIODS = ["1d", "5d", "1m", "3m", "6m", "1y"] as const;
 export type ChartPeriod = (typeof CHART_PERIODS)[number];
 export type ChartType = "bars" | "line";
 
+export interface PresaleMockData {
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDescription: string;
+  tokenLogoUrl: string;
+  price: number;
+  hardCap: number;
+  softCap: number;
+  totalSupply: number;
+  raised: number;
+  contributors: number;
+  endsAt: number;
+  status: "active" | "ended" | "finalized";
+  softCapReached: boolean;
+  minContribution: number;
+  maxContribution: number;
+  userContribution: number;
+  userTokens: number;
+}
+
+export interface PresaleContributionFormValues {
+  amount: string;
+}
+
+export interface DividendToken {
+  tokenAddress: string;
+  tokenSymbol: string;
+  tokenName: string;
+  totalDistributed: number;
+  unvested: number;
+  vested: number;
+}
+
+export interface DividendClaimHistory {
+  id: string;
+  type: "lock" | "withdraw";
+  token: string;
+  amount: number;
+  txHash: string;
+  timestamp: Date;
+}
+
+export interface DividendClaimHistoryProps {
+  token?: string;
+}
+
+export interface PresaleProgressProps {
+  raised: number;
+  hardCap: number;
+  softCap: number;
+  softCapReached: boolean;
+  contributors: number;
+  endsAt: number;
+  status: "active" | "ended" | "finalized";
+}
+
 // =================================================
 //                      LAYOUTS
 // =================================================

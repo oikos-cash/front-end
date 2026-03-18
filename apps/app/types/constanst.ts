@@ -68,6 +68,21 @@ export const LABEL_COLORS: Record<string, string> = {
 };
 
 // =================================================
+//                     PRESALE
+// =================================================
+export const PRESALE_STATUS_VARIANT = {
+  active: "default",
+  ended: "secondary",
+  finalized: "outline",
+} as const;
+
+// =================================================
+//               DIVIDEND HISTORY
+// =================================================
+export const DIVIDEND_HISTORY_PAGE_SIZE = 15;
+export const DIVIDEND_HISTORY_MAX_ITEMS = 60;
+
+// =================================================
 //                    LAUNCHPAD
 // =================================================
 export const PRESALE_DURATION_OPTIONS = [

@@ -66,12 +66,18 @@ export default function LaunchpadPresaleForm() {
     if (hydrated.current) return;
     const unsub = useLaunchpadStore.persist.onFinishHydration(() => {
       const s = useLaunchpadStore.getState();
-      form.reset({ presaleDuration: s.presaleDuration, softCapPercent: s.softCapPercent });
+      form.reset({
+        presaleDuration: s.presaleDuration,
+        softCapPercent: s.softCapPercent,
+      });
       hydrated.current = true;
     });
     if (useLaunchpadStore.persist.hasHydrated()) {
       const s = useLaunchpadStore.getState();
-      form.reset({ presaleDuration: s.presaleDuration, softCapPercent: s.softCapPercent });
+      form.reset({
+        presaleDuration: s.presaleDuration,
+        softCapPercent: s.softCapPercent,
+      });
       hydrated.current = true;
     }
     return unsub;
@@ -98,7 +104,8 @@ export default function LaunchpadPresaleForm() {
     return (
       <Card>
         <Empty
-          title={t("presaleDisabled")}
+          title=""
+          description={t("presaleDisabled")}
           icon={<Info className="size-6 text-muted-foreground" />}
         />
       </Card>
@@ -120,7 +127,9 @@ export default function LaunchpadPresaleForm() {
           description={card.description}
           action={
             card.required && (
-              <Badge className="bg-blue-500/10 text-blue-500">{t("required")}</Badge>
+              <Badge className="bg-blue-500/10 text-blue-500">
+                {t("required")}
+              </Badge>
             )
           }
           footer={
