@@ -20,7 +20,7 @@ import type {
   I18nCardConfig,
   LaunchpadPoolFormValues,
 } from "@/types/interfaces";
-import { RESERVE_ASSET_OPTIONS, PROTOCOL_OPTIONS } from "@/types/constanst";
+import { RESERVE_ASSET_OPTIONS, PROTOCOL_OPTIONS } from "@/types/constants";
 
 const SELECT_ITEMS: Record<string, { value: string; label: string }[]> = {
   reserveAsset: RESERVE_ASSET_OPTIONS,

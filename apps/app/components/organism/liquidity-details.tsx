@@ -13,7 +13,7 @@ import { useTranslations } from "next-intl";
 import type { LiquidityDetail } from "@/types/interfaces";
 
 // Constants
-import { LABEL_COLORS } from "@/types/constanst";
+import { LABEL_COLORS } from "@/types/constants";
 
 export default function LiquidityDetails({
   details,

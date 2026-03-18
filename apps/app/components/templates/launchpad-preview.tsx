@@ -16,7 +16,7 @@ import { useLaunchpadStore } from "@/stores/launchpad";
 
 // Types
 import type { I18nPreviewCard } from "@/types/interfaces";
-import { PRESALE_DURATION_OPTIONS } from "@/types/constanst";
+import { PRESALE_DURATION_OPTIONS } from "@/types/constants";
 
 export default function LaunchpadPreviewTemplate() {
   const t = useTranslations("launchpad");

@@ -27,7 +27,7 @@ import {
 } from "@/utils/number";
 
 // Constants
-import { BORROW_DURATION_OPTIONS } from "@/types/constanst";
+import { BORROW_DURATION_OPTIONS } from "@/types/constants";
 
 export default function BorrowFormPanel({ token = "OKS" }: BorrowFormPanelProps) {
   const t = useTranslations("borrow");

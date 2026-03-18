@@ -21,7 +21,7 @@ import type {
   I18nCardConfig,
   LaunchpadPresaleFormValues,
 } from "@/types/interfaces";
-import { PRESALE_DURATION_OPTIONS } from "@/types/constanst";
+import { PRESALE_DURATION_OPTIONS } from "@/types/constants";
 
 // Icons
 import { Info } from "lucide-react";

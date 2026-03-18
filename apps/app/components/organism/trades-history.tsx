@@ -26,7 +26,7 @@ import { timeAgo } from "@/utils/date";
 import { truncateAddress } from "@/utils/string";
 
 // Constants
-import { TRADES_PAGE_SIZE, TRADES_MAX_TRADES } from "@/types/constanst";
+import { TRADES_PAGE_SIZE, TRADES_MAX_TRADES } from "@/types/constants";
 
 // Helpers
 function generateMockTrades(count: number, offset: number): Trade[] {

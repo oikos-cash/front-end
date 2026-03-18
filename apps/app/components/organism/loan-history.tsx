@@ -25,7 +25,7 @@ import { truncateAddress } from "@/utils/string";
 import { generateMockLoanHistory, formatStakeNumber } from "@/utils/number";
 
 // Constants
-import { LOAN_HISTORY_PAGE_SIZE, LOAN_HISTORY_MAX_ITEMS } from "@/types/constanst";
+import { LOAN_HISTORY_PAGE_SIZE, LOAN_HISTORY_MAX_ITEMS } from "@/types/constants";
 
 export default function LoanHistory({ token = "OKS" }: LoanHistoryProps) {
   const t = useTranslations("borrow");

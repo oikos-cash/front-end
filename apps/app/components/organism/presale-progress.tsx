@@ -14,7 +14,7 @@ import { useTranslations } from "next-intl";
 import type { PresaleProgressProps } from "@/types/interfaces";
 
 // Constants
-import { PRESALE_STATUS_VARIANT } from "@/types/constanst";
+import { PRESALE_STATUS_VARIANT } from "@/types/constants";
 
 function formatCountdown(ms: number): string {
   if (ms <= 0) return "0d 0h 0m 0s";

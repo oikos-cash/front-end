@@ -20,7 +20,7 @@ import { MarketToken } from "@/types/interfaces";
 import { generateMockMarketTokens } from "@/utils/number";
 
 // Constants
-import { MARKETS_PAGE_SIZE, MARKETS_MAX_TOKENS } from "@/types/constanst";
+import { MARKETS_PAGE_SIZE, MARKETS_MAX_TOKENS } from "@/types/constants";
 
 export default function MarketsCatalog() {
   const t = useTranslations("markets");

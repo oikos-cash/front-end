@@ -33,7 +33,7 @@ import {
 import { Lock, Wallet, Settings } from "lucide-react";
 
 // Constants
-import { SLIPPAGE_OPTIONS } from "@/types/constanst";
+import { SLIPPAGE_OPTIONS } from "@/types/constants";
 
 export default function TradePanel() {
   const t = useTranslations("trade");

@@ -25,7 +25,7 @@ import { truncateAddress } from "@/utils/string";
 import { generateMockStakeHistory, formatStakeNumber } from "@/utils/number";
 
 // Constants
-import { STAKE_HISTORY_PAGE_SIZE, STAKE_HISTORY_MAX_ITEMS } from "@/types/constanst";
+import { STAKE_HISTORY_PAGE_SIZE, STAKE_HISTORY_MAX_ITEMS } from "@/types/constants";
 
 export default function StakeHistory({ token = "OKS" }: StakeHistoryProps) {
   const t = useTranslations("stake");

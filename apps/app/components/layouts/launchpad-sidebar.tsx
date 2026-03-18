@@ -12,7 +12,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useLaunchpadStore } from "@/stores/launchpad";
 
 // Constants
-import { LAUNCHPAD_STEPS, LAUNCHPAD_STEP_LABELS } from "@/types/constanst";
+import { LAUNCHPAD_STEPS, LAUNCHPAD_STEP_LABELS } from "@/types/constants";
 
 // Icons
 import { ChevronLeft, ChevronRight } from "lucide-react";
