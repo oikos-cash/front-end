@@ -58,7 +58,14 @@ export default function PresaleTemplate() {
 
   return (
     <div className="flex flex-col gap-6 py-4">
-      <PageHeader title={t("title")} description={t("description")} />
+      <PageHeader
+        title={t("title")}
+        description={t("description")}
+        breadcrumbs={[
+          { label: "Markets", href: "/markets" },
+          { label: presaleData.tokenSymbol },
+        ]}
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard

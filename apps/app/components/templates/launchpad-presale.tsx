@@ -15,6 +15,10 @@ export default function LaunchpadPresaleTemplate() {
       <PageHeader
         title={t("presalePage.title")}
         description={t("presalePage.description")}
+        breadcrumbs={[
+          { label: t("title"), href: "/launchpad/token" },
+          { label: t("stepPresale") },
+        ]}
       />
       <LaunchpadPresaleForm />
     </div>

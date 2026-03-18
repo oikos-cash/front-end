@@ -15,6 +15,10 @@ export default function LaunchpadPoolTemplate() {
       <PageHeader
         title={t("poolPage.title")}
         description={t("poolPage.description")}
+        breadcrumbs={[
+          { label: t("title"), href: "/launchpad/token" },
+          { label: t("stepPoolSetup") },
+        ]}
       />
       <LaunchpadPoolForm />
     </div>

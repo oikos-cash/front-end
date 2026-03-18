@@ -273,9 +273,15 @@ export interface AvatarInfoProps {
   size?: "sm" | "default" | "lg";
 }
 
+export interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
 export interface PageHeaderProps {
   title: string;
   description?: string;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
 export interface I18nCardConfig {
@@ -476,6 +482,25 @@ export interface PresaleProgressProps {
   contributors: number;
   endsAt: number;
   status: "active" | "ended" | "finalized";
+}
+
+export interface StudioToken {
+  id: string;
+  name: string;
+  symbol: string;
+  status: "active" | "presale" | "paused";
+  volume24h: number;
+  totalVolume: number;
+  holders: number;
+  liquidity: number;
+  createdAt: Date;
+}
+
+export interface StudioStats {
+  totalTokens: number;
+  totalVolume: number;
+  totalHolders: number;
+  totalLiquidity: number;
 }
 
 // =================================================

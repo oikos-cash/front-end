@@ -83,6 +83,10 @@ export default function LaunchpadPreviewTemplate() {
       <PageHeader
         title={t("previewPage.title")}
         description={t("previewPage.description")}
+        breadcrumbs={[
+          { label: t("title"), href: "/launchpad/token" },
+          { label: t("stepPreview") },
+        ]}
       />
 
       <Alert

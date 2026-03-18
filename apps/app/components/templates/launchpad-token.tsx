@@ -15,6 +15,10 @@ export default function LaunchpadTokenTemplate() {
       <PageHeader
         title={t("tokenPage.title")}
         description={t("tokenPage.description")}
+        breadcrumbs={[
+          { label: t("title"), href: "/launchpad/token" },
+          { label: t("stepTokenInfo") },
+        ]}
       />
       <LaunchpadTokenForm />
     </div>
