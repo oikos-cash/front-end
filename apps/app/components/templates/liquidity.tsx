@@ -6,7 +6,7 @@ import { useCallback, useMemo, useState } from "react";
 import Button from "@/components/atoms/button";
 import ButtonGroup from "@/components/atoms/button-group";
 import Tooltip from "@/components/atoms/tooltip";
-import StatsCard from "@/components/molecules/stats-card";
+import KpiCard from "@/components/molecules/kpi-card";
 import LiquidityChart from "@/components/organism/liquidity-chart";
 import LiquidityDetails from "@/components/organism/liquidity-details";
 
@@ -32,14 +32,14 @@ export default function LiquidityTemplate() {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-1 gap-3 pt-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatsCard
-          variant="spot"
+        <KpiCard
+
           title={t("spotPrice")}
           value={`$${data.spotPrice.toFixed(4)}`}
           secondary={`${data.spotBnb.toFixed(8)} BNB`}
         />
-        <StatsCard
-          variant="volume"
+        <KpiCard
+
           title={t("liquidityRatio")}
           value={data.liquidityRatio.toFixed(4)}
           secondary={t("protocolHealth")}
@@ -54,14 +54,14 @@ export default function LiquidityTemplate() {
             </ButtonGroup>
           }
         />
-        <StatsCard
-          variant="marketCap"
+        <KpiCard
+
           title={t("circulatingSupply")}
           value={data.circulatingSupply.toLocaleString()}
           secondary="OKS"
         />
-        <StatsCard
-          variant="imv"
+        <KpiCard
+
           title={t("imvPrice")}
           value={`$${data.imvPrice.toFixed(4)}`}
           secondary={t("floorProtection")}

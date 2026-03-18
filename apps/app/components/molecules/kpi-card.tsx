@@ -1,12 +1,11 @@
 import Badge from "@/components/atoms/badge";
 import Card from "@/components/atoms/card";
-import { StatsCardProps } from "@/types/interfaces";
+import { KpiCardProps } from "@/types/interfaces";
 
 // Icons
 import { TrendingDown, TrendingUp } from "lucide-react";
 
-export default function StatsCard({
-  variant,
+export default function KpiCard({
   title,
   description,
   subtitle,
@@ -14,7 +13,7 @@ export default function StatsCard({
   change,
   secondary,
   actions,
-}: StatsCardProps) {
+}: KpiCardProps) {
   const isNegative = change?.startsWith("-");
 
   return (
@@ -25,8 +24,8 @@ export default function StatsCard({
     >
       <div>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-lg font-bold">{value}</span>
-          {variant === "spot" && change && (
+          <span className="text-lg font-semibold">{value}</span>
+          {change && (
             <Badge
               variant="outline"
               className={isNegative ? "text-destructive" : "text-success"}
@@ -36,15 +35,19 @@ export default function StatsCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">{secondary}</span>
-          {variant === "spot" &&
-            (isNegative ? (
-              <TrendingDown className="size-3.5 text-destructive" />
-            ) : (
-              <TrendingUp className="size-3.5 text-success" />
-            ))}
-        </div>
+        {(secondary || change) && (
+          <div className="flex items-center gap-1.5">
+            {secondary && (
+              <span className="text-xs text-muted-foreground">{secondary}</span>
+            )}
+            {change &&
+              (isNegative ? (
+                <TrendingDown className="size-3.5 text-destructive" />
+              ) : (
+                <TrendingUp className="size-3.5 text-success" />
+              ))}
+          </div>
+        )}
       </div>
     </Card>
   );

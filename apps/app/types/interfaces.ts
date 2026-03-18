@@ -165,14 +165,13 @@ export interface TokenCardSkeletonProps {
   count?: number;
 }
 
-export interface StatsCardProps {
-  variant: "spot" | "volume" | "marketCap" | "imv";
+export interface KpiCardProps {
   title: string;
   description?: string;
   subtitle?: string;
   value: string;
   change?: string;
-  secondary: string;
+  secondary?: string;
   actions?: React.ReactNode;
 }
 
@@ -240,6 +239,20 @@ export interface StakeFormPanelProps {
 
 export interface StakeFormValues {
   amount: string;
+}
+
+export interface StakeHistoryItem {
+  id: string;
+  type: "stake" | "unstake";
+  amount: number;
+  rewards: number;
+  token: string;
+  txHash: string;
+  timestamp: Date;
+}
+
+export interface StakeHistoryProps {
+  token?: string;
 }
 
 export interface TradeFormValues {

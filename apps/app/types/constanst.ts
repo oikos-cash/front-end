@@ -34,6 +34,12 @@ export const TRADES_MAX_TRADES = 100;
 export const SLIPPAGE_OPTIONS: Exclude<SlippageOption, "custom">[] = ["0.1", "0.5", "1"];
 
 // =================================================
+//                 STAKE HISTORY
+// =================================================
+export const STAKE_HISTORY_PAGE_SIZE = 15;
+export const STAKE_HISTORY_MAX_ITEMS = 60;
+
+// =================================================
 //               LIQUIDITY DETAILS
 // =================================================
 export const LABEL_COLORS: Record<string, string> = {

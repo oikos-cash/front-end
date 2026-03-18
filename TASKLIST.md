@@ -10,7 +10,7 @@
 - [x] **Home / Exchange** — `Exchange.tsx` → `templates/home.tsx` (parcial — falta swap modal, order book)
 - [x] **Markets / Showcase** — `Showcase.tsx` → `templates/markets.tsx` (catalogo con infinite scroll)
 - [x] **Liquidity** — `Liquidity.tsx` → `templates/liquidity.tsx` (chart + details table)
-- [ ] **Stake** — `Stake.tsx` → `templates/stake.tsx` (placeholder — falta: staking form, APY display, cooldown timer, harvest button, rewards info)
+- [x] **Stake** — `Stake.tsx` → `templates/stake.tsx` (KPI cards, staking form with RHF/Zod, cooldown timer, stake history with infinite scroll)
 - [ ] **Borrow** — `Borrow.tsx` → `templates/borrow.tsx` (placeholder — falta: collateral input, loan history table, repay/roll/hedge modals, position summary)
 - [ ] **Launchpad** — `Launchpad.tsx` → `templates/launchpad.tsx` (placeholder — falta: multi-step wizard, presale creation form, token config)
 - [ ] **Presale** — `Presale.tsx` → no creada (progress bar, contribution form, stats, countdown timer)
@@ -31,6 +31,8 @@
 - [x] **Liquidity Details** — `Liquidity.tsx` → `organism/liquidity-details.tsx`
 - [x] **Wallet Panel** — `WalletSidebar.tsx` → `organism/wallet-panel.tsx`
 - [x] **Markets Catalog** — `Showcase.tsx` → `organism/markets-catalog.tsx`
+- [x] **Stake Form Panel** — `Stake.tsx` → `organism/stake-form-panel.tsx`
+- [x] **Stake History** — `Stake.tsx` → `organism/stake-history.tsx`
 
 ## No se migran
 

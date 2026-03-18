@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData, StakeHistoryItem } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -193,6 +193,31 @@ export function formatStakeNumber(value: number, decimals = 4): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
   return value.toFixed(decimals);
+}
+
+export function generateMockStakeHistory(count: number, offset: number, token = "OKS"): StakeHistoryItem[] {
+  const wallets = [
+    "0x1a2B3c4D5e6F7890abCdEf1234567890AbCdEf12",
+    "0xaBcDeF1234567890aBcDeF1234567890AbCdEf34",
+    "0x9876543210FeDcBa9876543210FeDcBa98765432",
+  ];
+
+  return Array.from({ length: count }, (_, i) => {
+    const index = offset + i;
+    const isStake = Math.random() > 0.35;
+    const amount = parseFloat((500 + Math.random() * 5000).toFixed(4));
+    const rewards = isStake ? 0 : parseFloat((amount * (0.02 + Math.random() * 0.08)).toFixed(4));
+
+    return {
+      id: `stake-${index}`,
+      type: isStake ? "stake" as const : "unstake" as const,
+      amount,
+      rewards,
+      token,
+      txHash: `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
+      timestamp: new Date(Date.now() - index * 120000 - Math.random() * 300000),
+    };
+  });
 }
 
 // =================================================
