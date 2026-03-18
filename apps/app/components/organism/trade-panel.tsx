@@ -1,17 +1,24 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 // Components
 import Badge from "@/components/atoms/badge";
+import Card from "@/components/atoms/card";
 import Empty from "@/components/atoms/empty";
 import Button from "@/components/atoms/button";
-import Checkbox from "@/components/atoms/checkbox";
 import ButtonGroup from "@/components/atoms/button-group";
+import FieldRenderer from "@/components/molecules/field-renderer";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
+
+// Types
+import type { TradeSide, SlippageOption, TradeFormValues, FieldItem } from "@/types/interfaces";
+import { tradeSchema } from "@/types/schemes";
 
 // Utils
 import {
@@ -22,29 +29,32 @@ import {
   calculateReceivingAmount,
 } from "@/utils/number";
 
-// Types
-import type { TradeSide, SlippageOption } from "@/types/interfaces";
-
 // Icons
 import { Lock, Wallet, Settings } from "lucide-react";
 
-const SLIPPAGE_OPTIONS: Exclude<SlippageOption, "custom">[] = [
-  "0.1",
-  "0.5",
-  "1",
-];
+// Constants
+import { SLIPPAGE_OPTIONS } from "@/types/constanst";
 
 export default function TradePanel() {
   const t = useTranslations("trade");
   const { isConnected, balances, handleConnect } = useWallet();
 
   const [side, setSide] = useState<TradeSide>("buy");
-  const [amount, setAmount] = useState("");
   const [slippage, setSlippage] = useState<SlippageOption>("0.5");
-  const [customSlippage, setCustomSlippage] = useState("");
-  const [useWbnb, setUseWbnb] = useState(false);
-  const [approveMax, setApproveMax] = useState(false);
 
+  const form = useForm<TradeFormValues>({
+    resolver: zodResolver(tradeSchema),
+    defaultValues: {
+      amount: "",
+      customSlippage: "",
+      useWbnb: false,
+      approveMax: false,
+    },
+    mode: "onChange",
+  });
+
+  const amount = form.watch("amount");
+  const customSlippage = form.watch("customSlippage");
   const numericAmount = parseFloat(amount) || 0;
   const slippagePct =
     slippage === "custom"
@@ -70,28 +80,94 @@ export default function TradePanel() {
 
   function handleUseMax() {
     if (bnbBalance) {
-      setAmount(bnbBalance.amount);
+      form.setValue("amount", bnbBalance.amount, { shouldValidate: true });
     }
   }
 
-  return (
-    <div className="flex flex-col gap-4 p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">{t("title")}</h3>
-        <Badge
-          variant={side === "buy" ? "default" : "destructive"}
-          className="text-xs"
-        >
-          {side === "buy" ? t("buying") : t("selling")}
-        </Badge>
-      </div>
+  function onSubmit(data: TradeFormValues) {
+    console.log("Trade:", side, data);
+  }
 
-      {isConnected ? (
-        <div className="flex flex-col gap-3">
+  const amountFields: FieldItem[] = [
+    {
+      type: "checkbox",
+      name: "useWbnb",
+      label: t("useWbnb"),
+      description: t("useWbnbDescription"),
+    },
+    {
+      type: "number",
+      name: "amount",
+      label: t("amount"),
+      placeholder: "0.00",
+      step: "any",
+      min: 0,
+      ariaLabel: t("amount"),
+      description: `${t("balance")}: ${balanceLabel}`,
+      endContent: (
+        <Button size="default" variant="outline" onClick={handleUseMax} type="button">
+          {t("useMax")}
+        </Button>
+      ),
+    },
+  ];
+
+  const slippageField: FieldItem[] = slippage === "custom"
+    ? [
+        {
+          type: "number",
+          name: "customSlippage",
+          placeholder: "0.00%",
+          step: "any",
+          min: 0,
+          max: 50,
+          ariaLabel: t("maxSlippage"),
+        },
+      ]
+    : [];
+
+  const approveField: FieldItem[] = [
+    {
+      type: "checkbox",
+      name: "approveMax",
+      label: t("approveMax"),
+      description: t("approveMaxDescription"),
+    },
+  ];
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <Card
+        title={t("title")}
+        description={t("description")}
+        action={
+          <Badge
+            variant={side === "buy" ? "default" : "destructive"}
+            className="text-xs"
+          >
+            {side === "buy" ? t("buying") : t("selling")}
+          </Badge>
+        }
+        footer={
+          isConnected && (
+            <div className="flex w-full justify-end">
+              <Button
+                type="submit"
+                variant={side === "buy" ? "default" : "destructive"}
+                disabled={!form.formState.isValid}
+              >
+                {side === "buy" ? t("buyOks") : t("sellOks")}
+              </Button>
+            </div>
+          )
+        }
+      >
+        {isConnected ? (
+          <div className="flex flex-col gap-3">
           {/* Buy/Sell Toggle */}
-          <ButtonGroup>
+          <ButtonGroup className="self-center">
             <Button
+              type="button"
               size="sm"
               variant={side === "buy" ? "default" : "outline"}
               className="flex-1"
@@ -100,6 +176,7 @@ export default function TradePanel() {
               {t("buy")}
             </Button>
             <Button
+              type="button"
               size="sm"
               variant={side === "sell" ? "destructive" : "outline"}
               className="flex-1"
@@ -109,85 +186,52 @@ export default function TradePanel() {
             </Button>
           </ButtonGroup>
 
-          {/* Amount Section */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium">{t("amount")}</span>
-              <span className="text-xs text-muted-foreground">
-                {t("balance")}: {balanceLabel}
-              </span>
-            </div>
+          {/* Use WBNB + Amount */}
+          <FieldRenderer fields={amountFields} control={form.control} t={t} />
 
-            <label className="flex cursor-pointer items-start gap-2">
-              <Checkbox
-                className="mt-0.5"
-                checked={useWbnb}
-                onCheckedChange={(v) => setUseWbnb(v as boolean)}
-              />
-              <div className="flex flex-col">
-                <span className="text-xs font-medium">{t("useWbnb")}</span>
-                <span className="text-xs text-muted-foreground">
-                  {t("useWbnbDescription")}
-                </span>
-              </div>
-            </label>
-
-            <ButtonGroup className="w-full">
-              <input
-                type="number"
-                step="any"
-                min="0"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="h-9 w-full min-w-0 flex-1 rounded-md border border-border bg-background px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              />
-              <Button size="default" variant="outline" onClick={handleUseMax}>
-                {t("useMax")}
-              </Button>
-            </ButtonGroup>
-          </div>
-
-          {/* Details Card (visible when amount > 0) */}
+          {/* Details Card */}
           {numericAmount > 0 && (
-            <div className="flex flex-col gap-2 rounded-lg bg-muted/50 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {t("receiving")}
-                </span>
-                <span className="text-xs font-medium">
-                  ≈ {formatCompactNumber(receiving)}{" "}
-                  {side === "buy" ? "OKS" : "BNB"}
-                </span>
+            <Card className="bg-muted/50">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {t("receiving")}
+                  </span>
+                  <span className="text-xs font-medium">
+                    ≈ {formatCompactNumber(receiving)}{" "}
+                    {side === "buy" ? "OKS" : "BNB"}
+                  </span>
+                </div>
+                <div className="border-t border-border/50" />
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {t("priceImpact")}
+                  </span>
+                  <span className="text-xs font-medium">
+                    {priceImpact.toFixed(3)}%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {t("minReceived")}
+                  </span>
+                  <span className="text-xs font-medium">
+                    {formatCompactNumber(minReceived)}{" "}
+                    {side === "buy" ? "OKS" : "BNB"}
+                  </span>
+                </div>
               </div>
-              <div className="border-t border-border/50" />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {t("priceImpact")}
-                </span>
-                <span className="text-xs font-medium">
-                  {priceImpact.toFixed(3)}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {t("minReceived")}
-                </span>
-                <span className="text-xs font-medium">
-                  {formatCompactNumber(minReceived)}{" "}
-                  {side === "buy" ? "OKS" : "BNB"}
-                </span>
-              </div>
-            </div>
+            </Card>
           )}
 
           {/* Slippage */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col items-start gap-2">
             <span className="text-xs font-medium">{t("maxSlippage")}</span>
             <ButtonGroup>
               {SLIPPAGE_OPTIONS.map((opt) => (
                 <Button
                   key={opt}
+                  type="button"
                   size="xs"
                   variant={slippage === opt ? "default" : "outline"}
                   onClick={() => setSlippage(opt)}
@@ -196,6 +240,7 @@ export default function TradePanel() {
                 </Button>
               ))}
               <Button
+                type="button"
                 size="xs"
                 variant={slippage === "custom" ? "default" : "outline"}
                 onClick={() => setSlippage("custom")}
@@ -203,18 +248,7 @@ export default function TradePanel() {
                 {t("custom")}
               </Button>
             </ButtonGroup>
-            {slippage === "custom" && (
-              <input
-                type="number"
-                step="any"
-                min="0"
-                max="50"
-                value={customSlippage}
-                onChange={(e) => setCustomSlippage(e.target.value)}
-                placeholder="0.00%"
-                className="h-7 w-full rounded-md border border-border bg-background px-2 text-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              />
-            )}
+            <FieldRenderer fields={slippageField} control={form.control} t={t} />
           </div>
 
           {/* Network Fee */}
@@ -234,28 +268,7 @@ export default function TradePanel() {
           </div>
 
           {/* Approve Max */}
-          <label className="flex cursor-pointer items-start gap-2">
-            <Checkbox
-              className="mt-0.5"
-              checked={approveMax}
-              onCheckedChange={(v) => setApproveMax(v as boolean)}
-            />
-            <div className="flex flex-col">
-              <span className="text-xs font-medium">{t("approveMax")}</span>
-              <span className="text-xs text-muted-foreground">
-                {t("approveMaxDescription")}
-              </span>
-            </div>
-          </label>
-
-          {/* CTA */}
-          <Button
-            variant={side === "buy" ? "default" : "destructive"}
-            className="w-full"
-            disabled={numericAmount <= 0}
-          >
-            {side === "buy" ? t("buyOks") : t("sellOks")}
-          </Button>
+          <FieldRenderer fields={approveField} control={form.control} t={t} />
         </div>
       ) : (
         <Empty
@@ -269,6 +282,7 @@ export default function TradePanel() {
           </Button>
         </Empty>
       )}
-    </div>
+      </Card>
+    </form>
   );
 }

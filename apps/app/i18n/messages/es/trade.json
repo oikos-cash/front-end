@@ -1,6 +1,7 @@
 {
   "trade": {
     "title": "Operar OKS",
+    "description": "Compra y vende tokens OKS al instante con bajas comisiones",
     "buying": "COMPRANDO",
     "selling": "VENDIENDO",
     "buy": "Comprar",
@@ -22,6 +23,11 @@
     "sellOks": "Vender OKS",
     "connectTitle": "Conecta tu Billetera",
     "connectDescription": "Conecta tu billetera para comprar y vender tokens OKS",
-    "connectButton": "Conectar Billetera"
+    "connectButton": "Conectar Billetera",
+    "errors": {
+      "required": "La cantidad es requerida",
+      "mustBePositive": "La cantidad debe ser mayor a 0",
+      "slippageRange": "El slippage debe estar entre 0 y 50"
+    }
   }
 }

@@ -8,7 +8,11 @@ import { scaleLinear } from "@visx/scale";
 import { Bar } from "@visx/shape";
 
 // Components
+import Card from "@/components/atoms/card";
 import Skeleton from "@/components/atoms/skeleton";
+
+// Hooks
+import { useTranslations } from "next-intl";
 
 // Types
 import type { LiquidityBar } from "@/types/interfaces";
@@ -134,11 +138,13 @@ function Chart({
 }
 
 export default function LiquidityChart({ bars, spotPrice }: LiquidityChartProps) {
+  const t = useTranslations("liquidity");
   const [ready, setReady] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
 
   return (
-    <div className="relative h-75 rounded-md border border-border">
+    <Card title={t("chartTitle")} description={t("chartDescription")}>
+      <div className="relative h-75">
       {!ready && <Skeleton className="absolute inset-0 z-10 rounded-md" />}
       <div className={!ready ? "invisible" : ""}>
         <ParentSize debounceTime={100}>
@@ -175,6 +181,7 @@ export default function LiquidityChart({ bars, spotPrice }: LiquidityChartProps)
           </p>
         </div>
       )}
-    </div>
+      </div>
+    </Card>
   );
 }

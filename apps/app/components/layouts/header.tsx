@@ -54,7 +54,6 @@ export default function Header() {
         <Badge variant="default">{t("beta")}</Badge>
       </div>
 
-      {/* Desktop */}
       <div className="hidden items-center gap-3 md:flex">
         <Badge variant="outline">
           BNB/USD $630.0900 <span className="text-success">+7.19%</span>
@@ -85,7 +84,6 @@ export default function Header() {
         )}
       </div>
 
-      {/* Mobile */}
       <div className="md:hidden">
         <Drawer
           title=""

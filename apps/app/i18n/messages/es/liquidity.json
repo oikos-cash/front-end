@@ -1,6 +1,10 @@
 {
   "liquidity": {
     "title": "Liquidez",
+    "chartTitle": "Distribucion de Liquidez",
+    "chartDescription": "Liquidez del token a traves de rangos de precio",
+    "detailsTitle": "Detalles de Liquidez",
+    "detailsDescription": "Reservas, capacidad y rangos de tick por posicion",
     "spotPrice": "Precio Spot",
     "liquidityRatio": "Ratio de Liquidez",
     "circulatingSupply": "Suministro Circulante",

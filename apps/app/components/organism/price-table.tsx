@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 
 // Components
+import Card from "@/components/atoms/card";
 import Table from "@/components/atoms/table";
 import Button from "@/components/atoms/button";
 import Tooltip from "@/components/atoms/tooltip";
@@ -71,19 +72,18 @@ export default function PriceTable() {
   const t = useTranslations("priceTable");
 
   return (
-    <div className="flex flex-col gap-3 p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 text-sm font-medium">
-          <span>{t("price")}</span>
-          <span className="text-muted-foreground">{t("change24h")}</span>
-        </div>
+    <Card
+      title={t("title")}
+      description={t("description")}
+      action={
         <Tooltip content={t("refresh")}>
           <Button variant="ghost" size="icon" className="size-7">
             <RefreshCw className="size-3.5" />
           </Button>
         </Tooltip>
-      </div>
+      }
+    >
       <Table columns={columns} data={tokens} />
-    </div>
+    </Card>
   );
 }

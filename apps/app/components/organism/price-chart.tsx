@@ -15,6 +15,7 @@ import {
 } from "lightweight-charts";
 
 // Components
+import Card from "@/components/atoms/card";
 import Select from "@/components/atoms/select";
 import Button from "@/components/atoms/button";
 import ButtonGroup from "@/components/atoms/button-group";
@@ -285,70 +286,70 @@ export default function PriceChart({}: PriceChartProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-2">
-        {!ready ? (
-          <>
-            <Skeleton className="h-9 w-28 rounded-md" />
-            <Skeleton className="h-9 w-20 rounded-md" />
-            <Skeleton className="h-9 w-20 rounded-md" />
-            <div className="flex-1" />
-            <Skeleton className="size-7 rounded-md" />
-          </>
-        ) : (
-          <>
-            <Select
-              defaultValue="1h"
-              placeholder={t("interval")}
-              onValueChange={setInterval}
-              className="w-28"
-              items={CHART_INTERVALS.map((v) => ({
-                value: v,
-                label: v.toUpperCase(),
-              }))}
-            />
-            <Select
-              defaultValue="1m"
-              placeholder={t("period")}
-              onValueChange={(v) => setPeriod(v as ChartPeriod)}
-              className="w-20"
-              items={CHART_PERIODS.map((p) => ({ value: p, label: t(p) }))}
-            />
-            <ButtonGroup>
-              <Tooltip content={t("bars")}>
-                <Button
-                  size="icon"
-                  onClick={() => setChartType("bars")}
-                  variant={chartType === "bars" ? "secondary" : "outline"}
-                >
-                  <BarChart3 className="size-3.5" />
+    <Card
+      header={
+        <div className="flex w-full flex-wrap items-center gap-2">
+          {!ready ? (
+            <>
+              <Skeleton className="h-9 w-28 rounded-md" />
+              <Skeleton className="h-9 w-20 rounded-md" />
+              <Skeleton className="h-9 w-20 rounded-md" />
+              <div className="flex-1" />
+              <Skeleton className="size-7 rounded-md" />
+            </>
+          ) : (
+            <>
+              <Select
+                defaultValue="1h"
+                placeholder={t("interval")}
+                onValueChange={setInterval}
+                className="w-28"
+                items={CHART_INTERVALS.map((v) => ({
+                  value: v,
+                  label: v.toUpperCase(),
+                }))}
+              />
+              <Select
+                defaultValue="1m"
+                placeholder={t("period")}
+                onValueChange={(v) => setPeriod(v as ChartPeriod)}
+                className="w-20"
+                items={CHART_PERIODS.map((p) => ({ value: p, label: t(p) }))}
+              />
+              <ButtonGroup>
+                <Tooltip content={t("bars")}>
+                  <Button
+                    size="icon"
+                    onClick={() => setChartType("bars")}
+                    variant={chartType === "bars" ? "secondary" : "outline"}
+                  >
+                    <BarChart3 className="size-3.5" />
+                  </Button>
+                </Tooltip>
+                <Tooltip content={t("line")}>
+                  <Button
+                    size="icon"
+                    onClick={() => setChartType("line")}
+                    variant={chartType === "line" ? "secondary" : "outline"}
+                  >
+                    <TrendingUp className="size-3.5" />
+                  </Button>
+                </Tooltip>
+              </ButtonGroup>
+
+              <div className="flex-1" />
+
+              <Tooltip content={t("refresh")}>
+                <Button variant="ghost" size="icon-xs" onClick={handleRefresh}>
+                  <RefreshCw className="size-3.5" />
                 </Button>
               </Tooltip>
-              <Tooltip content={t("line")}>
-                <Button
-                  size="icon"
-                  onClick={() => setChartType("line")}
-                  variant={chartType === "line" ? "secondary" : "outline"}
-                >
-                  <TrendingUp className="size-3.5" />
-                </Button>
-              </Tooltip>
-            </ButtonGroup>
-
-            <div className="flex-1" />
-
-            <Tooltip content={t("refresh")}>
-              <Button variant="ghost" size="icon-xs" onClick={handleRefresh}>
-                <RefreshCw className="size-3.5" />
-              </Button>
-            </Tooltip>
-          </>
-        )}
-      </div>
-
-      {/* Chart */}
-      <div className="relative h-100 border rounded-md">
+            </>
+          )}
+        </div>
+      }
+    >
+      <div className="relative h-100">
         {!ready && <Skeleton className="absolute inset-0 z-10 rounded-md" />}
         <div
           ref={containerRef}
@@ -372,6 +373,6 @@ export default function PriceChart({}: PriceChartProps) {
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

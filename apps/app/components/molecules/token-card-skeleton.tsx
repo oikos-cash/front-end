@@ -1,3 +1,4 @@
+import Card from "@/components/atoms/card";
 import Skeleton from "@/components/atoms/skeleton";
 import { TokenCardSkeletonProps } from "@/types/interfaces";
 
@@ -5,17 +6,24 @@ export default function TokenCardSkeleton({ count = 8 }: TokenCardSkeletonProps)
   return (
     <>
       {Array.from({ length: count }, (_, i) => (
-        <div
+        <Card
           key={i}
-          className="flex flex-col gap-3 rounded-lg border border-border p-4"
-        >
-          <div className="flex items-center gap-3">
-            <Skeleton className="size-10 rounded-full" />
-            <div className="flex flex-col gap-1.5">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-3 w-12" />
+          header={
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-10 rounded-full" />
+              <div className="flex flex-col gap-1.5">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-12" />
+              </div>
             </div>
-          </div>
+          }
+          footer={
+            <div className="flex w-full justify-end gap-2">
+              <Skeleton className="h-8 w-28 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+          }
+        >
           <Skeleton className="h-3 w-full" />
           <Skeleton className="h-3 w-3/4" />
           <div className="flex gap-2">
@@ -28,8 +36,7 @@ export default function TokenCardSkeleton({ count = 8 }: TokenCardSkeletonProps)
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
           </div>
-          <Skeleton className="h-9 w-full rounded-md" />
-        </div>
+        </Card>
       ))}
     </>
   );

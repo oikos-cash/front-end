@@ -1,6 +1,10 @@
 {
   "liquidity": {
     "title": "Liquidity",
+    "chartTitle": "Liquidity Distribution",
+    "chartDescription": "Token liquidity across price ranges",
+    "detailsTitle": "Liquidity Details",
+    "detailsDescription": "Reserves, capacity and tick ranges per position",
     "spotPrice": "Spot Price",
     "liquidityRatio": "Liquidity Ratio",
     "circulatingSupply": "Circulating Supply",

@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 
 // Components
+import Card from "@/components/atoms/card";
 import Table from "@/components/atoms/table";
 
 // Hooks
@@ -11,13 +12,8 @@ import { useTranslations } from "next-intl";
 // Types
 import type { LiquidityDetail } from "@/types/interfaces";
 
-const LABEL_COLORS: Record<string, string> = {
-  reservesWbnb: "text-yellow-400",
-  reservesOks: "text-green-400",
-  capacityOks: "text-green-400",
-  tickLower: "text-orange-400",
-  tickUpper: "text-orange-400",
-};
+// Constants
+import { LABEL_COLORS } from "@/types/constanst";
 
 export default function LiquidityDetails({
   details,
@@ -68,9 +64,8 @@ export default function LiquidityDetails({
   ];
 
   return (
-    <div className="flex flex-col gap-3 pt-6">
-      <h2 className="text-lg font-bold">{t("details")}</h2>
+    <Card title={t("detailsTitle")} description={t("detailsDescription")}>
       <Table columns={columns} data={details} />
-    </div>
+    </Card>
   );
 }

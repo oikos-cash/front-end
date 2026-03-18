@@ -1,6 +1,7 @@
 {
   "wallet": {
     "title": "Wallet",
+    "description": "Your token balances and portfolio overview",
     "wrap": "Wrap",
     "totalValue": "Total Value",
     "connectTitle": "Connect Wallet to Trade",

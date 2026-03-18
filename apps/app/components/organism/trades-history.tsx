@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 
 // Components
+import Card from "@/components/atoms/card";
 import Table from "@/components/atoms/table";
 import Badge from "@/components/atoms/badge";
 import Empty from "@/components/atoms/empty";
@@ -25,8 +26,7 @@ import { timeAgo } from "@/utils/date";
 import { truncateAddress } from "@/utils/string";
 
 // Constants
-const PAGE_SIZE = 20;
-const MAX_TRADES = 100;
+import { TRADES_PAGE_SIZE, TRADES_MAX_TRADES } from "@/types/constanst";
 
 // Helpers
 function generateMockTrades(count: number, offset: number): Trade[] {
@@ -143,7 +143,7 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
     (reset?: boolean) => {
       setIsLoading(true);
       const currentLength = reset ? 0 : trades.length;
-      const remaining = MAX_TRADES - currentLength;
+      const remaining = TRADES_MAX_TRADES - currentLength;
 
       if (remaining <= 0) {
         setHasMore(false);
@@ -151,12 +151,11 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
         return;
       }
 
-      const count = Math.min(PAGE_SIZE, remaining);
-      // Simulate async loading
+      const count = Math.min(TRADES_PAGE_SIZE, remaining);
       setTimeout(() => {
         const newTrades = generateMockTrades(count, currentLength);
         setTrades((prev) => (reset ? newTrades : [...prev, ...newTrades]));
-        setHasMore(currentLength + count < MAX_TRADES);
+        setHasMore(currentLength + count < TRADES_MAX_TRADES);
         setIsLoading(false);
       }, 300);
     },
@@ -200,32 +199,32 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
   };
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Select
-          className="w-32"
-          defaultValue="global"
-          disabled={isLoading && trades.length === 0}
-          onValueChange={handleViewChange}
-          items={[
-            { value: "global", label: t("global") },
-            { value: "myTrades", label: t("myTrades") },
-          ]}
-        />
-        <Badge variant="outline">{token}</Badge>
-        <div className="flex-1" />
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={isLoading && trades.length === 0}
-          onClick={handleClearHistory}
-        >
-          {t("clearHistory")}
-        </Button>
-      </div>
-
-      {/* Table */}
+    <Card
+      header={
+        <div className="flex w-full items-center gap-2">
+          <Select
+            className="w-32"
+            defaultValue="global"
+            disabled={isLoading && trades.length === 0}
+            onValueChange={handleViewChange}
+            items={[
+              { value: "global", label: t("global") },
+              { value: "myTrades", label: t("myTrades") },
+            ]}
+          />
+          <Badge variant="outline">{token}</Badge>
+          <div className="flex-1" />
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isLoading && trades.length === 0}
+            onClick={handleClearHistory}
+          >
+            {t("clearHistory")}
+          </Button>
+        </div>
+      }
+    >
       {trades.length > 0 ? (
         <div>
           <Table columns={columns} data={trades} />
@@ -270,6 +269,6 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
           description={t("emptyDescription")}
         />
       )}
-    </div>
+    </Card>
   );
 }

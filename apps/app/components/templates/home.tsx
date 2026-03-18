@@ -17,6 +17,7 @@ export default function HomeTemplate() {
         <StatsCard
           variant="spot"
           title={t("spot")}
+          description={t("spotDesc")}
           value="$0.1815"
           change="+7.19%"
           secondary="0.00028442 OKS/BNB"
@@ -24,18 +25,21 @@ export default function HomeTemplate() {
         <StatsCard
           variant="volume"
           title={t("volume")}
+          description={t("volumeDesc")}
           value="$51.97K"
           secondary="81.43 BNB"
         />
         <StatsCard
           variant="marketCap"
           title={t("marketCap")}
+          description={t("marketCapDesc")}
           value="$30.70K"
           secondary="48.10 BNB"
         />
         <StatsCard
           variant="imv"
           title={t("imv")}
+          description={t("imvDesc")}
           subtitle="(44% OF SPOT)"
           value="$0.0802"
           secondary="0.00012571 OKS/BNB"

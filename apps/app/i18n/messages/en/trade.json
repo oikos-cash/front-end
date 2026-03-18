@@ -1,6 +1,7 @@
 {
   "trade": {
     "title": "Trade OKS",
+    "description": "Buy and sell OKS tokens instantly with low fees",
     "buying": "BUYING",
     "selling": "SELLING",
     "buy": "Buy",
@@ -22,6 +23,11 @@
     "sellOks": "Sell OKS",
     "connectTitle": "Connect Wallet to Trade",
     "connectDescription": "Connect your wallet to start buying and selling OKS tokens",
-    "connectButton": "Connect Wallet"
+    "connectButton": "Connect Wallet",
+    "errors": {
+      "required": "Amount is required",
+      "mustBePositive": "Amount must be greater than 0",
+      "slippageRange": "Slippage must be between 0 and 50"
+    }
   }
 }

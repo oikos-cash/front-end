@@ -20,8 +20,7 @@ import { MarketToken } from "@/types/interfaces";
 import { generateMockMarketTokens } from "@/utils/number";
 
 // Constants
-const PAGE_SIZE = 12;
-const MAX_TOKENS = 60;
+import { MARKETS_PAGE_SIZE, MARKETS_MAX_TOKENS } from "@/types/constanst";
 
 export default function MarketsCatalog() {
   const t = useTranslations("markets");
@@ -52,7 +51,7 @@ export default function MarketsCatalog() {
     (reset?: boolean) => {
       setIsLoading(true);
       const currentLength = reset ? 0 : tokens.length;
-      const remaining = MAX_TOKENS - currentLength;
+      const remaining = MARKETS_MAX_TOKENS - currentLength;
 
       if (remaining <= 0) {
         setHasMore(false);
@@ -60,11 +59,11 @@ export default function MarketsCatalog() {
         return;
       }
 
-      const count = Math.min(PAGE_SIZE, remaining);
+      const count = Math.min(MARKETS_PAGE_SIZE, remaining);
       setTimeout(() => {
         const newTokens = generateMockMarketTokens(count, currentLength);
         setTokens((prev) => (reset ? newTokens : [...prev, ...newTokens]));
-        setHasMore(currentLength + count < MAX_TOKENS);
+        setHasMore(currentLength + count < MARKETS_MAX_TOKENS);
         setIsLoading(false);
       }, 300);
     },
@@ -102,7 +101,6 @@ export default function MarketsCatalog() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Search */}
       <div className="sticky top-13 z-30 -mx-4 bg-white px-4 py-4 border-b">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -116,7 +114,6 @@ export default function MarketsCatalog() {
         </div>
       </div>
 
-      {/* Grid */}
       {tokens.length === 0 && isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           <TokenCardSkeleton count={8} />
