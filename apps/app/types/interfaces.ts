@@ -266,6 +266,13 @@ export interface FieldRendererProps {
 // =================================================
 //                     ORGANISMS
 // =================================================
+export interface AvatarInfoProps {
+  title: string;
+  subtitle?: string;
+  src?: string;
+  size?: "sm" | "default" | "lg";
+}
+
 export interface PageHeaderProps {
   title: string;
   description?: string;

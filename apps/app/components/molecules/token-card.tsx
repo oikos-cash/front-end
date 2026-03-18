@@ -1,22 +1,20 @@
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 
 // Components
+import Card from "@/components/atoms/card";
 import Badge from "@/components/atoms/badge";
 import Button from "@/components/atoms/button";
-import Card from "@/components/atoms/card";
-import Tooltip from "@/components/atoms/tooltip";
 import Avatar from "@/components/atoms/avatar";
 import ProgressBar from "@/components/atoms/progress-bar";
+
+// Hooks
+import { useTranslations } from "next-intl";
 
 // Types
 import { TokenCardProps } from "@/types/interfaces";
 
 // Constants
-import { STATUS_VARIANT, HEALTH_VARIANT } from "@/types/constanst";
-
-// Icons
-import { Landmark } from "lucide-react";
+import { STATUS_VARIANT, HEALTH_VARIANT } from "@/types/constants";
 
 // Utils
 import { formatShortDate } from "@/utils/date";
@@ -39,20 +37,6 @@ export default function TokenCard({ token }: TokenCardProps) {
               {token.symbol}
             </Badge>
           </div>
-          {token.status === "graduated" && (
-            <Tooltip content={t("viewDividends")}>
-              <button
-                type="button"
-                className="rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.location.href = `/dividends/${token.symbol.toLowerCase()}`;
-                }}
-              >
-                <Landmark className="size-4" />
-              </button>
-            </Tooltip>
-          )}
         </div>
       }
       footer={

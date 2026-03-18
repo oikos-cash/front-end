@@ -432,3 +432,49 @@ export function generateMockMarketTokens(count: number, offset: number): MarketT
     };
   });
 }
+
+// =================================================
+//                DIVIDEND MOCK
+// =================================================
+
+const DIVIDEND_TOKEN_POOL = [
+  { symbol: "OKS", name: "Oikos", address: "0x1a2B3c4D5e6F7890abCdEf1234567890AbCdEf01" },
+  { symbol: "SFL", name: "SolarFlare", address: "0x2b3C4d5E6f7890AbCdEf1234567890AbCdEf02" },
+  { symbol: "NXD", name: "NexusDAO", address: "0x3c4D5e6F7890aBcDeF1234567890AbCdEf030000" },
+  { symbol: "AQF", name: "AquaFi", address: "0x4d5E6f7890AbCdEf1234567890AbCdEf04000000" },
+  { symbol: "VTX", name: "VortexSwap", address: "0x5e6F7890aBcDeF1234567890AbCdEf0500000000" },
+];
+
+export function generateMockDividendTokens(): DividendToken[] {
+  const count = 3 + Math.floor(Math.random() * 4);
+  return DIVIDEND_TOKEN_POOL.slice(0, count).map((t, i) => {
+    const totalDistributed = parseFloat((100 + Math.random() * 49900).toFixed(2));
+    const unvested = i % 3 === 0 ? 0 : parseFloat((Math.random() * 500).toFixed(4));
+    const vested = i % 2 === 0 ? 0 : parseFloat((Math.random() * 200).toFixed(4));
+    return {
+      tokenAddress: t.address,
+      tokenSymbol: t.symbol,
+      tokenName: t.name,
+      totalDistributed,
+      unvested,
+      vested,
+    };
+  });
+}
+
+export function generateMockDividendHistory(count: number, offset: number): DividendClaimHistory[] {
+  const tokens = ["OKS", "SFL", "NXD"];
+  return Array.from({ length: count }, (_, i) => {
+    const index = offset + i;
+    const type: DividendClaimHistory["type"] = Math.random() > 0.5 ? "lock" : "withdraw";
+    const amount = parseFloat((1 + Math.random() * 499).toFixed(4));
+    return {
+      id: `div-${index}`,
+      type,
+      token: tokens[index % tokens.length]!,
+      amount,
+      txHash: `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
+      timestamp: new Date(Date.now() - index * 180000 - Math.random() * 600000),
+    };
+  });
+}

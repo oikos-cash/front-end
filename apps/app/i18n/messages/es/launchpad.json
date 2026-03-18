@@ -2,9 +2,9 @@
   "launchpad": {
     "title": "Launchpad",
     "description": "Lanza tu propio token con soporte opcional de preventa.",
-    "connectTitle": "Conectar Monedero",
+    "connectTitle": "Conectar Billetera",
     "connectDescription": "Conecta tu monedero para acceder al launchpad.",
-    "connectButton": "Conectar Monedero",
+    "connectButton": "Conectar Billetera",
 
     "stepTokenInfo": "Info del Token",
     "stepPoolSetup": "Config. del Pool",

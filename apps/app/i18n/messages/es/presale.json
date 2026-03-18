@@ -36,9 +36,9 @@
     "tokensToReceive": "Tokens a Recibir",
     "claimRefund": "Reclamar Reembolso",
     "noContribution": "Aun no has contribuido a esta preventa.",
-    "connectTitle": "Conectar Monedero",
+    "connectTitle": "Conectar Billetera",
     "connectDescription": "Conecta tu monedero para participar en esta preventa.",
-    "connectButton": "Conectar Monedero",
+    "connectButton": "Conectar Billetera",
     "errors": {
       "required": "La cantidad es requerida",
       "mustBePositive": "La cantidad debe ser mayor a 0"

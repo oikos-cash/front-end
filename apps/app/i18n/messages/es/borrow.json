@@ -2,9 +2,9 @@
   "borrow": {
     "title": "Prestamo",
     "description": "Pide prestado contra tu colateral. Elige la duracion y cantidad del prestamo.",
-    "connectTitle": "Conectar Monedero",
+    "connectTitle": "Conectar Billetera",
     "connectDescription": "Conecta tu monedero para empezar a pedir prestamos.",
-    "connectButton": "Conectar Monedero",
+    "connectButton": "Conectar Billetera",
     "tokenPair": "Par de Tokens",
     "tokenPairDesc": "Mercado de prestamo",
     "imv": "IMV",

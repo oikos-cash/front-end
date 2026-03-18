@@ -1,0 +1,42 @@
+{
+  "dividends": {
+    "title": "Dividends",
+    "description": "Claim your share of trading fees from token pools",
+    "tokensWithDividends": "Tokens with Dividends",
+    "tokensWithDividendsDesc": "Active dividend tokens",
+    "unvested": "Unvested",
+    "unvestedDesc": "Ready to lock",
+    "vested": "Vested",
+    "vestedDesc": "Ready to withdraw",
+    "oksBalance": "OKS Balance",
+    "oksBalanceDesc": "Your current OKS balance",
+    "refresh": "Refresh",
+    "totalDistributed": "Total Distributed",
+    "unvestedLabel": "Unvested",
+    "vestedLabel": "Vested",
+    "lockButton": "Lock",
+    "withdrawButton": "Withdraw",
+    "lockAll": "Lock All",
+    "withdrawAll": "Withdraw All",
+    "noDividends": "No dividends available",
+    "noDividendsDesc": "Dividends will appear here when trading fees are distributed",
+    "historyTitle": "Claim History",
+    "historyDescription": "Your dividend claim and withdrawal activity",
+    "historyType": "Type",
+    "historyAmount": "Amount",
+    "historyToken": "Token",
+    "historyTx": "Tx",
+    "historyTime": "Time",
+    "historyLock": "LOCK",
+    "historyWithdraw": "WITHDRAW",
+    "historyEmpty": "No claim history yet",
+    "historyEmptyDesc": "Your lock and withdraw transactions will appear here",
+    "connectTitle": "Connect Wallet",
+    "connectDescription": "Connect your wallet to view your dividends.",
+    "connectButton": "Connect Wallet",
+    "errors": {
+      "required": "Amount is required",
+      "mustBePositive": "Amount must be greater than 0"
+    }
+  }
+}

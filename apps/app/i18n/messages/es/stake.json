@@ -2,9 +2,9 @@
   "stake": {
     "title": "Staking",
     "description": "Stakea tus tokens para ganar recompensas. Mientras mas tiempo los mantengas, mas ganas.",
-    "connectTitle": "Conectar Monedero",
+    "connectTitle": "Conectar Billetera",
     "connectDescription": "Conecta tu monedero para empezar a hacer staking.",
-    "connectButton": "Conectar Monedero",
+    "connectButton": "Conectar Billetera",
     "infoTitle": "Informacion de Staking",
     "infoDescription": "Resumen de metricas del pool de staking",
     "token": "Token",

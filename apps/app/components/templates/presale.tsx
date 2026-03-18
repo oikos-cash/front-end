@@ -5,7 +5,7 @@ import { useMemo } from "react";
 // Components
 import Card from "@/components/atoms/card";
 import Empty from "@/components/atoms/empty";
-import Avatar from "@/components/atoms/avatar";
+import AvatarInfo from "@/components/molecules/avatar-info";
 import Button from "@/components/atoms/button";
 import KpiCard from "@/components/molecules/kpi-card";
 import PageHeader from "@/components/molecules/page-header";
@@ -84,22 +84,15 @@ export default function PresaleTemplate() {
       </div>
 
       <Card title={t("tokenInfo")} description={t("tokenInfoDesc")}>
-        <div className="flex items-center gap-4">
-          <Avatar
-            name={presaleData.tokenSymbol}
-            src={presaleData.tokenLogoUrl || undefined}
-            size="lg"
-          />
-          <div className="flex flex-col gap-1">
-            <span className="text-lg font-bold">{presaleData.tokenName}</span>
-            <span className="text-sm text-muted-foreground">
-              {presaleData.tokenSymbol}
-            </span>
-            <p className="text-sm text-muted-foreground">
-              {presaleData.tokenDescription}
-            </p>
-          </div>
-        </div>
+        <AvatarInfo
+          title={presaleData.tokenName}
+          subtitle={presaleData.tokenSymbol}
+          src={presaleData.tokenLogoUrl || undefined}
+          size="lg"
+        />
+        <p className="text-sm text-muted-foreground">
+          {presaleData.tokenDescription}
+        </p>
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

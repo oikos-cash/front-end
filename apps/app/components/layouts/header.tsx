@@ -25,6 +25,7 @@ export default function Header() {
     { value: "borrow", label: t("nav.borrow"), href: "/borrow/oks" },
     { value: "stake", label: t("nav.stake"), href: "/stake/oks" },
     { value: "markets", label: t("nav.markets"), href: "/markets" },
+    { value: "dividends", label: t("nav.dividends"), href: "/dividends" },
     { value: "launchpad", label: t("nav.launchpad"), href: "/launchpad" },
   ];
 
