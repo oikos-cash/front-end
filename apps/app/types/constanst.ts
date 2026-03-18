@@ -40,6 +40,23 @@ export const STAKE_HISTORY_PAGE_SIZE = 15;
 export const STAKE_HISTORY_MAX_ITEMS = 60;
 
 // =================================================
+//                 LOAN HISTORY
+// =================================================
+export const LOAN_HISTORY_PAGE_SIZE = 15;
+export const LOAN_HISTORY_MAX_ITEMS = 60;
+
+// =================================================
+//                  BORROW FORM
+// =================================================
+export const BORROW_DURATION_OPTIONS = [
+  { value: "7", label: "7 days" },
+  { value: "14", label: "14 days" },
+  { value: "30", label: "30 days" },
+  { value: "60", label: "60 days" },
+  { value: "90", label: "90 days" },
+];
+
+// =================================================
 //               LIQUIDITY DETAILS
 // =================================================
 export const LABEL_COLORS: Record<string, string> = {

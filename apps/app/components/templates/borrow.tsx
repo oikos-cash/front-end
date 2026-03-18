@@ -1,12 +1,20 @@
 "use client";
 
+import { useMemo } from "react";
+
 // Components
-import Button from "@/components/atoms/button";
 import Empty from "@/components/atoms/empty";
+import Button from "@/components/atoms/button";
+import KpiCard from "@/components/molecules/kpi-card";
+import LoanHistory from "@/components/organism/loan-history";
+import BorrowFormPanel from "@/components/organism/borrow-form-panel";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
+
+// Utils
+import { generateMockBorrowData } from "@/utils/number";
 
 // Icons
 import { Lock, Wallet } from "lucide-react";
@@ -14,6 +22,7 @@ import { Lock, Wallet } from "lucide-react";
 export default function BorrowTemplate() {
   const t = useTranslations("borrow");
   const { isConnected, handleConnect } = useWallet();
+  const borrowData = useMemo(() => generateMockBorrowData("OKS"), []);
 
   if (!isConnected) {
     return (
@@ -33,9 +42,37 @@ export default function BorrowTemplate() {
   }
 
   return (
-    <div className="py-4">
-      <h1 className="text-lg font-bold">{t("title")}</h1>
-      <p className="text-muted-foreground">Hello World</p>
+    <div className="flex flex-col gap-6 py-4">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("description")}</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          title={t("tokenPair")}
+          value={borrowData.tokenPair}
+          description={t("tokenPairDesc")}
+        />
+        <KpiCard
+          title={t("imv")}
+          description={t("imvDesc")}
+          value={`${(borrowData.imv * 100).toFixed(2)}%`}
+        />
+        <KpiCard
+          title={t("dailyInterest")}
+          description={t("dailyInterestDesc")}
+          value={`${(borrowData.dailyInterest * 100).toFixed(2)}%`}
+        />
+        <KpiCard
+          title={t("protocolStatus")}
+          description={t("protocolStatusDesc")}
+          value={borrowData.protocolStatus === "active" ? "Active" : "Paused"}
+        />
+      </div>
+
+      <BorrowFormPanel />
+      <LoanHistory />
     </div>
   );
 }

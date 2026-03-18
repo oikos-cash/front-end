@@ -20,6 +20,27 @@ export const stakeSchema = z.object({
 });
 
 // =================================================
+//                     BORROW
+// =================================================
+
+/**
+ * Schema for the borrow form.
+ * `borrowAmount` must be a non-empty string representing a positive number.
+ * `duration` must be a non-empty string (selected from duration options).
+ * Error messages are i18n keys resolved by the component via useTranslations.
+ */
+export const borrowSchema = z.object({
+  borrowAmount: z
+    .string()
+    .min(1, "errors.required")
+    .refine(
+      (v: string) => !isNaN(Number(v)) && Number(v) > 0,
+      "errors.mustBePositive"
+    ),
+  duration: z.string().min(1, "errors.required"),
+});
+
+// =================================================
 //                      TRADE
 // =================================================
 

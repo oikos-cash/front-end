@@ -1,8 +1,41 @@
 {
   "borrow": {
-    "title": "Préstamo",
+    "title": "Prestamo",
+    "description": "Pide prestado contra tu colateral. Elige la duracion y cantidad del prestamo.",
     "connectTitle": "Conectar Monedero",
-    "connectDescription": "Conecta tu monedero para empezar a pedir préstamos.",
-    "connectButton": "Conectar Monedero"
+    "connectDescription": "Conecta tu monedero para empezar a pedir prestamos.",
+    "connectButton": "Conectar Monedero",
+    "tokenPair": "Par de Tokens",
+    "tokenPairDesc": "Mercado de prestamo",
+    "imv": "IMV",
+    "imvDesc": "Valor de margen inicial",
+    "dailyInterest": "Interes Diario",
+    "dailyInterestDesc": "Tasa por dia",
+    "protocolStatus": "Estado del Protocolo",
+    "protocolStatusDesc": "Estado actual",
+    "newLoan": "Nuevo Prestamo",
+    "borrowAmount": "Cantidad a Prestar",
+    "duration": "Duracion",
+    "useMax": "Usar maximo ({amount} {token})",
+    "collateralRequired": "Colateral Requerido",
+    "loanFees": "Comisiones del Prestamo",
+    "borrowAction": "Pedir Prestamo",
+    "historyTitle": "Historial de Prestamos",
+    "historyDescription": "Tu actividad de prestamos, pagos y renovaciones",
+    "historyType": "Tipo",
+    "historyAmount": "Cantidad",
+    "historyCollateral": "Colateral",
+    "historyFees": "Comisiones",
+    "historyTx": "Tx",
+    "historyTime": "Tiempo",
+    "historyBorrow": "PRESTAMO",
+    "historyRepay": "PAGO",
+    "historyRoll": "RENOVAR",
+    "historyEmpty": "Sin actividad de prestamos",
+    "historyEmptyDesc": "Tus transacciones de prestamo, pago y renovacion apareceran aqui",
+    "errors": {
+      "required": "Este campo es requerido",
+      "mustBePositive": "La cantidad debe ser mayor a 0"
+    }
   }
 }

@@ -11,7 +11,7 @@
 - [x] **Markets / Showcase** — `Showcase.tsx` → `templates/markets.tsx` (catalogo con infinite scroll)
 - [x] **Liquidity** — `Liquidity.tsx` → `templates/liquidity.tsx` (chart + details table)
 - [x] **Stake** — `Stake.tsx` → `templates/stake.tsx` (KPI cards, staking form with RHF/Zod, cooldown timer, stake history with infinite scroll)
-- [ ] **Borrow** — `Borrow.tsx` → `templates/borrow.tsx` (placeholder — falta: collateral input, loan history table, repay/roll/hedge modals, position summary)
+- [x] **Borrow** — `Borrow.tsx` → `templates/borrow.tsx` (KPI cards, borrow form with RHF/Zod, loan history with infinite scroll)
 - [ ] **Launchpad** — `Launchpad.tsx` → `templates/launchpad.tsx` (placeholder — falta: multi-step wizard, presale creation form, token config)
 - [ ] **Presale** — `Presale.tsx` → no creada (progress bar, contribution form, stats, countdown timer)
 - [ ] **Dividends** — `Dividends.tsx` → no creada (multi-token dividend display, claim buttons, historical claims table)
@@ -33,6 +33,8 @@
 - [x] **Markets Catalog** — `Showcase.tsx` → `organism/markets-catalog.tsx`
 - [x] **Stake Form Panel** — `Stake.tsx` → `organism/stake-form-panel.tsx`
 - [x] **Stake History** — `Stake.tsx` → `organism/stake-history.tsx`
+- [x] **Borrow Form Panel** — `Borrow.tsx` → `organism/borrow-form-panel.tsx`
+- [x] **Loan History** — `Borrow.tsx` → `organism/loan-history.tsx`
 
 ## No se migran
 

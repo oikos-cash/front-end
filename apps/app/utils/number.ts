@@ -1,4 +1,4 @@
-import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData, StakeHistoryItem } from "@/types/interfaces";
+import type { OHLCVBar, ChartPeriod, LiquidityBar, LiquidityData, LiquidityDetail, MarketToken, TokenStatus, TokenHealth, TradeSide, NetworkFee, StakeMockData, StakeHistoryItem, LoanHistoryItem } from "@/types/interfaces";
 import type { UTCTimestamp } from "lightweight-charts";
 
 /**
@@ -218,6 +218,71 @@ export function generateMockStakeHistory(count: number, offset: number, token = 
       timestamp: new Date(Date.now() - index * 120000 - Math.random() * 300000),
     };
   });
+}
+
+// =================================================
+//                BORROW MOCK
+// =================================================
+
+export interface BorrowMockData {
+  tokenPair: string;
+  imv: number;
+  dailyInterest: number;
+  protocolStatus: "active" | "paused";
+  userCollateral: number;
+  userBorrowed: number;
+  userBalance: number;
+}
+
+export function generateMockBorrowData(token = "OKS"): BorrowMockData {
+  const imv = 0.05 + Math.random() * 0.15;
+  const dailyInterest = 0.01 + Math.random() * 0.05;
+  const userCollateral = 2000 + Math.random() * 8000;
+  const userBorrowed = 500 + Math.random() * 3000;
+  const userBalance = 1000 + Math.random() * 5000;
+
+  return {
+    tokenPair: `${token}/WBNB`,
+    imv: parseFloat(imv.toFixed(4)),
+    dailyInterest: parseFloat(dailyInterest.toFixed(4)),
+    protocolStatus: Math.random() > 0.1 ? "active" : "paused",
+    userCollateral: parseFloat(userCollateral.toFixed(4)),
+    userBorrowed: parseFloat(userBorrowed.toFixed(4)),
+    userBalance: parseFloat(userBalance.toFixed(4)),
+  };
+}
+
+export function generateMockLoanHistory(count: number, offset: number, token = "OKS"): LoanHistoryItem[] {
+  const types: LoanHistoryItem["type"][] = ["borrow", "repay", "roll"];
+
+  return Array.from({ length: count }, (_, i) => {
+    const index = offset + i;
+    const type = types[index % 3]!;
+    const amount = parseFloat((100 + Math.random() * 5000).toFixed(4));
+    const collateral = parseFloat((amount * (1.2 + Math.random() * 0.8)).toFixed(4));
+    const fees = parseFloat((amount * (0.005 + Math.random() * 0.02)).toFixed(4));
+
+    return {
+      id: `loan-${index}`,
+      type,
+      amount,
+      collateral,
+      fees,
+      token,
+      txHash: `0x${Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("")}`,
+      timestamp: new Date(Date.now() - index * 180000 - Math.random() * 600000),
+    };
+  });
+}
+
+export function calculateCollateralRequired(borrowAmount: number, imv: number): number {
+  if (borrowAmount <= 0 || imv <= 0) return 0;
+  return parseFloat((borrowAmount / imv).toFixed(4));
+}
+
+export function calculateLoanFees(borrowAmount: number, duration: number, dailyRate: number): number {
+  if (borrowAmount <= 0 || duration <= 0 || dailyRate <= 0) return 0;
+  return parseFloat((borrowAmount * dailyRate * duration).toFixed(4));
 }
 
 // =================================================

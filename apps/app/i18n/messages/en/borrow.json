@@ -1,8 +1,41 @@
 {
   "borrow": {
     "title": "Borrow",
+    "description": "Borrow against your collateral. Choose your loan duration and amount.",
     "connectTitle": "Connect Wallet",
     "connectDescription": "Connect your wallet to start borrowing.",
-    "connectButton": "Connect Wallet"
+    "connectButton": "Connect Wallet",
+    "tokenPair": "Token Pair",
+    "tokenPairDesc": "Loan market",
+    "imv": "IMV",
+    "imvDesc": "Initial margin value",
+    "dailyInterest": "Daily Interest",
+    "dailyInterestDesc": "Rate per day",
+    "protocolStatus": "Protocol Status",
+    "protocolStatusDesc": "Current state",
+    "newLoan": "New Loan",
+    "borrowAmount": "Borrow Amount",
+    "duration": "Duration",
+    "useMax": "Use max ({amount} {token})",
+    "collateralRequired": "Collateral Required",
+    "loanFees": "Loan Fees",
+    "borrowAction": "Borrow",
+    "historyTitle": "Loan History",
+    "historyDescription": "Your borrowing, repayment and rollover activity",
+    "historyType": "Type",
+    "historyAmount": "Amount",
+    "historyCollateral": "Collateral",
+    "historyFees": "Fees",
+    "historyTx": "Tx",
+    "historyTime": "Time",
+    "historyBorrow": "BORROW",
+    "historyRepay": "REPAY",
+    "historyRoll": "ROLL",
+    "historyEmpty": "No loan activity yet",
+    "historyEmptyDesc": "Your borrow, repay and roll transactions will appear here",
+    "errors": {
+      "required": "This field is required",
+      "mustBePositive": "Amount must be greater than 0"
+    }
   }
 }

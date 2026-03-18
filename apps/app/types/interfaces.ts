@@ -255,6 +255,30 @@ export interface StakeHistoryProps {
   token?: string;
 }
 
+export interface BorrowFormPanelProps {
+  token?: string;
+}
+
+export interface BorrowFormValues {
+  borrowAmount: string;
+  duration: string;
+}
+
+export interface LoanHistoryItem {
+  id: string;
+  type: "borrow" | "repay" | "roll";
+  amount: number;
+  collateral: number;
+  fees: number;
+  token: string;
+  txHash: string;
+  timestamp: Date;
+}
+
+export interface LoanHistoryProps {
+  token?: string;
+}
+
 export interface TradeFormValues {
   amount: string;
   customSlippage: string;
