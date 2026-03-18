@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import Button from "@/components/atoms/button";
 import Empty from "@/components/atoms/empty";
 import KpiCard from "@/components/molecules/kpi-card";
+import PageHeader from "@/components/molecules/page-header";
 import StakeFormPanel from "@/components/organism/stake-form-panel";
 import StakeHistory from "@/components/organism/stake-history";
 
@@ -43,10 +44,7 @@ export default function StakeTemplate() {
 
   return (
     <div className="flex flex-col gap-6 py-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
-        <p className="text-sm text-muted-foreground">{t("description")}</p>
-      </div>
+      <PageHeader title={t("title")} description={t("description")} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard

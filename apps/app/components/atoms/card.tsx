@@ -33,7 +33,7 @@ export default function Card({
           )}
         </CardHeader>
       )}
-      <CardContent>{children}</CardContent>
+      {children && <CardContent>{children}</CardContent>}
       {footer && <CardFooter>{footer}</CardFooter>}
     </CardPrimitive>
   );

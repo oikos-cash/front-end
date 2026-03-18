@@ -68,3 +68,54 @@ export const tradeSchema = z.object({
   useWbnb: z.boolean(),
   approveMax: z.boolean(),
 });
+
+// =================================================
+//                    LAUNCHPAD
+// =================================================
+
+/**
+ * Schema for the launchpad token info form (Step 1).
+ * `tokenName` and `tokenSymbol` are required.
+ * Error messages are i18n keys resolved by the component via useTranslations.
+ */
+export const launchpadTokenSchema = z.object({
+  tokenName: z.string().min(1, "errors.required"),
+  tokenSymbol: z.string().min(1, "errors.required"),
+  tokenDescription: z.string().optional(),
+  enablePresale: z.string().min(1, "errors.required"),
+  tokenLogoUrl: z.string().optional(),
+});
+
+/**
+ * Schema for the launchpad pool setup form (Step 2).
+ * `floorPrice` and `totalSupply` must be positive numbers.
+ * Error messages are i18n keys resolved by the component via useTranslations.
+ */
+export const launchpadPoolSchema = z.object({
+  floorPrice: z
+    .string()
+    .min(1, "errors.required")
+    .refine(
+      (v: string) => !isNaN(Number(v)) && Number(v) > 0,
+      "errors.mustBePositive"
+    ),
+  totalSupply: z
+    .string()
+    .min(1, "errors.required")
+    .refine(
+      (v: string) => !isNaN(Number(v)) && Number(v) > 0,
+      "errors.mustBePositive"
+    ),
+  reserveAsset: z.string().min(1, "errors.required"),
+  protocol: z.string().min(1, "errors.required"),
+});
+
+/**
+ * Schema for the launchpad presale form (Step 3).
+ * `presaleDuration` must be selected, `softCapPercent` must be 20-60.
+ * Error messages are i18n keys resolved by the component via useTranslations.
+ */
+export const launchpadPresaleSchema = z.object({
+  presaleDuration: z.string().min(1, "errors.required"),
+  softCapPercent: z.number().min(20).max(60),
+});

@@ -66,3 +66,38 @@ export const LABEL_COLORS: Record<string, string> = {
   tickLower: "text-orange-400",
   tickUpper: "text-orange-400",
 };
+
+// =================================================
+//                    LAUNCHPAD
+// =================================================
+export const PRESALE_DURATION_OPTIONS = [
+  { value: "259200", label: "3 days" },
+  { value: "604800", label: "7 days" },
+  { value: "1209600", label: "14 days" },
+  { value: "2592000", label: "30 days" },
+  { value: "5184000", label: "60 days" },
+  { value: "7776000", label: "90 days" },
+];
+
+export const PROTOCOL_OPTIONS = [
+  { value: "uniswap", label: "Uniswap" },
+  { value: "pancakeswap", label: "PancakeSwap" },
+];
+
+export const RESERVE_ASSET_OPTIONS = [
+  { value: "wbnb", label: "WBNB" },
+];
+
+export const LAUNCHPAD_STEPS = [
+  { path: "/launchpad/token", label: "Token Info" },
+  { path: "/launchpad/pool", label: "Pool Setup" },
+  { path: "/launchpad/presale", label: "Presale" },
+  { path: "/launchpad/preview", label: "Preview & Launch" },
+];
+
+export const LAUNCHPAD_STEP_LABELS = [
+  "stepTokenInfo",
+  "stepPoolSetup",
+  "stepPresale",
+  "stepPreview",
+] as const;

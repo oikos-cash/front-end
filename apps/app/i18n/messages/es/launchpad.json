@@ -1,8 +1,208 @@
 {
   "launchpad": {
     "title": "Launchpad",
+    "description": "Lanza tu propio token con soporte opcional de preventa.",
     "connectTitle": "Conectar Monedero",
     "connectDescription": "Conecta tu monedero para acceder al launchpad.",
-    "connectButton": "Conectar Monedero"
+    "connectButton": "Conectar Monedero",
+
+    "stepTokenInfo": "Info del Token",
+    "stepPoolSetup": "Config. del Pool",
+    "stepPresale": "Preventa",
+    "stepPreview": "Vista Previa y Lanzamiento",
+    "skipped": "Omitido",
+
+    "tokenPage": {
+      "title": "Informacion del Token",
+      "description": "Define la identidad y configuracion basica de tu token.",
+      "cards": [
+        {
+          "title": "Nombre del Token",
+          "description": "El nombre publico de tu token.",
+          "help": "Elige un nombre unico y memorable. No se puede cambiar despues del despliegue.",
+          "required": true,
+          "fields": [
+            { "type": "text", "name": "tokenName", "placeholder": "ej. Mi Token" }
+          ]
+        },
+        {
+          "title": "Simbolo del Token",
+          "description": "Un ticker corto para exchanges y billeteras.",
+          "help": "Usualmente 3-5 letras mayusculas. No se puede cambiar despues del despliegue.",
+          "required": true,
+          "fields": [
+            { "type": "text", "name": "tokenSymbol", "placeholder": "ej. MTK" }
+          ]
+        },
+        {
+          "title": "Descripcion",
+          "description": "Cuenta a los inversores de que trata tu token.",
+          "help": "Una buena descripcion ayuda a generar confianza con inversores potenciales.",
+          "fields": [
+            { "type": "textarea", "name": "tokenDescription", "placeholder": "Describe tu token (max 500 caracteres)" }
+          ]
+        },
+        {
+          "title": "Habilitar Preventa",
+          "description": "Ejecuta una fase de recaudacion antes del lanzamiento publico.",
+          "help": "La preventa permite a inversores tempranos comprar a precio fijo antes de que el token se liste.",
+          "fields": [
+            { "type": "select", "name": "enablePresale" }
+          ]
+        },
+        {
+          "title": "Logo del Token",
+          "description": "Sube la imagen del logo de tu token.",
+          "help": "Usa una imagen cuadrada PNG o SVG, idealmente de 256x256px o mayor.",
+          "fields": [
+            { "type": "file", "name": "tokenLogoUrl" }
+          ]
+        }
+      ]
+    },
+
+    "poolPage": {
+      "title": "Configuracion del Pool",
+      "description": "Configura el pool de liquidez y los precios de tu token.",
+      "cards": [
+        {
+          "title": "Precio Base (BNB)",
+          "description": "El precio minimo al que tu token puede operar.",
+          "help": "Esto establece la proteccion de piso para el valor de tu token.",
+          "required": true,
+          "fields": [
+            { "type": "number", "name": "floorPrice", "placeholder": "0.0000001" }
+          ]
+        },
+        {
+          "title": "Suministro Total",
+          "description": "El numero total de tokens a crear.",
+          "help": "Mayor suministro significa menor precio individual al mismo market cap.",
+          "required": true,
+          "fields": [
+            { "type": "number", "name": "totalSupply", "placeholder": "1000000" }
+          ]
+        },
+        {
+          "title": "Activo de Reserva",
+          "description": "El activo emparejado con tu token en el pool.",
+          "help": "Actualmente solo WBNB esta soportado como activo de reserva.",
+          "fields": [
+            { "type": "select", "name": "reserveAsset" }
+          ]
+        },
+        {
+          "title": "Protocolo",
+          "description": "El DEX donde tu token sera listado.",
+          "help": "Elige el exchange descentralizado para el pool de liquidez de tu token.",
+          "fields": [
+            { "type": "select", "name": "protocol" }
+          ]
+        }
+      ]
+    },
+
+    "presalePage": {
+      "title": "Configuracion de Preventa",
+      "description": "Configura los parametros de la preventa de tu token.",
+      "cards": [
+        {
+          "title": "Duracion de Preventa",
+          "description": "Cuanto tiempo la preventa aceptara contribuciones.",
+          "help": "Preventas mas largas dan mas tiempo para alcanzar las metas de recaudacion.",
+          "fields": [
+            { "type": "select", "name": "presaleDuration" }
+          ]
+        },
+        {
+          "title": "Porcentaje de Tope Minimo",
+          "description": "Porcentaje minimo del hard cap necesario para el lanzamiento.",
+          "help": "Si no se alcanza el soft cap, los contribuidores pueden reclamar reembolsos.",
+          "fields": [
+            { "type": "slider", "name": "softCapPercent" }
+          ]
+        }
+      ]
+    },
+
+    "presaleDisabled": "La preventa esta deshabilitada para este token. Se lanzara directamente sin una fase de preventa.",
+    "presalePrice": "Precio de Preventa",
+    "hardCap": "Tope Maximo",
+    "softCapPercent": "Porcentaje de Tope Minimo",
+    "floorPrice": "Precio Base (BNB)",
+    "calculatedFdv": "FDV",
+    "summaryTitle": "Resumen",
+    "summaryDesc": "Revisa la configuracion de tu pool.",
+
+    "previewPage": {
+      "title": "Vista Previa y Lanzamiento",
+      "description": "Revisa todos los detalles antes de desplegar tu token.",
+      "cards": [
+        {
+          "title": "Detalles del Token",
+          "description": "Resumen de la configuracion de tu token.",
+          "rows": [
+            { "label": "Nombre", "key": "tokenName" },
+            { "label": "Simbolo", "key": "tokenSymbol" },
+            { "label": "Decimales", "key": "tokenDecimals" },
+            { "label": "Descripcion", "key": "tokenDescription" },
+            { "label": "Logo", "key": "tokenLogoUrl" },
+            { "label": "Preventa", "key": "enablePresale" }
+          ]
+        },
+        {
+          "title": "Configuracion del Pool",
+          "description": "Resumen de la configuracion de tu pool.",
+          "rows": [
+            { "label": "Suministro Total", "key": "totalSupply" },
+            { "label": "Precio Base", "key": "floorPrice" },
+            { "label": "Activo de Reserva", "key": "reserveAsset" },
+            { "label": "FDV", "key": "fdv" },
+            { "label": "Protocolo", "key": "protocol" }
+          ]
+        },
+        {
+          "title": "Configuracion de Preventa",
+          "description": "Resumen de la configuracion de tu preventa.",
+          "presaleOnly": true,
+          "rows": [
+            { "label": "Precio de Preventa", "key": "presalePrice" },
+            { "label": "Tope Maximo", "key": "hardCap" },
+            { "label": "Tope Minimo", "key": "softCap" },
+            { "label": "Duracion", "key": "duration" }
+          ]
+        }
+      ]
+    },
+    "deployTitle": "Desplegar",
+    "deployDesc": "Revisa y confirma tu despliegue.",
+    "deployNotice": "Una vez desplegado, tu token estara activo en la blockchain. Esta accion es irreversible. Asegurate de que todos los detalles sean correctos antes de continuar.",
+    "deploymentFee": "Tarifa de despliegue: 1 BNB",
+    "deployButton": "Desplegar Token",
+
+    "name": "Nombre",
+    "symbol": "Simbolo",
+    "decimals": "Decimales",
+    "descriptionLabel": "Descripcion",
+    "logoUrl": "URL del Logo",
+    "presaleEnabled": "Preventa",
+    "enabled": "Habilitada",
+    "disabled": "Deshabilitada",
+    "duration": "Duracion",
+    "softCap": "Tope Minimo",
+    "noDescription": "Sin descripcion",
+    "noLogo": "Sin logo",
+
+    "enablePresaleYes": "Si",
+    "enablePresaleNo": "No",
+
+    "required": "Requerido",
+    "next": "Siguiente",
+    "back": "Volver",
+
+    "errors": {
+      "required": "Este campo es obligatorio",
+      "mustBePositive": "Debe ser un numero positivo"
+    }
   }
 }

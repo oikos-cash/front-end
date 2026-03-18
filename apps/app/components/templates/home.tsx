@@ -15,7 +15,6 @@ export default function HomeTemplate() {
     <div className="flex flex-col gap-3 py-4">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-
           title={t("spot")}
           description={t("spotDesc")}
           value="$0.1815"
@@ -23,24 +22,18 @@ export default function HomeTemplate() {
           secondary="0.00028442 OKS/BNB"
         />
         <KpiCard
-
-
           title={t("volume")}
           description={t("volumeDesc")}
           value="$51.97K"
           secondary="81.43 BNB"
         />
         <KpiCard
-
-
           title={t("marketCap")}
           description={t("marketCapDesc")}
           value="$30.70K"
           secondary="48.10 BNB"
         />
         <KpiCard
-
-
           title={t("imv")}
           description={t("imvDesc")}
           subtitle="(44% OF SPOT)"

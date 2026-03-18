@@ -6,6 +6,8 @@ import Input from "@/components/atoms/input";
 import Select from "@/components/atoms/select";
 import Checkbox from "@/components/atoms/checkbox";
 import Textarea from "@/components/atoms/textarea";
+import Slider from "@/components/atoms/slider";
+import FileUpload from "@/components/atoms/file-upload";
 
 // Types
 import type { ControllerRenderProps, FieldValues } from "react-hook-form";
@@ -15,6 +17,8 @@ import type {
   SelectFieldItem,
   CheckboxFieldItem,
   TextareaFieldItem,
+  SliderFieldItem,
+  FileFieldItem,
   FieldRendererProps,
 } from "@/types/interfaces";
 
@@ -91,6 +95,30 @@ function renderTextarea(item: TextareaFieldItem, field: FieldControl) {
   );
 }
 
+function renderSlider(item: SliderFieldItem, field: FieldControl) {
+  return (
+    <Slider
+      min={item.min}
+      max={item.max}
+      step={item.step}
+      value={[field.value ?? item.min ?? 0]}
+      onValueChange={(v) => field.onChange(v[0])}
+      disabled={item.disabled}
+    />
+  );
+}
+
+function renderFileUpload(item: FileFieldItem, field: FieldControl) {
+  return (
+    <FileUpload
+      value={field.value}
+      onChange={field.onChange}
+      accept={item.accept}
+      disabled={item.disabled}
+    />
+  );
+}
+
 function renderField(item: FieldItem, field: FieldControl) {
   switch (item.type) {
     case "text":
@@ -107,6 +135,10 @@ function renderField(item: FieldItem, field: FieldControl) {
       return renderCheckbox(item, field);
     case "textarea":
       return renderTextarea(item, field);
+    case "slider":
+      return renderSlider(item, field);
+    case "file":
+      return renderFileUpload(item, field);
   }
 }
 

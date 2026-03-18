@@ -15,7 +15,7 @@ export interface CardProps {
   action?: React.ReactNode;
   header?: React.ReactNode;
   footer?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
 }
 
@@ -105,6 +105,25 @@ export interface SelectProps {
   defaultValue?: string;
   onValueChange?: (value: string) => void;
   items: { value: string; label: string; href?: string }[];
+}
+
+export interface FileUploadProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  accept?: string;
+  disabled?: boolean;
+  className?: string;
+}
+
+export interface SliderProps {
+  value?: number[];
+  defaultValue?: number[];
+  min?: number;
+  max?: number;
+  step?: number;
+  disabled?: boolean;
+  onValueChange?: (value: number[]) => void;
+  className?: string;
 }
 
 export interface ProgressBarProps {
@@ -217,11 +236,25 @@ export interface TextareaFieldItem extends FieldItemBase {
   textareaClassName?: string;
 }
 
+export interface SliderFieldItem extends FieldItemBase {
+  type: "slider";
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+export interface FileFieldItem extends FieldItemBase {
+  type: "file";
+  accept?: string;
+}
+
 export type FieldItem =
   | InputFieldItem
   | SelectFieldItem
   | CheckboxFieldItem
-  | TextareaFieldItem;
+  | TextareaFieldItem
+  | SliderFieldItem
+  | FileFieldItem;
 
 export interface FieldRendererProps {
   fields: FieldItem[];
@@ -233,6 +266,46 @@ export interface FieldRendererProps {
 // =================================================
 //                     ORGANISMS
 // =================================================
+export interface PageHeaderProps {
+  title: string;
+  description?: string;
+}
+
+export interface I18nCardConfig {
+  title: string;
+  description: string;
+  help?: string;
+  required?: boolean;
+  fields: { type: string; name: string; placeholder?: string }[];
+}
+
+export interface I18nPreviewCard {
+  title: string;
+  description: string;
+  presaleOnly?: boolean;
+  rows: { label: string; key: string }[];
+}
+
+export interface LaunchpadTokenFormValues {
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDescription?: string;
+  enablePresale: string;
+  tokenLogoUrl?: string;
+}
+
+export interface LaunchpadPoolFormValues {
+  floorPrice: string;
+  totalSupply: string;
+  reserveAsset: string;
+  protocol: string;
+}
+
+export interface LaunchpadPresaleFormValues {
+  presaleDuration: string;
+  softCapPercent: number;
+}
+
 export interface StakeFormPanelProps {
   token?: string;
 }
@@ -399,6 +472,34 @@ export interface LiquidityData {
 // =================================================
 //                      STORES
 // =================================================
+export interface LaunchpadState {
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDescription: string;
+  tokenDecimals: number;
+  enablePresale: boolean;
+  tokenLogoUrl: string;
+  floorPrice: string;
+  totalSupply: string;
+  reserveAsset: string;
+  protocol: string;
+  presaleDuration: string;
+  softCapPercent: number;
+  completedSteps: number[];
+  setTokenInfo: (data: Partial<LaunchpadState>) => void;
+  setPoolConfig: (data: Partial<LaunchpadState>) => void;
+  setPresaleConfig: (data: Partial<LaunchpadState>) => void;
+  markStepCompleted: (step: number) => void;
+  getMissingFields: () => MissingField[];
+  isReadyToDeploy: () => boolean;
+  reset: () => void;
+}
+
+export interface MissingField {
+  key: string;
+  path: string;
+}
+
 export interface TokenBalance {
   token: string;
   iconUrl?: string;
