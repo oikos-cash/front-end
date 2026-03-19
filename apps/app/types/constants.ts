@@ -57,6 +57,17 @@ export const BORROW_DURATION_OPTIONS = [
 ];
 
 // =================================================
+//               LIQUIDITY POOLS
+// =================================================
+export const LIQUIDITY_POOLS = [
+  { value: "oks", label: "OKS / WBNB" },
+  { value: "sfl", label: "SFL / WBNB" },
+  { value: "nxd", label: "NXD / WBNB" },
+  { value: "aqf", label: "AQF / WBNB" },
+  { value: "vtx", label: "VTX / WBNB" },
+];
+
+// =================================================
 //               LIQUIDITY DETAILS
 // =================================================
 export const LABEL_COLORS: Record<string, string> = {

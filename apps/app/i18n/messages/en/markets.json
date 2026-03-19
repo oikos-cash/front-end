@@ -18,6 +18,16 @@
     "warning": "Warning",
     "critical": "Critical",
     "viewDividends": "View Dividends",
+    "filterAll": "All",
+    "filterPresale": "Presale",
+    "filterGraduated": "Graduated",
+    "sortDefault": "Default",
+    "sortMarketCap": "Market Cap",
+    "sortVolume": "Volume",
+    "sortNewest": "Newest",
+    "sortRaised": "Raised",
+    "sectionPresales": "Active Presales",
+    "sectionGraduated": "Graduated Tokens",
     "emptyTitle": "No tokens found",
     "emptyDescription": "Try a different search term"
   }

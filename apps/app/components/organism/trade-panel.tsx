@@ -85,6 +85,13 @@ export default function TradePanel() {
     }
   }
 
+  function handlePercentage(pct: number) {
+    if (bnbBalance) {
+      const value = (parseFloat(bnbBalance.amount) * pct / 100).toFixed(4);
+      form.setValue("amount", value, { shouldValidate: true });
+    }
+  }
+
   function onSubmit(data: TradeFormValues) {
     console.log("Trade:", side, data);
   }
@@ -189,6 +196,21 @@ export default function TradePanel() {
 
           {/* Use WBNB + Amount */}
           <FieldRenderer fields={amountFields} control={form.control} t={t} />
+
+          {/* Percentage buttons */}
+          <ButtonGroup className="self-start">
+            {[25, 50, 75, 100].map((pct) => (
+              <Button
+                key={pct}
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => handlePercentage(pct)}
+              >
+                {pct}%
+              </Button>
+            ))}
+          </ButtonGroup>
 
           {/* Details */}
           {numericAmount > 0 && (

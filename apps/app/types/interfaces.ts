@@ -135,6 +135,7 @@ export interface ProgressBarProps {
 
 export interface InputProps extends React.ComponentProps<"input"> {
   className?: string;
+  startIcon?: React.ReactNode;
 }
 
 export interface TextareaProps extends React.ComponentProps<"textarea"> {

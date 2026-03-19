@@ -7,19 +7,47 @@
 
 ## Pantallas
 
-- [x] **Home / Exchange** — `Exchange.tsx` → `templates/home.tsx` (parcial — falta swap modal, order book)
-- [x] **Markets / Showcase** — `Showcase.tsx` → `templates/markets.tsx` (catalogo con infinite scroll)
-- [x] **Liquidity** — `Liquidity.tsx` → `templates/liquidity.tsx` (chart + details table)
-- [x] **Stake** — `Stake.tsx` → `templates/stake.tsx` (KPI cards, staking form with RHF/Zod, cooldown timer, stake history with infinite scroll)
-- [x] **Borrow** — `Borrow.tsx` → `templates/borrow.tsx` (KPI cards, borrow form with RHF/Zod, loan history with infinite scroll)
-- [x] **Launchpad** — `Launchpad.tsx` → 4 pages (token/pool/presale/preview) with sidebar layout, Zustand persist store, i18n-driven cards, file upload, deploy mock
-- [x] **Presale** — `Presale.tsx` → `templates/presale.tsx` (KPI cards, contribution form with RHF/Zod, progress bar with live countdown, my contribution card)
-- [x] **Dividends** — `Dividends.tsx` → `templates/dividends.tsx` (KPI cards, OKS balance card, dividend token list with Lock/Withdraw, claim history with infinite scroll)
-- [x] **Studio** — `Studio.tsx` → `templates/studio.tsx` (KPI cards, token list with stats, creator dashboard)
-- [x] **Swap** — `Swap.tsx` → `templates/swap.tsx` (universal DEX swap: token selectors, calculated output, exchange rate, price impact, recent swaps)
-- [ ] **Migrate** — `Migrate.tsx` → no creada (token migration: version selector, amount input)
-- [ ] **Linktree** — `Linktree.tsx` → no creada (link aggregation page con branding) — baja prioridad
-- [ ] **Home / Landing** — `Home.tsx` → no creada (landing page con hero section) — baja prioridad
+- [x] **Home / Exchange** — `Exchange.tsx` → `templates/home.tsx`
+  - [x] Slider de porcentaje de balance (25%, 50%, 75%, 100%) en TradePanel
+  - [x] Tabs en TradesHistory: Global / My Trades
+  - [x] Filtro de token en TradesHistory
+- [x] **Markets / Showcase** — `Showcase.tsx` → `templates/markets.tsx`
+  - [x] Filtros avanzados: All / Presale / Graduated
+  - [x] Ordenar por: market cap, newest, raised
+  - [x] Secciones por categoria: presales activas, tokens graduados
+- [x] **Liquidity** — `Liquidity.tsx` → `templates/liquidity.tsx`
+  - [x] Selector de vault/token para cambiar entre pools
+  - [x] Controles avanzados de curva (Shift/Slide mock — regeneran datos)
+- [x] **Stake** — `Stake.tsx` → `templates/stake.tsx`
+  - [ ] Active Position card: staked balance, sToken balance, rewards acumulados, cooldown status
+  - [ ] Wallet sidebar con balances de tokens en contexto de staking
+- [x] **Borrow** — `Borrow.tsx` → `templates/borrow.tsx`
+  - [ ] Active Loan card: borrowed amount, collateral, LTV%, dias restantes, interest, countdown
+  - [ ] Modal Repay: input de cantidad, simulacion de fees
+  - [ ] Modal Roll: extender duracion del prestamo
+  - [ ] Modal Add Collateral: agregar colateral con simulacion de LTV
+  - [ ] Filtros en Loan History: All / Borrow / Repay / Roll / Add Collateral
+- [x] **Launchpad** — 4 pages (token/pool/presale/preview)
+  - [ ] Social links form: Twitter, Discord, Website, Telegram
+  - [ ] Image crop/editor para logo del token
+- [x] **Presale** — `Presale.tsx` → `templates/presale.tsx`
+  - [ ] Admin controls: Finalize Presale button (solo si el usuario es deployer)
+  - [ ] Referral system: generar codigo, copiar link, compartir
+  - [ ] Timeline de estado de la presale
+- [x] **Dividends** — `Dividends.tsx` → `templates/dividends.tsx`
+  - [ ] Vesting detail modal: entradas individuales, claimed vs unclaimed, schedule
+  - [ ] Progreso de vesting por token (barra de progreso)
+  - [ ] Historial de claims individual por token
+- [x] **Studio** — `Studio.tsx` → `templates/studio.tsx`
+  - [ ] Activity feed / Recent activity con timestamps
+  - [ ] Creator earnings tracker (rewards acumulados por vault)
+  - [ ] Price + 24h Change por token en cards
+  - [ ] "View on Exchange" button por token card
+- [x] **Swap** — `Swap.tsx` → `templates/swap.tsx`
+  - [ ] Token selector avanzado con busqueda y logos
+  - [ ] Swap settings panel: slippage tolerance, MEV protection
+  - [ ] Routing information (por que DEX se ejecuta el swap)
+- [ ] **Home / Landing** — `Home.tsx` → no creada — baja prioridad
 
 ## Organismos
 
@@ -44,6 +72,7 @@
 - [x] **Dividend Claim History** — `Dividends.tsx` → `organism/dividend-claim-history.tsx`
 - [x] **Studio Token List** — `Studio.tsx` → `organism/studio-token-list.tsx`
 - [x] **Swap Form** — `Swap.tsx` → `organism/swap-form.tsx`
+- [x] **Swap History** — `Swap.tsx` → `organism/swap-history.tsx`
 
 ## No se migran
 
@@ -52,3 +81,5 @@
 - TwitterCallback — OAuth callback, no aplica
 - Bootstrap — Subscription management, no aplica
 - Splash — Canvas attractor animation, no aplica
+- AI features — Generacion de nombres/simbolos/descripciones/logos con AI
+- Twitter/social media posting — Integracion directa con redes sociales

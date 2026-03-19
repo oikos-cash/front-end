@@ -7,10 +7,11 @@ import { ColumnDef } from "@tanstack/react-table";
 import Card from "@/components/atoms/card";
 import Table from "@/components/atoms/table";
 import Badge from "@/components/atoms/badge";
-import Empty from "@/components/atoms/empty";
-import Skeleton from "@/components/atoms/skeleton";
-import Select from "@/components/atoms/select";
 import Button from "@/components/atoms/button";
+import ButtonGroup from "@/components/atoms/button-group";
+import Empty from "@/components/atoms/empty";
+import Select from "@/components/atoms/select";
+import Skeleton from "@/components/atoms/skeleton";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -67,6 +68,7 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
   // State
   const [trades, setTrades] = useState<Trade[]>([]);
   const [view, setView] = useState("global");
+  const [tokenFilter, setTokenFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
 
@@ -186,6 +188,18 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
     return () => observer.disconnect();
   }, [hasMore, isLoading, loadTrades]);
 
+  const filteredTrades =
+    tokenFilter === "all"
+      ? trades
+      : trades.filter((trade) => trade.token === tokenFilter);
+
+  const tokenOptions = [
+    { value: "all", label: t("allTokens") },
+    { value: "OKS", label: "OKS" },
+    { value: "BNB", label: "BNB" },
+    { value: "SFL", label: "SFL" },
+  ];
+
   // Handlers
   const handleViewChange = (value: string) => {
     setView(value);
@@ -202,17 +216,29 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
     <Card
       header={
         <div className="flex w-full items-center gap-2">
+          <ButtonGroup>
+            <Button
+              type="button"
+              variant={view === "global" ? "default" : "outline"}
+              onClick={() => handleViewChange("global")}
+            >
+              {t("global")}
+            </Button>
+            <Button
+              type="button"
+              variant={view === "myTrades" ? "default" : "outline"}
+              onClick={() => handleViewChange("myTrades")}
+            >
+              {t("myTrades")}
+            </Button>
+          </ButtonGroup>
           <Select
-            className="w-32"
-            defaultValue="global"
-            disabled={isLoading && trades.length === 0}
-            onValueChange={handleViewChange}
-            items={[
-              { value: "global", label: t("global") },
-              { value: "myTrades", label: t("myTrades") },
-            ]}
+            className="w-28"
+            value={tokenFilter}
+            defaultValue="all"
+            onValueChange={setTokenFilter}
+            items={tokenOptions}
           />
-          <Badge variant="outline">{token}</Badge>
           <div className="flex-1" />
           <Button
             variant="ghost"
@@ -225,9 +251,9 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
         </div>
       }
     >
-      {trades.length > 0 ? (
+      {filteredTrades.length > 0 ? (
         <div>
-          <Table columns={columns} data={trades} />
+          <Table columns={columns} data={filteredTrades} />
           <div ref={sentinelRef} className="h-1" />
           {isLoading && (
             <div className="flex items-center justify-center py-3">
@@ -241,21 +267,41 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
             <table className="w-full caption-bottom text-sm">
               <thead className="[&_tr]:border-b">
                 <tr className="border-b">
-                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-10" /></th>
-                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-14" /></th>
-                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-12" /></th>
-                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-14" /></th>
-                  <th className="h-10 px-2 text-left align-middle"><Skeleton className="h-3 w-10" /></th>
+                  <th className="h-10 px-2 text-left align-middle">
+                    <Skeleton className="h-3 w-10" />
+                  </th>
+                  <th className="h-10 px-2 text-left align-middle">
+                    <Skeleton className="h-3 w-14" />
+                  </th>
+                  <th className="h-10 px-2 text-left align-middle">
+                    <Skeleton className="h-3 w-12" />
+                  </th>
+                  <th className="h-10 px-2 text-left align-middle">
+                    <Skeleton className="h-3 w-14" />
+                  </th>
+                  <th className="h-10 px-2 text-left align-middle">
+                    <Skeleton className="h-3 w-10" />
+                  </th>
                 </tr>
               </thead>
               <tbody className="[&_tr:last-child]:border-0">
                 {Array.from({ length: 8 }, (_, i) => (
                   <tr key={i} className="border-b">
-                    <td className="p-2 align-middle"><Skeleton className="h-5 w-10 rounded-full" /></td>
-                    <td className="p-2 align-middle"><Skeleton className="h-3 w-44" /></td>
-                    <td className="p-2 align-middle"><Skeleton className="h-3 w-40" /></td>
-                    <td className="p-2 align-middle"><Skeleton className="h-3 w-24" /></td>
-                    <td className="p-2 align-middle"><Skeleton className="h-3 w-14" /></td>
+                    <td className="p-2 align-middle">
+                      <Skeleton className="h-5 w-10 rounded-full" />
+                    </td>
+                    <td className="p-2 align-middle">
+                      <Skeleton className="h-3 w-44" />
+                    </td>
+                    <td className="p-2 align-middle">
+                      <Skeleton className="h-3 w-40" />
+                    </td>
+                    <td className="p-2 align-middle">
+                      <Skeleton className="h-3 w-24" />
+                    </td>
+                    <td className="p-2 align-middle">
+                      <Skeleton className="h-3 w-14" />
+                    </td>
                   </tr>
                 ))}
               </tbody>

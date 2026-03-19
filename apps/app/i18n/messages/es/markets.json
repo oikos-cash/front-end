@@ -18,6 +18,16 @@
     "warning": "Advertencia",
     "critical": "Crítico",
     "viewDividends": "Ver Dividendos",
+    "filterAll": "Todos",
+    "filterPresale": "Preventa",
+    "filterGraduated": "Graduados",
+    "sortDefault": "Por defecto",
+    "sortMarketCap": "Cap. de Mercado",
+    "sortVolume": "Volumen",
+    "sortNewest": "Mas recientes",
+    "sortRaised": "Recaudado",
+    "sectionPresales": "Preventas Activas",
+    "sectionGraduated": "Tokens Graduados",
     "emptyTitle": "No se encontraron tokens",
     "emptyDescription": "Intenta con otro término de búsqueda"
   }
