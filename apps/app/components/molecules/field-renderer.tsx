@@ -4,24 +4,23 @@
 import Field from "@/components/atoms/field";
 import Input from "@/components/atoms/input";
 import Select from "@/components/atoms/select";
+import Slider from "@/components/atoms/slider";
 import Checkbox from "@/components/atoms/checkbox";
 import Textarea from "@/components/atoms/textarea";
-import Slider from "@/components/atoms/slider";
 import FileUpload from "@/components/atoms/file-upload";
 
 // Types
-import type { ControllerRenderProps, FieldValues } from "react-hook-form";
 import type {
   FieldItem,
+  FileFieldItem,
   InputFieldItem,
   SelectFieldItem,
+  SliderFieldItem,
   CheckboxFieldItem,
   TextareaFieldItem,
-  SliderFieldItem,
-  FileFieldItem,
   FieldRendererProps,
 } from "@/types/interfaces";
-
+import type { ControllerRenderProps, FieldValues } from "react-hook-form";
 type FieldControl = ControllerRenderProps<FieldValues, string>;
 
 function renderInput(item: InputFieldItem, field: FieldControl) {
@@ -75,7 +74,9 @@ function renderCheckbox(item: CheckboxFieldItem, field: FieldControl) {
       onCheckedChange={field.onChange}
       disabled={item.disabled}
       label={item.label}
-      description={typeof item.description === "string" ? item.description : undefined}
+      description={
+        typeof item.description === "string" ? item.description : undefined
+      }
     />
   );
 }

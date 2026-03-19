@@ -1,7 +1,7 @@
 // Components
-import Banner from "@/components/molecules/banner";
-import PriceTable from "@/components/organism/price-table";
-import TradePanel from "@/components/organism/trade-panel";
+import Banner from "@/components/molecules/banner/cta";
+import PriceTable from "@/components/organism/price/table";
+import TradePanel from "@/components/organism/trade/panel";
 import WalletPanel from "@/components/organism/wallet-panel";
 
 // Types

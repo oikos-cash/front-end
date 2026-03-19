@@ -1,0 +1,8 @@
+{
+  "error": {
+    "title": "Algo Salio Mal",
+    "description": "Ocurrio un error inesperado. Por favor intenta de nuevo.",
+    "retry": "Intentar de Nuevo",
+    "errorId": "ID del Error: {id}"
+  }
+}

@@ -1,4 +1,7 @@
+// Components
 import { Input as InputPrimitive } from "@/components/atoms/ui/input";
+
+// Types
 import type { InputProps } from "@/types/interfaces";
 
 export default function Input({ className, startIcon, ...props }: InputProps) {

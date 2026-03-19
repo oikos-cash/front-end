@@ -1,18 +1,21 @@
 "use client";
-
 import { useCallback, useRef, useState } from "react";
-import Image from "next/image";
-import type { FileUploadProps } from "@/types/interfaces";
 
 // Icons
 import { Upload, X, ImageIcon } from "lucide-react";
 
+// Components
+import Image from "next/image";
+
+// Types
+import type { FileUploadProps } from "@/types/interfaces";
+
 export default function FileUpload({
   value,
   onChange,
-  accept = "image/png,image/jpeg,image/svg+xml,image/webp",
   disabled,
   className,
+  accept = "image/png,image/jpeg,image/svg+xml,image/webp",
 }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -62,6 +65,7 @@ export default function FileUpload({
         />
         <button
           type="button"
+          aria-label="Remove image"
           onClick={handleRemove}
           disabled={disabled}
           className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -105,8 +109,9 @@ export default function FileUpload({
         ref={inputRef}
         type="file"
         accept={accept}
-        onChange={handleChange}
         className="hidden"
+        onChange={handleChange}
+        aria-label="Upload file"
       />
     </button>
   );

@@ -8,8 +8,8 @@ import Button from "@/components/atoms/button";
 
 // Hooks
 import { useTranslations } from "next-intl";
-import { usePathname, useRouter } from "next/navigation";
 import { useLaunchpadStore } from "@/stores/launchpad";
+import { usePathname, useRouter } from "next/navigation";
 
 // Constants
 import { LAUNCHPAD_STEPS, LAUNCHPAD_STEP_LABELS } from "@/types/constants";
@@ -25,8 +25,14 @@ export default function LaunchpadSidebar({
   const t = useTranslations("launchpad");
   const pathname = usePathname();
   const router = useRouter();
-  const { completedSteps, enablePresale, tokenSymbol, markStepCompleted, isReadyToDeploy, reset } =
-    useLaunchpadStore();
+  const {
+    reset,
+    tokenSymbol,
+    enablePresale,
+    completedSteps,
+    isReadyToDeploy,
+    markStepCompleted,
+  } = useLaunchpadStore();
   const [isDeploying, setIsDeploying] = useState(false);
 
   const currentIndex = LAUNCHPAD_STEPS.findIndex((step) =>
@@ -46,7 +52,6 @@ export default function LaunchpadSidebar({
             const isActive = pathname.endsWith(step.path);
             const isCompleted = completedSteps.includes(index);
             const isPresaleStep = index === 2;
-
             return (
               <li key={step.path}>
                 <Link
@@ -105,9 +110,7 @@ export default function LaunchpadSidebar({
                 reset();
                 setIsDeploying(false);
                 router.push(
-                  hasPresale
-                    ? `/presale/${symbol}`
-                    : `/liquidity/${symbol}`
+                  hasPresale ? `/presale/${symbol}` : `/liquidity/${symbol}`,
                 );
               }}
             >

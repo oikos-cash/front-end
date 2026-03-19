@@ -57,6 +57,17 @@
           "fields": [
             { "type": "file", "name": "tokenLogoUrl" }
           ]
+        },
+        {
+          "title": "Social Links",
+          "description": "Add your project's social media links.",
+          "help": "Social links help build trust and community around your token.",
+          "fields": [
+            { "type": "url", "name": "website", "placeholder": "https://yourproject.com" },
+            { "type": "url", "name": "twitter", "placeholder": "https://x.com/yourproject" },
+            { "type": "url", "name": "discord", "placeholder": "https://discord.gg/invite" },
+            { "type": "url", "name": "telegram", "placeholder": "https://t.me/yourproject" }
+          ]
         }
       ]
     },
@@ -147,7 +158,11 @@
             { "label": "Decimals", "key": "tokenDecimals" },
             { "label": "Description", "key": "tokenDescription" },
             { "label": "Logo", "key": "tokenLogoUrl" },
-            { "label": "Presale", "key": "enablePresale" }
+            { "label": "Presale", "key": "enablePresale" },
+            { "label": "Website", "key": "website" },
+            { "label": "Twitter / X", "key": "twitter" },
+            { "label": "Discord", "key": "discord" },
+            { "label": "Telegram", "key": "telegram" }
           ]
         },
         {
@@ -192,6 +207,12 @@
     "softCap": "Soft Cap",
     "noDescription": "No description provided",
     "noLogo": "No logo provided",
+
+    "website": "Website",
+    "twitter": "Twitter / X",
+    "discord": "Discord",
+    "telegram": "Telegram",
+    "noSocialLink": "Not provided",
 
     "enablePresaleYes": "Yes",
     "enablePresaleNo": "No",

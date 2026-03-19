@@ -1,10 +1,10 @@
 "use client";
 
 // Components
-import Button from "@/components/atoms/button";
 import Empty from "@/components/atoms/empty";
+import Button from "@/components/atoms/button";
+import SwapForm from "@/components/organism/form/swap";
 import PageHeader from "@/components/molecules/page-header";
-import SwapForm from "@/components/organism/swap-form";
 import SwapHistory from "@/components/organism/swap-history";
 
 // Hooks
@@ -40,12 +40,8 @@ export default function SwapTemplate() {
       <PageHeader
         title={t("title")}
         description={t("description")}
-        breadcrumbs={[
-          { label: "Home", href: "/" },
-          { label: t("title") },
-        ]}
+        breadcrumbs={[{ label: "Home", href: "/" }, { label: t("title") }]}
       />
-
       <SwapForm />
       <SwapHistory />
     </div>

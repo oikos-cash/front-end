@@ -27,6 +27,9 @@ export default getRequestConfig(async ({ requestLocale }) => {
     ...(await import(`./messages/${locale}/studio.json`)).default,
     ...(await import(`./messages/${locale}/swap.json`)).default,
     ...(await import(`./messages/${locale}/sidebar.json`)).default,
+    ...(await import(`./messages/${locale}/notFound.json`)).default,
+    ...(await import(`./messages/${locale}/error.json`)).default,
+    ...(await import(`./messages/${locale}/seo.json`)).default,
   };
 
   return { locale, messages };

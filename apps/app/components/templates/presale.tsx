@@ -1,43 +1,32 @@
 "use client";
 
-import { useMemo } from "react";
-
 // Components
 import Card from "@/components/atoms/card";
 import Empty from "@/components/atoms/empty";
-import AvatarInfo from "@/components/molecules/avatar-info";
 import Button from "@/components/atoms/button";
-import KpiCard from "@/components/molecules/kpi-card";
+import KpiCard from "@/components/molecules/card/kpi";
 import PageHeader from "@/components/molecules/page-header";
-import PresaleProgress from "@/components/organism/presale-progress";
-import PresaleContributionForm from "@/components/organism/presale-contribution-form";
+import AvatarInfo from "@/components/molecules/avatar-info";
+import PresaleProgress from "@/components/organism/presale/progress";
+import PresaleAdminControls from "@/components/organism/presale/admin-controls";
+import PresaleContributionForm from "@/components/organism/form/presale-contribution";
 
 // Hooks
-import { useTranslations } from "next-intl";
-import { useParams } from "next/navigation";
-import { useWallet } from "@/stores/wallet";
-
-// Utils
-import { generateMockPresaleData, formatCompactNumber } from "@/utils/number";
+import { usePresale } from "@/hooks/use-presale";
 
 // Icons
 import { Lock, Wallet } from "lucide-react";
 
 export default function PresaleTemplate() {
-  const t = useTranslations("presale");
-  const { isConnected, handleConnect, balances } = useWallet();
-  const params = useParams();
-  const token = (params.token as string) ?? "OKS";
-
-  const presaleData = useMemo(
-    () => generateMockPresaleData(token.toUpperCase()),
-    [token],
-  );
-
-  const userBalance = useMemo(() => {
-    const bnb = balances.find((b) => b.token === "BNB");
-    return bnb ? parseFloat(bnb.amount) : 0;
-  }, [balances]);
+  const {
+    t,
+    kpiCards,
+    isConnected,
+    presaleData,
+    userBalance,
+    handleConnect,
+    contributionRows,
+  } = usePresale();
 
   if (!isConnected) {
     return (
@@ -68,26 +57,14 @@ export default function PresaleTemplate() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          title={t("token")}
-          description={t("tokenDesc")}
-          value={presaleData.tokenSymbol}
-        />
-        <KpiCard
-          title={t("price")}
-          description={t("priceDesc")}
-          value={`${presaleData.price.toFixed(6)} BNB`}
-        />
-        <KpiCard
-          title={t("hardCap")}
-          description={t("hardCapDesc")}
-          value={`${presaleData.hardCap.toFixed(2)} BNB`}
-        />
-        <KpiCard
-          title={t("softCap")}
-          description={t("softCapDesc")}
-          value={`${presaleData.softCap.toFixed(2)} BNB`}
-        />
+        {kpiCards.map((kpi) => (
+          <KpiCard
+            key={kpi.key}
+            title={t(kpi.key)}
+            description={t(`${kpi.key}Desc`)}
+            value={kpi.value}
+          />
+        ))}
       </div>
 
       <Card title={t("tokenInfo")} description={t("tokenInfoDesc")}>
@@ -122,24 +99,24 @@ export default function PresaleTemplate() {
         />
       </div>
 
+      <PresaleAdminControls
+        status={presaleData.status}
+        softCapReached={presaleData.softCapReached}
+        isDeployer={presaleData.isDeployer}
+      />
+
       <Card title={t("myContribTitle")} description={t("myContribDesc")}>
-        {presaleData.userContribution > 0 ? (
+        {contributionRows.length > 0 ? (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{t("contributed")}</span>
-              <span className="font-medium">
-                {presaleData.userContribution.toFixed(4)} BNB
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                {t("tokensToReceive")}
-              </span>
-              <span className="font-medium">
-                {formatCompactNumber(presaleData.userTokens)}{" "}
-                {presaleData.tokenSymbol}
-              </span>
-            </div>
+            {contributionRows.map((row) => (
+              <div
+                key={row.key}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-muted-foreground">{t(row.key)}</span>
+                <span className="font-medium">{row.value}</span>
+              </div>
+            ))}
             {presaleData.status === "ended" && !presaleData.softCapReached && (
               <div className="flex justify-end pt-2">
                 <Button variant="destructive" size="sm">

@@ -3,12 +3,13 @@
 import { useMemo } from "react";
 
 // Components
-import Button from "@/components/atoms/button";
 import Empty from "@/components/atoms/empty";
-import KpiCard from "@/components/molecules/kpi-card";
+import Button from "@/components/atoms/button";
+import KpiCard from "@/components/molecules/card/kpi";
 import PageHeader from "@/components/molecules/page-header";
-import StakeFormPanel from "@/components/organism/stake-form-panel";
-import StakeHistory from "@/components/organism/stake-history";
+import StakeFormPanel from "@/components/organism/form/stake";
+import StakeHistory from "@/components/organism/stake/history";
+import StakeActivePosition from "@/components/organism/stake/active-position";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -47,35 +48,32 @@ export default function StakeTemplate() {
       <PageHeader
         title={t("title")}
         description={t("description")}
-        breadcrumbs={[
-          { label: "Home", href: "/" },
-          { label: t("title") },
-        ]}
+        breadcrumbs={[{ label: "Home", href: "/" }, { label: t("title") }]}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          title={t("token")}
-          description={t("tokenDesc")}
-          value={stakeData.tokenSymbol}
-        />
-        <KpiCard
-          title={t("totalStaked")}
-          description={t("totalStakedDesc")}
-          value={formatStakeNumber(stakeData.totalStaked, 2)}
-        />
-        <KpiCard
-          title={t("apr30d")}
-          description={t("apr30dDesc")}
-          value={`${stakeData.apr30d.toFixed(2)}%`}
-        />
-        <KpiCard
-          title={t("totalRewards")}
-          description={t("totalRewardsDesc")}
-          value={`${formatStakeNumber(stakeData.totalRewards)} ${stakeData.tokenSymbol}`}
-        />
+        {[
+          { key: "token", value: stakeData.tokenSymbol },
+          {
+            key: "totalStaked",
+            value: formatStakeNumber(stakeData.totalStaked, 2),
+          },
+          { key: "apr30d", value: `${stakeData.apr30d.toFixed(2)}%` },
+          {
+            key: "totalRewards",
+            value: `${formatStakeNumber(stakeData.totalRewards)} ${stakeData.tokenSymbol}`,
+          },
+        ].map((kpi) => (
+          <KpiCard
+            key={kpi.key}
+            title={t(kpi.key)}
+            description={t(`${kpi.key}Desc`)}
+            value={kpi.value}
+          />
+        ))}
       </div>
 
+      <StakeActivePosition />
       <StakeFormPanel />
       <StakeHistory />
     </div>

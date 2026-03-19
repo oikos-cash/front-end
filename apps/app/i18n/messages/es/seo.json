@@ -1,0 +1,76 @@
+{
+  "seo": {
+    "site": {
+      "name": "Oikos",
+      "description": "Protocolo de finanzas descentralizadas para trading, liquidez, staking y lanzamiento de tokens en BNB Chain"
+    },
+    "home": {
+      "title": "Panel",
+      "description": "Monitorea tu portafolio, rastrea precios de tokens y gestiona tus posiciones DeFi en Oikos"
+    },
+    "markets": {
+      "title": "Mercados",
+      "description": "Explora todos los tokens, vaults y preventas disponibles en el protocolo Oikos"
+    },
+    "swap": {
+      "title": "Intercambio",
+      "description": "Intercambia tokens al instante con deslizamiento minimo en el exchange descentralizado Oikos"
+    },
+    "borrow": {
+      "title": "Prestamos",
+      "description": "Pide prestado contra tus holdings de tokens con prestamos auto-repagables en Oikos"
+    },
+    "stake": {
+      "title": "Staking",
+      "description": "Haz staking de tus tokens para ganar recompensas y participar en la gobernanza del protocolo"
+    },
+    "liquidity": {
+      "title": "Liquidez",
+      "description": "Proporciona liquidez concentrada y gana comisiones por operaciones en el protocolo Oikos"
+    },
+    "dividends": {
+      "title": "Dividendos",
+      "description": "Reclama tus dividendos de tokens y gestiona calendarios de vesting en Oikos"
+    },
+    "dividendToken": {
+      "title": "Dividendos de {token}",
+      "description": "Consulta detalles de dividendos, entradas de vesting e historial de reclamos para {token}"
+    },
+    "presale": {
+      "title": "Preventa de {token}",
+      "description": "Participa en la preventa de {token} — contribuye, sigue el progreso y reclama tokens"
+    },
+    "studio": {
+      "title": "Estudio",
+      "description": "Panel de creador — gestiona tus tokens, consulta analiticas y monitorea actividad"
+    },
+    "studioToken": {
+      "title": "Estudio de {token}",
+      "description": "Gestiona y monitorea {token} — analiticas, holders, liquidez y ganancias"
+    },
+    "launchpad": {
+      "title": "Launchpad",
+      "description": "Lanza tu propio token en el protocolo Oikos — configura, preventa y despliega"
+    },
+    "launchpadToken": {
+      "title": "Launchpad — Info del Token",
+      "description": "Configura el nombre, simbolo, descripcion y enlaces sociales de tu token"
+    },
+    "launchpadPool": {
+      "title": "Launchpad — Config del Pool",
+      "description": "Define precio base, suministro total, activo de reserva y parametros del protocolo"
+    },
+    "launchpadPresale": {
+      "title": "Launchpad — Config de Preventa",
+      "description": "Configura duracion de preventa, soft cap y limites de contribucion"
+    },
+    "launchpadPreview": {
+      "title": "Launchpad — Vista Previa y Despliegue",
+      "description": "Revisa la configuracion de tu token y despliega en el protocolo Oikos"
+    },
+    "notFound": {
+      "title": "Pagina No Encontrada",
+      "description": "La pagina que buscas no existe o ha sido movida"
+    }
+  }
+}

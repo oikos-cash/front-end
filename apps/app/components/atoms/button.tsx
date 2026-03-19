@@ -1,5 +1,13 @@
+// Icons
 import { Loader2 } from "lucide-react";
-import { Button as Primitive, type ButtonProps as PrimitiveProps } from "@/components/atoms/ui/button";
+
+// Components
+import {
+  Button as Primitive,
+  type ButtonProps as PrimitiveProps,
+} from "@/components/atoms/ui/button";
+
+// Types
 import type { ButtonAtomProps } from "@/types/interfaces";
 
 export default function Button({
@@ -9,7 +17,11 @@ export default function Button({
   ...props
 }: ButtonAtomProps) {
   if (asChild) {
-    return <Primitive {...props} asChild>{children}</Primitive>;
+    return (
+      <Primitive {...props} asChild>
+        {children}
+      </Primitive>
+    );
   }
 
   return (

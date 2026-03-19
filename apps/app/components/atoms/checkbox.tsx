@@ -1,17 +1,20 @@
-import { Checkbox as Primitive } from "@/components/atoms/ui/checkbox";
+// Components
 import {
   Field,
-  FieldContent,
   FieldLabel,
+  FieldContent,
   FieldDescription,
 } from "@/components/atoms/ui/field";
+import { Checkbox as Primitive } from "@/components/atoms/ui/checkbox";
+
+// Types
 import type { CheckboxProps } from "@/types/interfaces";
 
 export default function Checkbox({
-  label,
-  description,
   id,
+  label,
   disabled,
+  description,
   ...props
 }: CheckboxProps) {
   if (!label && !description) {

@@ -1,10 +1,13 @@
+// Components
 import Avatar from "@/components/atoms/avatar";
+
+// Types
 import type { AvatarInfoProps } from "@/types/interfaces";
 
 export default function AvatarInfo({
+  src,
   title,
   subtitle,
-  src,
   size = "default",
 }: AvatarInfoProps) {
   return (

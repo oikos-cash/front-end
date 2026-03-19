@@ -1,30 +1,31 @@
 import Link from "next/link";
 
 // Components
-import Badge from "@/components/atoms/badge";
 import Card from "@/components/atoms/card";
+import Badge from "@/components/atoms/badge";
 import Empty from "@/components/atoms/empty";
+import Button from "@/components/atoms/button";
 import AvatarInfo from "@/components/molecules/avatar-info";
 
 // Hooks
 import { useTranslations } from "next-intl";
 
 // Types
-import type { StudioToken } from "@/types/interfaces";
+import type { StudioTokenListProps, StudioToken } from "@/types/interfaces";
 
 // Utils
-import { formatCompactNumber } from "@/utils/number";
+import { getStudioTokenStatValue } from "@/utils/number";
 
 // Icons
-import { Coins } from "lucide-react";
+import { ArrowUpRight, Coins } from "lucide-react";
 
-const STATUS_VARIANT: Record<StudioToken["status"], "default" | "secondary" | "destructive"> = {
-  active: "default",
-  presale: "secondary",
-  paused: "destructive",
-};
+// Constants
+import {
+  STUDIO_TOKEN_STATS,
+  STUDIO_TOKEN_STATUS_VARIANT,
+} from "@/types/constants";
 
-export default function StudioTokenList({ tokens }: { tokens: StudioToken[] }) {
+export default function StudioTokenList({ tokens }: StudioTokenListProps) {
   const t = useTranslations("studio");
 
   if (tokens.length === 0) {
@@ -52,27 +53,48 @@ export default function StudioTokenList({ tokens }: { tokens: StudioToken[] }) {
           <Link key={token.id} href={`/studio/${token.symbol.toLowerCase()}`}>
             <Card
               className="h-full transition-colors hover:border-primary/50"
-              header={
-                <AvatarInfo title={token.name} subtitle={token.symbol} />
-              }
+              header={<AvatarInfo title={token.name} subtitle={token.symbol} />}
               action={
-                <Badge variant={STATUS_VARIANT[token.status]}>
+                <Badge variant={STUDIO_TOKEN_STATUS_VARIANT[token.status]}>
                   {t(token.status)}
                 </Badge>
               }
             >
               <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{t("volume24h")}</span>
-                  <span className="text-sm font-medium">${formatCompactNumber(token.volume24h)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{t("holders")}</span>
-                  <span className="text-sm font-medium">{token.holders}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{t("liquidity")}</span>
-                  <span className="text-sm font-medium">${formatCompactNumber(token.liquidity)}</span>
+                {STUDIO_TOKEN_STATS.map((key) => (
+                  <div key={key} className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">
+                      {t(key)}
+                    </span>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-sm font-medium">
+                        {getStudioTokenStatValue(token, key)}
+                      </span>
+                      {key === "price" && (
+                        <span
+                          className={`text-xs font-medium ${token.change24h >= 0 ? "text-success" : "text-destructive"}`}
+                        >
+                          {token.change24h >= 0 ? "+" : ""}
+                          {token.change24h}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div className="pt-1">
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    className="w-full"
+                    onClick={(e: React.MouseEvent) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      window.location.href = `/?token=${token.symbol.toLowerCase()}`;
+                    }}
+                  >
+                    <ArrowUpRight className="size-3" />
+                    {t("viewExchange")}
+                  </Button>
                 </div>
               </div>
             </Card>

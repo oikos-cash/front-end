@@ -1,12 +1,7 @@
-import Link from "next/link";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem as BreadcrumbItemPrimitive,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/atoms/ui/breadcrumb";
+// Components
+import Breadcrumb from "@/components/atoms/breadcrumb";
+
+// Types
 import type { PageHeaderProps } from "@/types/interfaces";
 
 export default function PageHeader({
@@ -23,27 +18,7 @@ export default function PageHeader({
         )}
       </div>
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <Breadcrumb>
-          <BreadcrumbList>
-            {breadcrumbs.map((item, i) => {
-              const isLast = i === breadcrumbs.length - 1;
-              return (
-                <BreadcrumbItemPrimitive key={i}>
-                  {isLast ? (
-                    <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                  ) : (
-                    <>
-                      <BreadcrumbLink asChild>
-                        <Link href={item.href ?? "#"}>{item.label}</Link>
-                      </BreadcrumbLink>
-                      <BreadcrumbSeparator />
-                    </>
-                  )}
-                </BreadcrumbItemPrimitive>
-              );
-            })}
-          </BreadcrumbList>
-        </Breadcrumb>
+        <Breadcrumb items={breadcrumbs} />
       )}
     </div>
   );

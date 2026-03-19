@@ -1,20 +1,25 @@
-import { Controller } from "react-hook-form";
+// Components
 import {
-  Field as FieldPrimitive,
+  FieldError,
   FieldLabel,
   FieldContent,
   FieldDescription,
-  FieldError,
+  Field as FieldPrimitive,
 } from "@/components/atoms/ui/field";
+
+// Hooks
+import { Controller } from "react-hook-form";
+
+// Types
 import type { FieldProps } from "@/types/interfaces";
 
 export default function Field({
   name,
-  control,
   label,
-  description,
+  control,
   children,
   className,
+  description,
   orientation = "vertical",
   t,
 }: FieldProps) {

@@ -1,10 +1,23 @@
 // =================================================
 //                      ATOMS
 // =================================================
-export interface ButtonAtomProps
-  extends React.ComponentProps<"button"> {
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
-  size?: "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
+export interface ButtonAtomProps extends React.ComponentProps<"button"> {
+  variant?:
+    | "default"
+    | "destructive"
+    | "outline"
+    | "secondary"
+    | "ghost"
+    | "link";
+  size?:
+    | "default"
+    | "xs"
+    | "sm"
+    | "lg"
+    | "icon"
+    | "icon-xs"
+    | "icon-sm"
+    | "icon-lg";
   asChild?: boolean;
   isLoading?: boolean;
 }
@@ -22,7 +35,11 @@ export interface CardProps {
 export interface AccordionProps {
   type?: "single" | "multiple";
   className?: string;
-  items: { value: string; trigger: React.ReactNode; content: React.ReactNode }[];
+  items: {
+    value: string;
+    trigger: React.ReactNode;
+    content: React.ReactNode;
+  }[];
 }
 
 export interface CheckboxProps {
@@ -70,6 +87,20 @@ export interface DrawerProps {
   children: React.ReactNode;
   direction?: "top" | "bottom" | "left" | "right";
   description?: string;
+}
+
+export interface SheetProps {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  content: React.ReactNode;
+  footer?: React.ReactNode;
+  side?: "top" | "right" | "bottom" | "left";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  submitLabel?: string;
+  onSubmit?: () => void;
+  cancelLabel?: string;
 }
 
 export interface TableProps<TData, TValue> {
@@ -149,16 +180,27 @@ export interface FieldProps {
   description?: React.ReactNode;
   children:
     | React.ReactNode
-    | ((field: import("react-hook-form").ControllerRenderProps<any, string>) => React.ReactNode);
+    | ((
+        field: import("react-hook-form").ControllerRenderProps<any, string>,
+      ) => React.ReactNode);
   className?: string;
   orientation?: "vertical" | "horizontal" | "responsive";
   t?: (key: string) => string;
 }
 
+export interface BreadcrumbProps {
+  items: BreadcrumbItem[];
+  className?: string;
+}
+
 // =================================================
 //                     MOLECULES
 // =================================================
-export type TokenStatus = "graduated" | "inProgress" | "finalized" | "preparing";
+export type TokenStatus =
+  | "graduated"
+  | "inProgress"
+  | "finalized"
+  | "preparing";
 export type TokenHealth = "healthy" | "warning" | "critical";
 
 export interface MarketToken {
@@ -268,6 +310,13 @@ export interface FieldRendererProps {
 // =================================================
 //                     ORGANISMS
 // =================================================
+export interface PriceTableToken {
+  token: string;
+  price: string;
+  change24h: number;
+  fdv: string;
+}
+
 export interface AvatarInfoProps {
   title: string;
   subtitle?: string;
@@ -324,6 +373,10 @@ export interface LaunchpadTokenFormValues {
   tokenDescription?: string;
   enablePresale: string;
   tokenLogoUrl?: string;
+  website?: string;
+  twitter?: string;
+  discord?: string;
+  telegram?: string;
 }
 
 export interface LaunchpadPoolFormValues {
@@ -360,6 +413,10 @@ export interface StakeHistoryProps {
   token?: string;
 }
 
+export interface StakeActivePositionProps {
+  token?: string;
+}
+
 export interface BorrowFormPanelProps {
   token?: string;
 }
@@ -382,6 +439,40 @@ export interface LoanHistoryItem {
 
 export interface LoanHistoryProps {
   token?: string;
+}
+
+export interface LoanActivePositionProps {
+  token?: string;
+}
+
+export type LoanActionTab = "repay" | "roll" | "addCollateral";
+
+export interface ActiveLoanMockData {
+  token: string;
+  quoteToken: string;
+  borrowedAmount: number;
+  collateralAmount: number;
+  ltv: number;
+  daysLeft: number;
+  expiresAt: number;
+  dailyInterest: number;
+  totalInterestAccrued: number;
+  imv: number;
+  isSelfRepaying: boolean;
+  isExpired: boolean;
+  hasActiveLoan: boolean;
+}
+
+export interface RepayFormValues {
+  repayAmount: string;
+}
+
+export interface RollFormValues {
+  rollDuration: string;
+}
+
+export interface AddCollateralFormValues {
+  collateralAmount: string;
 }
 
 export interface TradeFormValues {
@@ -433,6 +524,22 @@ export interface PriceChartProps {
   token?: string;
 }
 
+export interface CrosshairData {
+  visible: boolean;
+  x: number;
+  y: number;
+  time: string;
+  price: string;
+  volume: string;
+}
+
+export interface PriceChartRendererProps {
+  ready: boolean;
+  crosshairData: CrosshairData;
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  tooltipRef: React.RefObject<HTMLDivElement | null>;
+}
+
 export interface OHLCVBar {
   time: import("lightweight-charts").UTCTimestamp;
   open: number;
@@ -465,10 +572,47 @@ export interface PresaleMockData {
   maxContribution: number;
   userContribution: number;
   userTokens: number;
+  deployer: string;
+  isDeployer: boolean;
+}
+
+export interface PresaleAdminControlsProps {
+  status: PresaleMockData["status"];
+  softCapReached: boolean;
+  isDeployer: boolean;
 }
 
 export interface PresaleContributionFormValues {
   amount: string;
+}
+
+export interface PresaleContributionFormProps {
+  price: number;
+  minContribution: number;
+  maxContribution: number;
+  status: "active" | "ended" | "finalized";
+  userBalance: number;
+}
+
+export interface LiquidityChartProps {
+  bars: LiquidityBar[];
+  spotPrice: number;
+}
+
+export interface LiquidityChartTooltipData {
+  bar: LiquidityBar;
+  x: number;
+  y: number;
+}
+
+export interface LiquidityChartInnerProps {
+  width: number;
+  height: number;
+  bars: LiquidityBar[];
+  spotPrice: number;
+  onReady: () => void;
+  onHover: (data: LiquidityChartTooltipData) => void;
+  onLeave: () => void;
 }
 
 export interface DividendToken {
@@ -478,6 +622,28 @@ export interface DividendToken {
   totalDistributed: number;
   unvested: number;
   vested: number;
+}
+
+export interface VestingEntry {
+  id: string;
+  amount: number;
+  claimed: number;
+  startDate: Date;
+  unlockDate: Date;
+  vestedPercent: number;
+  withdrawable: number;
+  stillLocked: number;
+  isFullyUnlocked: boolean;
+}
+
+export interface DividendTokenDetailData {
+  tokenAddress: string;
+  tokenSymbol: string;
+  tokenName: string;
+  totalDistributed: number;
+  unvested: number;
+  vested: number;
+  vestingEntries: VestingEntry[];
 }
 
 export interface DividendClaimHistory {
@@ -503,15 +669,22 @@ export interface PresaleProgressProps {
   status: "active" | "ended" | "finalized";
 }
 
+export interface StudioTokenListProps {
+  tokens: StudioToken[];
+}
+
 export interface StudioToken {
   id: string;
   name: string;
   symbol: string;
   status: "active" | "presale" | "paused";
+  price: number;
+  change24h: number;
   volume24h: number;
   totalVolume: number;
   holders: number;
   liquidity: number;
+  earnings: number;
   createdAt: Date;
 }
 
@@ -520,11 +693,22 @@ export interface StudioStats {
   totalVolume: number;
   totalHolders: number;
   totalLiquidity: number;
+  totalEarnings: number;
+}
+
+export interface StudioActivityItem {
+  id: string;
+  type: "trade" | "stake" | "lp_add" | "lp_remove";
+  token: string;
+  amount: number;
+  wallet: string;
+  timestamp: Date;
 }
 
 export interface SwapToken {
   symbol: string;
   name: string;
+  iconUrl: string;
   balance: number;
   price: number;
 }
@@ -565,6 +749,11 @@ export interface StakeTemplateProps {
 // =================================================
 //                     FUNCTIONS
 // =================================================
+export interface PageSeoConfig {
+  page: string;
+  params?: Record<string, string>;
+}
+
 export interface LiquidityBar {
   name: string;
   from: number;
@@ -608,6 +797,10 @@ export interface LaunchpadState {
   tokenDecimals: number;
   enablePresale: boolean;
   tokenLogoUrl: string;
+  website: string;
+  twitter: string;
+  discord: string;
+  telegram: string;
   floorPrice: string;
   totalSupply: string;
   reserveAsset: string;

@@ -1,45 +1,43 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 // Components
+import Empty from "@/components/atoms/empty";
 import Input from "@/components/atoms/input";
 import Button from "@/components/atoms/button";
-import ButtonGroup from "@/components/atoms/button-group";
 import Select from "@/components/atoms/select";
-import Empty from "@/components/atoms/empty";
-import TokenCard from "@/components/molecules/token-card";
-import TokenCardSkeleton from "@/components/molecules/token-card-skeleton";
+import ButtonGroup from "@/components/atoms/button-group";
+import TokenCard from "@/components/molecules/card/token";
+import TokenCardSkeleton from "@/components/molecules/card/token-skeleton";
 
 // Hooks
 import { useTranslations } from "next-intl";
+import { useMarketsCatalog } from "@/hooks/use-markets-catalog";
+
+// Types
+import type { FilterType, SortType } from "@/hooks/use-markets-catalog";
+import type { MarketToken } from "@/types/interfaces";
 
 // Icons
 import { Loader2, Search, SearchX } from "lucide-react";
 
-// Types
-import type { MarketToken } from "@/types/interfaces";
-
-// Utils
-import { generateMockMarketTokens } from "@/utils/number";
-
-// Constants
-import { MARKETS_PAGE_SIZE, MARKETS_MAX_TOKENS } from "@/types/constants";
-
-type FilterType = "all" | "presale" | "graduated";
-type SortType = "default" | "marketCap" | "newest" | "raised";
-
 export default function MarketsCatalog() {
   const t = useTranslations("markets");
 
-  const [tokens, setTokens] = useState<MarketToken[]>([]);
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterType>("all");
-  const [sort, setSort] = useState<SortType>("default");
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
-
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const {
+    tokens,
+    search,
+    filter,
+    sort,
+    isLoading,
+    setSearch,
+    setFilter,
+    setSort,
+    processed,
+    presaleTokens,
+    graduatedTokens,
+    showSections,
+    sentinelRef,
+  } = useMarketsCatalog();
 
   const sortOptions = [
     { value: "default", label: t("sortDefault") },
@@ -47,103 +45,6 @@ export default function MarketsCatalog() {
     { value: "newest", label: t("sortNewest") },
     { value: "raised", label: t("sortRaised") },
   ];
-
-  // Filter + sort tokens
-  const processed = useMemo(() => {
-    let result = tokens;
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (tk) =>
-          tk.name.toLowerCase().includes(q) ||
-          tk.symbol.toLowerCase().includes(q) ||
-          tk.description.toLowerCase().includes(q),
-      );
-    }
-
-    if (filter === "presale") {
-      result = result.filter((tk) => tk.isPresale);
-    } else if (filter === "graduated") {
-      result = result.filter((tk) => tk.status === "graduated");
-    }
-
-    if (sort === "marketCap") {
-      result = [...result].sort(
-        (a, b) => (b.marketCap ?? 0) - (a.marketCap ?? 0),
-      );
-    } else if (sort === "newest") {
-      result = [...result].sort(
-        (a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0),
-      );
-    } else if (sort === "raised") {
-      result = [...result].sort((a, b) => (b.raised ?? 0) - (a.raised ?? 0));
-    }
-
-    return result;
-  }, [tokens, search, filter, sort]);
-
-  // Split into sections
-  const presaleTokens = useMemo(
-    () => processed.filter((tk) => tk.isPresale),
-    [processed],
-  );
-  const graduatedTokens = useMemo(
-    () => processed.filter((tk) => tk.status === "graduated"),
-    [processed],
-  );
-  const showSections = filter === "all" && !search.trim() && sort === "default";
-
-  // Load tokens
-  const loadTokens = useCallback(
-    (reset?: boolean) => {
-      setIsLoading(true);
-      const currentLength = reset ? 0 : tokens.length;
-      const remaining = MARKETS_MAX_TOKENS - currentLength;
-
-      if (remaining <= 0) {
-        setHasMore(false);
-        setIsLoading(false);
-        return;
-      }
-
-      const count = Math.min(MARKETS_PAGE_SIZE, remaining);
-      setTimeout(() => {
-        const newTokens = generateMockMarketTokens(count, currentLength);
-        setTokens((prev) => (reset ? newTokens : [...prev, ...newTokens]));
-        setHasMore(currentLength + count < MARKETS_MAX_TOKENS);
-        setIsLoading(false);
-      }, 300);
-    },
-    [tokens.length],
-  );
-
-  useEffect(() => {
-    loadTokens(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0]?.isIntersecting &&
-          hasMore &&
-          !isLoading &&
-          !search.trim()
-        ) {
-          loadTokens();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, isLoading, loadTokens, search]);
 
   function renderGrid(items: MarketToken[]) {
     return (
@@ -157,7 +58,6 @@ export default function MarketsCatalog() {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Search + Filters + Sort */}
       <div className="sticky top-13 z-30 -mx-4 flex flex-col gap-3 border-b bg-background px-4 py-4">
         <Input
           type="text"
@@ -191,7 +91,6 @@ export default function MarketsCatalog() {
         </div>
       </div>
 
-      {/* Content */}
       {tokens.length === 0 && isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           <TokenCardSkeleton count={8} />

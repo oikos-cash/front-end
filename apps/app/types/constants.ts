@@ -1,4 +1,4 @@
-import type { SlippageOption } from "@/types/interfaces";
+import type { SlippageOption, FieldItem } from "@/types/interfaces";
 
 // =================================================
 //                   TOKEN CARD
@@ -31,7 +31,11 @@ export const TRADES_MAX_TRADES = 100;
 // =================================================
 //                  TRADE PANEL
 // =================================================
-export const SLIPPAGE_OPTIONS: Exclude<SlippageOption, "custom">[] = ["0.1", "0.5", "1"];
+export const SLIPPAGE_OPTIONS: Exclude<SlippageOption, "custom">[] = [
+  "0.1",
+  "0.5",
+  "1",
+];
 
 // =================================================
 //                 STAKE HISTORY
@@ -46,14 +50,85 @@ export const LOAN_HISTORY_PAGE_SIZE = 15;
 export const LOAN_HISTORY_MAX_ITEMS = 60;
 
 // =================================================
-//                  BORROW FORM
+//              LOAN HISTORY FILTERS
 // =================================================
+export const LOAN_HISTORY_FILTERS = [
+  { value: "all", labelKey: "filterAll" },
+  { value: "borrow", labelKey: "filterBorrow" },
+  { value: "repay", labelKey: "filterRepay" },
+  { value: "roll", labelKey: "filterRoll" },
+];
+
+// =================================================
+//              BORROW FORM FIELDS
+// =================================================
+export const BORROW_FIELDS = [
+  {
+    name: "borrowAmount",
+    type: "number",
+    min: 0,
+    step: "any",
+    placeholder: "0.00",
+  },
+  { name: "duration", type: "select" },
+] as const;
+
 export const BORROW_DURATION_OPTIONS = [
   { value: "7", label: "7 days" },
   { value: "14", label: "14 days" },
   { value: "30", label: "30 days" },
   { value: "60", label: "60 days" },
   { value: "90", label: "90 days" },
+];
+
+// =================================================
+//              STAKE FORM FIELDS
+// =================================================
+export const STAKE_FIELDS = [
+  { name: "amount", type: "number", min: 0, step: "any", placeholder: "0.00" },
+] as const;
+
+// =================================================
+//          PRESALE CONTRIBUTION FIELDS
+// =================================================
+export const PRESALE_CONTRIBUTION_FIELDS = [
+  { name: "amount", type: "number", min: 0, step: "any" },
+] as const;
+
+// =================================================
+//          LOAN ACTIVE POSITION TABS
+// =================================================
+export const LOAN_TAB_FIELDS = {
+  repay: [
+    {
+      name: "repayAmount",
+      type: "number",
+      min: 0,
+      step: "any",
+      placeholder: "0.00",
+    },
+  ],
+  roll: [{ name: "rollDuration", type: "select" }],
+  addCollateral: [
+    {
+      name: "collateralAmount",
+      type: "number",
+      min: 0,
+      step: "any",
+      placeholder: "0.00",
+    },
+  ],
+} as const;
+
+// =================================================
+//                  ROLL DURATION
+// =================================================
+export const ROLL_DURATION_OPTIONS = [
+  { value: "2592000", label: "30 days" },
+  { value: "5184000", label: "60 days" },
+  { value: "7776000", label: "90 days" },
+  { value: "15552000", label: "180 days" },
+  { value: "31536000", label: "1 year" },
 ];
 
 // =================================================
@@ -88,6 +163,22 @@ export const PRESALE_STATUS_VARIANT = {
 } as const;
 
 // =================================================
+//                     STUDIO
+// =================================================
+export const STUDIO_TOKEN_STATUS_VARIANT = {
+  active: "default",
+  presale: "secondary",
+  paused: "destructive",
+} as const;
+
+export const STUDIO_TOKEN_STATS = [
+  "price",
+  "volume24h",
+  "holders",
+  "liquidity",
+] as const;
+
+// =================================================
 //               DIVIDEND HISTORY
 // =================================================
 export const DIVIDEND_HISTORY_PAGE_SIZE = 15;
@@ -110,9 +201,49 @@ export const PROTOCOL_OPTIONS = [
   { value: "pancakeswap", label: "PancakeSwap" },
 ];
 
-export const RESERVE_ASSET_OPTIONS = [
-  { value: "wbnb", label: "WBNB" },
-];
+export const RESERVE_ASSET_OPTIONS = [{ value: "wbnb", label: "WBNB" }];
+
+// Launchpad field overrides
+export const LAUNCHPAD_TOKEN_FIELD_OVERRIDES: Record<
+  string,
+  Partial<FieldItem>
+> = {
+  tokenDescription: { maxLength: 500, rows: 4 } as Partial<FieldItem>,
+  tokenLogoUrl: {
+    accept: "image/png,image/jpeg,image/svg+xml,image/webp",
+  } as Partial<FieldItem>,
+};
+
+export const LAUNCHPAD_POOL_FIELD_OVERRIDES: Record<
+  string,
+  Partial<FieldItem>
+> = {
+  floorPrice: { min: 0, step: "any" } as Partial<FieldItem>,
+  totalSupply: { min: 0, step: "any" } as Partial<FieldItem>,
+};
+
+export const LAUNCHPAD_PRESALE_FIELD_OVERRIDES: Record<
+  string,
+  Partial<FieldItem>
+> = {
+  softCapPercent: { min: 20, max: 60, step: 1 } as Partial<FieldItem>,
+};
+
+// Launchpad select items
+export const LAUNCHPAD_POOL_SELECT_ITEMS: Record<
+  string,
+  { value: string; label: string }[]
+> = {
+  reserveAsset: RESERVE_ASSET_OPTIONS,
+  protocol: PROTOCOL_OPTIONS,
+};
+
+export const LAUNCHPAD_PRESALE_SELECT_ITEMS: Record<
+  string,
+  { value: string; label: string }[]
+> = {
+  presaleDuration: PRESALE_DURATION_OPTIONS,
+};
 
 export const LAUNCHPAD_STEPS = [
   { path: "/launchpad/token", label: "Token Info" },
@@ -144,3 +275,45 @@ export const SWAP_TOKENS: { value: string; label: string }[] = [
   { value: "VTX", label: "VortexSwap" },
   { value: "USDT", label: "USDT" },
 ];
+
+export const SWAP_SLIPPAGE_OPTIONS = ["0.1", "0.5", "1"] as const;
+
+export const SWAP_ROUTES = [
+  { dex: "PancakeSwap V3", share: 80 },
+  { dex: "Uniswap V3", share: 15 },
+  { dex: "BiSwap", share: 5 },
+];
+
+// =================================================
+//                       SEO
+// =================================================
+export const SITE_URL = "https://oikos.finance";
+export const SITE_NAME = "Oikos";
+
+export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
+
+export const SITE_LOCALE_MAP: Record<string, string> = {
+  en: "en_US",
+  es: "es_ES",
+};
+
+export const STATIC_ROUTES = [
+  "/",
+  "/markets",
+  "/swap",
+  "/dividends",
+  "/studio",
+  "/launchpad/token",
+  "/launchpad/pool",
+  "/launchpad/presale",
+  "/launchpad/preview",
+] as const;
+
+export const DYNAMIC_ROUTE_PREFIXES = [
+  "/borrow",
+  "/stake",
+  "/liquidity",
+  "/presale",
+  "/dividends",
+  "/studio",
+] as const;

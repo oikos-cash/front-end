@@ -15,7 +15,7 @@ export const stakeSchema = z.object({
     .min(1, "errors.required")
     .refine(
       (v: string) => !isNaN(Number(v)) && Number(v) > 0,
-      "errors.mustBePositive"
+      "errors.mustBePositive",
     ),
 });
 
@@ -37,7 +37,7 @@ export const swapSchema = z.object({
     .min(1, "errors.required")
     .refine(
       (v: string) => !isNaN(Number(v)) && Number(v) > 0,
-      "errors.mustBePositive"
+      "errors.mustBePositive",
     ),
 });
 
@@ -57,9 +57,49 @@ export const borrowSchema = z.object({
     .min(1, "errors.required")
     .refine(
       (v: string) => !isNaN(Number(v)) && Number(v) > 0,
-      "errors.mustBePositive"
+      "errors.mustBePositive",
     ),
   duration: z.string().min(1, "errors.required"),
+});
+
+// =================================================
+//                   LOAN ACTIONS
+// =================================================
+
+/**
+ * Schema for the repay form.
+ * `repayAmount` must be a non-empty string representing a positive number.
+ */
+export const repaySchema = z.object({
+  repayAmount: z
+    .string()
+    .min(1, "errors.required")
+    .refine(
+      (v: string) => !isNaN(Number(v)) && Number(v) > 0,
+      "errors.mustBePositive",
+    ),
+});
+
+/**
+ * Schema for the roll (extend) form.
+ * `rollDuration` must be selected from available options.
+ */
+export const rollSchema = z.object({
+  rollDuration: z.string().min(1, "errors.required"),
+});
+
+/**
+ * Schema for the add collateral form.
+ * `collateralAmount` must be a non-empty string representing a positive number.
+ */
+export const addCollateralSchema = z.object({
+  collateralAmount: z
+    .string()
+    .min(1, "errors.required")
+    .refine(
+      (v: string) => !isNaN(Number(v)) && Number(v) > 0,
+      "errors.mustBePositive",
+    ),
 });
 
 // =================================================
@@ -79,13 +119,14 @@ export const tradeSchema = z.object({
     .min(1, "errors.required")
     .refine(
       (v: string) => !isNaN(Number(v)) && Number(v) > 0,
-      "errors.mustBePositive"
+      "errors.mustBePositive",
     ),
   customSlippage: z
     .string()
     .refine(
-      (v: string) => v === "" || (!isNaN(Number(v)) && Number(v) >= 0 && Number(v) <= 50),
-      "errors.slippageRange"
+      (v: string) =>
+        v === "" || (!isNaN(Number(v)) && Number(v) >= 0 && Number(v) <= 50),
+      "errors.slippageRange",
     ),
   useWbnb: z.boolean(),
   approveMax: z.boolean(),
@@ -106,7 +147,7 @@ export const presaleContributionSchema = z.object({
     .min(1, "errors.required")
     .refine(
       (v: string) => !isNaN(Number(v)) && Number(v) > 0,
-      "errors.mustBePositive"
+      "errors.mustBePositive",
     ),
 });
 
@@ -125,6 +166,10 @@ export const launchpadTokenSchema = z.object({
   tokenDescription: z.string().optional(),
   enablePresale: z.string().min(1, "errors.required"),
   tokenLogoUrl: z.string().optional(),
+  website: z.string().optional(),
+  twitter: z.string().optional(),
+  discord: z.string().optional(),
+  telegram: z.string().optional(),
 });
 
 /**
@@ -138,14 +183,14 @@ export const launchpadPoolSchema = z.object({
     .min(1, "errors.required")
     .refine(
       (v: string) => !isNaN(Number(v)) && Number(v) > 0,
-      "errors.mustBePositive"
+      "errors.mustBePositive",
     ),
   totalSupply: z
     .string()
     .min(1, "errors.required")
     .refine(
       (v: string) => !isNaN(Number(v)) && Number(v) > 0,
-      "errors.mustBePositive"
+      "errors.mustBePositive",
     ),
   reserveAsset: z.string().min(1, "errors.required"),
   protocol: z.string().min(1, "errors.required"),

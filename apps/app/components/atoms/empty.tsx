@@ -1,12 +1,17 @@
+// Components
 import {
-  EmptyHeader,
   EmptyMedia,
   EmptyTitle,
+  EmptyHeader,
   EmptyContent,
   EmptyDescription,
 } from "@/components/atoms/ui/empty";
-import { EmptyProps } from "@/types/interfaces";
+
+// Utils
 import { cn } from "@/utils/object";
+
+// Types
+import { EmptyProps } from "@/types/interfaces";
 
 export default function Empty({
   icon,
