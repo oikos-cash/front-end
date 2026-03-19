@@ -1,0 +1,7 @@
+{
+  "notFound": {
+    "title": "Pagina No Encontrada",
+    "description": "La pagina que buscas no existe o fue movida.",
+    "backHome": "Volver al Inicio"
+  }
+}

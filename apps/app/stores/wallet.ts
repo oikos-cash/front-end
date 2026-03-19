@@ -16,11 +16,11 @@ export const useWallet = create<WalletState>((set) => ({
           token: "BNB",
           iconUrl:
             "https://assets-cdn.trustwallet.com/blockchains/binance/info/logo.png",
-          amount: "0.0000",
-          usd: "$0.00",
+          amount: "0.0100",
+          usd: "$6.50",
         },
       ],
-      totalValue: "$0.00",
+      totalValue: "$6.50",
     }),
 
   handleDisconnect: () =>

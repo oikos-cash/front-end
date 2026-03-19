@@ -1,5 +1,34 @@
 {
   "markets": {
-    "title": "Markets"
+    "title": "Markets",
+    "searchPlaceholder": "Search by name, symbol or description...",
+    "trade": "Trade",
+    "buy": "Buy",
+    "marketCap": "Market Cap",
+    "created": "Created",
+    "totalSupply": "Total Supply",
+    "circSupply": "Circ. Supply",
+    "raised": "Raised",
+    "hardCap": "Hard Cap",
+    "graduated": "Graduated",
+    "inProgress": "In Progress",
+    "finalized": "Finalized",
+    "preparing": "Preparing",
+    "healthy": "Healthy",
+    "warning": "Warning",
+    "critical": "Critical",
+    "viewDividends": "View Dividends",
+    "filterAll": "All",
+    "filterPresale": "Presale",
+    "filterGraduated": "Graduated",
+    "sortDefault": "Default",
+    "sortMarketCap": "Market Cap",
+    "sortVolume": "Volume",
+    "sortNewest": "Newest",
+    "sortRaised": "Raised",
+    "sectionPresales": "Active Presales",
+    "sectionGraduated": "Graduated Tokens",
+    "emptyTitle": "No tokens found",
+    "emptyDescription": "Try a different search term"
   }
 }

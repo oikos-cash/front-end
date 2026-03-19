@@ -1,6 +1,7 @@
 {
   "wallet": {
     "title": "Billetera",
+    "description": "Tus balances de tokens y resumen del portafolio",
     "wrap": "Wrap",
     "totalValue": "Valor Total",
     "connectTitle": "Conecta tu Billetera",

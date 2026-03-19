@@ -21,6 +21,15 @@ export default getRequestConfig(async ({ requestLocale }) => {
     ...(await import(`./messages/${locale}/wallet.json`)).default,
     ...(await import(`./messages/${locale}/tradesHistory.json`)).default,
     ...(await import(`./messages/${locale}/priceChart.json`)).default,
+    ...(await import(`./messages/${locale}/trade.json`)).default,
+    ...(await import(`./messages/${locale}/presale.json`)).default,
+    ...(await import(`./messages/${locale}/dividends.json`)).default,
+    ...(await import(`./messages/${locale}/studio.json`)).default,
+    ...(await import(`./messages/${locale}/swap.json`)).default,
+    ...(await import(`./messages/${locale}/sidebar.json`)).default,
+    ...(await import(`./messages/${locale}/notFound.json`)).default,
+    ...(await import(`./messages/${locale}/error.json`)).default,
+    ...(await import(`./messages/${locale}/seo.json`)).default,
   };
 
   return { locale, messages };

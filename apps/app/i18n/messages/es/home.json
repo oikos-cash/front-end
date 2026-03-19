@@ -2,8 +2,12 @@
   "home": {
     "title": "Dashboard",
     "spot": "SPOT",
+    "spotDesc": "Precio actual del token",
     "volume": "VOLUMEN 1M",
+    "volumeDesc": "Volumen de trading ultimos 30 dias",
     "marketCap": "CAP. DE MERCADO",
-    "imv": "IMV"
+    "marketCapDesc": "Capitalizacion total del mercado",
+    "imv": "IMV",
+    "imvDesc": "Valor minimo intrinseco"
   }
 }

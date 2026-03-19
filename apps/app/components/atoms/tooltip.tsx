@@ -2,10 +2,10 @@
 
 // Components
 import {
-  Tooltip as Primitive,
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
+  Tooltip as Primitive,
 } from "@/components/atoms/ui/tooltip";
 
 // Types

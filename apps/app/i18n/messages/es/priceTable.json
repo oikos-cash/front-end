@@ -1,5 +1,7 @@
 {
   "priceTable": {
+    "title": "Precios",
+    "description": "Precios en tiempo real y rendimiento de 24h",
     "price": "Precio",
     "change24h": "Cambio 24h",
     "token": "Token",

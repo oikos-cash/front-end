@@ -1,0 +1,76 @@
+{
+  "seo": {
+    "site": {
+      "name": "Oikos",
+      "description": "Decentralized finance protocol for trading, liquidity, staking, and token launches on BNB Chain"
+    },
+    "home": {
+      "title": "Dashboard",
+      "description": "Monitor your portfolio, track token prices, and manage your DeFi positions on Oikos"
+    },
+    "markets": {
+      "title": "Markets",
+      "description": "Explore all tokens, vaults, and presales available on the Oikos protocol"
+    },
+    "swap": {
+      "title": "Swap",
+      "description": "Swap tokens instantly with minimal slippage on the Oikos decentralized exchange"
+    },
+    "borrow": {
+      "title": "Borrow",
+      "description": "Borrow against your token holdings with self-repaying loans on Oikos"
+    },
+    "stake": {
+      "title": "Stake",
+      "description": "Stake your tokens to earn rewards and participate in protocol governance"
+    },
+    "liquidity": {
+      "title": "Liquidity",
+      "description": "Provide concentrated liquidity and earn fees from trades on the Oikos protocol"
+    },
+    "dividends": {
+      "title": "Dividends",
+      "description": "Claim your token dividends and manage vesting schedules on Oikos"
+    },
+    "dividendToken": {
+      "title": "{token} Dividends",
+      "description": "View dividend details, vesting entries, and claim history for {token}"
+    },
+    "presale": {
+      "title": "{token} Presale",
+      "description": "Participate in the {token} presale — contribute, track progress, and claim tokens"
+    },
+    "studio": {
+      "title": "Studio",
+      "description": "Creator dashboard — manage your tokens, track analytics, and monitor activity"
+    },
+    "studioToken": {
+      "title": "{token} Studio",
+      "description": "Manage and monitor {token} — analytics, holders, liquidity, and earnings"
+    },
+    "launchpad": {
+      "title": "Launchpad",
+      "description": "Launch your own token on the Oikos protocol — configure, presale, and deploy"
+    },
+    "launchpadToken": {
+      "title": "Launchpad — Token Info",
+      "description": "Configure your token name, symbol, description, and social links"
+    },
+    "launchpadPool": {
+      "title": "Launchpad — Pool Config",
+      "description": "Set up floor price, total supply, reserve asset, and protocol parameters"
+    },
+    "launchpadPresale": {
+      "title": "Launchpad — Presale Config",
+      "description": "Configure presale duration, soft cap, and contribution limits"
+    },
+    "launchpadPreview": {
+      "title": "Launchpad — Preview & Deploy",
+      "description": "Review your token configuration and deploy to the Oikos protocol"
+    },
+    "notFound": {
+      "title": "Page Not Found",
+      "description": "The page you are looking for does not exist or has been moved"
+    }
+  }
+}

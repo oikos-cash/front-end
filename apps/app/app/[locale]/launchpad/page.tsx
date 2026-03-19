@@ -1,5 +1,5 @@
-import LaunchpadTemplate from "@/components/templates/launchpad";
+import { redirect } from "next/navigation";
 
 export default function LaunchpadPage() {
-  return <LaunchpadTemplate />;
+  redirect("/launchpad/token");
 }

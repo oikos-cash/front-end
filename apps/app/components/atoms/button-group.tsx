@@ -1,5 +1,3 @@
-"use client";
-
 // Components
 import { ButtonGroup as Primitive } from "@/components/atoms/ui/button-group";
 

@@ -1,0 +1,33 @@
+{
+  "trade": {
+    "title": "Trade OKS",
+    "description": "Buy and sell OKS tokens instantly with low fees",
+    "buying": "BUYING",
+    "selling": "SELLING",
+    "buy": "Buy",
+    "sell": "Sell",
+    "amount": "Amount",
+    "balance": "Balance",
+    "useWbnb": "Use WBNB",
+    "useWbnbDescription": "Swap using Wrapped BNB instead of native BNB",
+    "useMax": "Use Max",
+    "receiving": "Receiving",
+    "priceImpact": "Price Impact",
+    "minReceived": "Min Received",
+    "maxSlippage": "Max Slippage",
+    "custom": "Custom",
+    "networkFee": "Network Fee",
+    "approveMax": "Approve Max",
+    "approveMaxDescription": "Approve unlimited spending to avoid future approvals",
+    "buyOks": "Buy OKS",
+    "sellOks": "Sell OKS",
+    "connectTitle": "Connect Wallet to Trade",
+    "connectDescription": "Connect your wallet to start buying and selling OKS tokens",
+    "connectButton": "Connect Wallet",
+    "errors": {
+      "required": "Amount is required",
+      "mustBePositive": "Amount must be greater than 0",
+      "slippageRange": "Slippage must be between 0 and 50"
+    }
+  }
+}

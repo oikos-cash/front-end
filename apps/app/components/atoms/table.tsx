@@ -1,20 +1,21 @@
 "use client";
 
+// Components
 import {
-  ColumnDef,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-
-import {
-  Table as Primitive,
+  TableRow,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
+  Table as Primitive,
 } from "@/components/atoms/ui/table";
+
+// Utils & Hooks
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
 
 // Types
 import { TableProps } from "@/types/interfaces";
@@ -24,6 +25,7 @@ export default function Table<TData, TValue>({
   data,
   className,
 }: TableProps<TData, TValue>) {
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
