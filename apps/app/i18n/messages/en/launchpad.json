@@ -1,8 +1,229 @@
 {
   "launchpad": {
     "title": "Launchpad",
+    "description": "Launch your own token with optional presale support.",
     "connectTitle": "Connect Wallet",
     "connectDescription": "Connect your wallet to access the launchpad.",
-    "connectButton": "Connect Wallet"
+    "connectButton": "Connect Wallet",
+
+    "stepTokenInfo": "Token Info",
+    "stepPoolSetup": "Pool Setup",
+    "stepPresale": "Presale",
+    "stepPreview": "Preview & Launch",
+    "skipped": "Skipped",
+
+    "tokenPage": {
+      "title": "Token Information",
+      "description": "Define your token's identity and basic settings.",
+      "cards": [
+        {
+          "title": "Token Name",
+          "description": "The public display name of your token.",
+          "help": "Choose a unique, memorable name. This cannot be changed after deployment.",
+          "required": true,
+          "fields": [
+            { "type": "text", "name": "tokenName", "placeholder": "e.g. My Token" }
+          ]
+        },
+        {
+          "title": "Token Symbol",
+          "description": "A short ticker for exchanges and wallets.",
+          "help": "Usually 3-5 uppercase letters. This cannot be changed after deployment.",
+          "required": true,
+          "fields": [
+            { "type": "text", "name": "tokenSymbol", "placeholder": "e.g. MTK" }
+          ]
+        },
+        {
+          "title": "Description",
+          "description": "Tell investors what your token is about.",
+          "help": "A good description helps build trust with potential investors.",
+          "fields": [
+            { "type": "textarea", "name": "tokenDescription", "placeholder": "Describe your token (max 500 characters)" }
+          ]
+        },
+        {
+          "title": "Enable Presale",
+          "description": "Run a fundraising phase before public launch.",
+          "help": "Presale lets early investors buy at a fixed price before the token is listed.",
+          "fields": [
+            { "type": "select", "name": "enablePresale" }
+          ]
+        },
+        {
+          "title": "Token Logo",
+          "description": "Upload your token's logo image.",
+          "help": "Use a square PNG or SVG image, ideally 256x256px or larger.",
+          "fields": [
+            { "type": "file", "name": "tokenLogoUrl" }
+          ]
+        },
+        {
+          "title": "Social Links",
+          "description": "Add your project's social media links.",
+          "help": "Social links help build trust and community around your token.",
+          "fields": [
+            { "type": "url", "name": "website", "placeholder": "https://yourproject.com" },
+            { "type": "url", "name": "twitter", "placeholder": "https://x.com/yourproject" },
+            { "type": "url", "name": "discord", "placeholder": "https://discord.gg/invite" },
+            { "type": "url", "name": "telegram", "placeholder": "https://t.me/yourproject" }
+          ]
+        }
+      ]
+    },
+
+    "poolPage": {
+      "title": "Pool Setup",
+      "description": "Configure your token's liquidity pool and pricing.",
+      "cards": [
+        {
+          "title": "Floor Price (BNB)",
+          "description": "The minimum price your token can trade at.",
+          "help": "This sets the floor protection for your token's value.",
+          "required": true,
+          "fields": [
+            { "type": "number", "name": "floorPrice", "placeholder": "0.0000001" }
+          ]
+        },
+        {
+          "title": "Total Supply",
+          "description": "The total number of tokens to be created.",
+          "help": "Higher supply means lower individual token price at the same market cap.",
+          "required": true,
+          "fields": [
+            { "type": "number", "name": "totalSupply", "placeholder": "1000000" }
+          ]
+        },
+        {
+          "title": "Reserve Asset",
+          "description": "The asset paired with your token in the pool.",
+          "help": "Currently only WBNB is supported as a reserve asset.",
+          "fields": [
+            { "type": "select", "name": "reserveAsset" }
+          ]
+        },
+        {
+          "title": "Protocol",
+          "description": "The DEX where your token will be listed.",
+          "help": "Choose the decentralized exchange for your token's liquidity pool.",
+          "fields": [
+            { "type": "select", "name": "protocol" }
+          ]
+        }
+      ]
+    },
+
+    "presalePage": {
+      "title": "Presale Configuration",
+      "description": "Set up the presale parameters for your token.",
+      "cards": [
+        {
+          "title": "Presale Duration",
+          "description": "How long the presale will accept contributions.",
+          "help": "Longer presales give more time to reach your fundraising goals.",
+          "fields": [
+            { "type": "select", "name": "presaleDuration" }
+          ]
+        },
+        {
+          "title": "Soft Cap Percentage",
+          "description": "Minimum percentage of hard cap needed for launch.",
+          "help": "If soft cap is not reached, contributors can claim refunds.",
+          "fields": [
+            { "type": "slider", "name": "softCapPercent" }
+          ]
+        }
+      ]
+    },
+
+    "presaleDisabled": "Presale is disabled for this token. It will launch directly without a presale phase.",
+    "presalePrice": "Presale Price",
+    "hardCap": "Hard Cap",
+    "softCapPercent": "Soft Cap Percentage",
+    "floorPrice": "Floor Price (BNB)",
+    "calculatedFdv": "FDV",
+    "summaryTitle": "Summary",
+    "summaryDesc": "Review your pool configuration.",
+
+    "previewPage": {
+      "title": "Preview & Launch",
+      "description": "Review all details before deploying your token.",
+      "cards": [
+        {
+          "title": "Token Details",
+          "description": "Summary of your token configuration.",
+          "rows": [
+            { "label": "Name", "key": "tokenName" },
+            { "label": "Symbol", "key": "tokenSymbol" },
+            { "label": "Decimals", "key": "tokenDecimals" },
+            { "label": "Description", "key": "tokenDescription" },
+            { "label": "Logo", "key": "tokenLogoUrl" },
+            { "label": "Presale", "key": "enablePresale" },
+            { "label": "Website", "key": "website" },
+            { "label": "Twitter / X", "key": "twitter" },
+            { "label": "Discord", "key": "discord" },
+            { "label": "Telegram", "key": "telegram" }
+          ]
+        },
+        {
+          "title": "Pool Configuration",
+          "description": "Summary of your pool settings.",
+          "rows": [
+            { "label": "Total Supply", "key": "totalSupply" },
+            { "label": "Floor Price", "key": "floorPrice" },
+            { "label": "Reserve Asset", "key": "reserveAsset" },
+            { "label": "FDV", "key": "fdv" },
+            { "label": "Protocol", "key": "protocol" }
+          ]
+        },
+        {
+          "title": "Presale Configuration",
+          "description": "Summary of your presale settings.",
+          "presaleOnly": true,
+          "rows": [
+            { "label": "Presale Price", "key": "presalePrice" },
+            { "label": "Hard Cap", "key": "hardCap" },
+            { "label": "Soft Cap", "key": "softCap" },
+            { "label": "Duration", "key": "duration" }
+          ]
+        }
+      ]
+    },
+    "deployTitle": "Deploy",
+    "deployDesc": "Review and confirm your deployment.",
+    "deployNotice": "Once deployed, your token will be live on the blockchain. This action is irreversible. Make sure all details are correct before proceeding.",
+    "deploymentFee": "Deployment fee: 1 BNB",
+    "deployButton": "Deploy Token",
+
+    "name": "Name",
+    "symbol": "Symbol",
+    "decimals": "Decimals",
+    "descriptionLabel": "Description",
+    "logoUrl": "Logo URL",
+    "presaleEnabled": "Presale",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "duration": "Duration",
+    "softCap": "Soft Cap",
+    "noDescription": "No description provided",
+    "noLogo": "No logo provided",
+
+    "website": "Website",
+    "twitter": "Twitter / X",
+    "discord": "Discord",
+    "telegram": "Telegram",
+    "noSocialLink": "Not provided",
+
+    "enablePresaleYes": "Yes",
+    "enablePresaleNo": "No",
+
+    "required": "Required",
+    "next": "Next",
+    "back": "Back",
+
+    "errors": {
+      "required": "This field is required",
+      "mustBePositive": "Must be a positive number"
+    }
   }
 }

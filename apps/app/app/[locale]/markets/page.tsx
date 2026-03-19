@@ -1,11 +1,15 @@
-import { getTranslations } from "next-intl/server";
+import MarketsTemplate from "@/components/templates/markets";
+import { getPageMetadata } from "@/utils/seo";
 
-export default async function MarketsPage() {
-  const t = await getTranslations("markets");
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return getPageMetadata(locale, { page: "markets" }, "/markets");
+}
 
-  return (
-    <main>
-      <h1>{t("title")}</h1>
-    </main>
-  );
+export default function Page() {
+  return <MarketsTemplate />;
 }

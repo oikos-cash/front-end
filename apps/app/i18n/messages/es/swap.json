@@ -1,0 +1,42 @@
+{
+  "swap": {
+    "title": "Intercambio",
+    "description": "Intercambia cualquier token por otro al instante",
+    "from": "De",
+    "to": "A",
+    "selectToken": "Seleccionar token",
+    "amount": "Cantidad",
+    "useMax": "Usar maximo ({amount})",
+    "estimatedOutput": "Salida estimada",
+    "exchangeRate": "Tasa de Cambio",
+    "priceImpact": "Impacto de Precio",
+    "minReceived": "Minimo a Recibir",
+    "searchToken": "Buscar token...",
+    "noResults": "No se encontraron tokens",
+    "settingsTitle": "Configuracion de Swap",
+    "settingsDescription": "Configura slippage y proteccion",
+    "slippageTolerance": "Tolerancia de Slippage",
+    "custom": "Personalizado",
+    "mevProtection": "Proteccion MEV",
+    "mevProtectionDesc": "Protege tu transaccion de bots de front-running",
+    "saveSettings": "Guardar",
+    "cancel": "Cancelar",
+    "confirmToken": "Seleccionar",
+    "routingTitle": "Enrutamiento",
+    "routingDescription": "Como se enruta tu swap entre los DEXs",
+    "swapAction": "Intercambiar",
+    "flipTokens": "Invertir tokens",
+    "recentSwaps": "Intercambios Recientes",
+    "recentSwapsDesc": "Tus ultimas transacciones de intercambio",
+    "noRecentSwaps": "Sin intercambios recientes",
+    "time": "Tiempo",
+    "balance": "Balance",
+    "connectTitle": "Conectar Billetera",
+    "connectDescription": "Conecta tu billetera para empezar a intercambiar tokens",
+    "connectButton": "Conectar Billetera",
+    "errors": {
+      "required": "Este campo es obligatorio",
+      "mustBePositive": "La cantidad debe ser mayor a 0"
+    }
+  }
+}

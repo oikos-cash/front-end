@@ -1,0 +1,42 @@
+{
+  "swap": {
+    "title": "Swap",
+    "description": "Exchange any token for another instantly",
+    "from": "From",
+    "to": "To",
+    "selectToken": "Select token",
+    "amount": "Amount",
+    "useMax": "Use max ({amount})",
+    "estimatedOutput": "Estimated output",
+    "exchangeRate": "Exchange Rate",
+    "priceImpact": "Price Impact",
+    "minReceived": "Minimum Received",
+    "searchToken": "Search token...",
+    "noResults": "No tokens found",
+    "settingsTitle": "Swap Settings",
+    "settingsDescription": "Configure slippage and protection",
+    "slippageTolerance": "Slippage Tolerance",
+    "custom": "Custom",
+    "mevProtection": "MEV Protection",
+    "mevProtectionDesc": "Protect your transaction from front-running bots",
+    "saveSettings": "Save",
+    "cancel": "Cancel",
+    "confirmToken": "Select",
+    "routingTitle": "Routing",
+    "routingDescription": "How your swap is routed across DEXs",
+    "swapAction": "Swap",
+    "flipTokens": "Flip tokens",
+    "recentSwaps": "Recent Swaps",
+    "recentSwapsDesc": "Your latest swap transactions",
+    "noRecentSwaps": "No recent swaps",
+    "time": "Time",
+    "balance": "Balance",
+    "connectTitle": "Connect Wallet",
+    "connectDescription": "Connect your wallet to start swapping tokens",
+    "connectButton": "Connect Wallet",
+    "errors": {
+      "required": "This field is required",
+      "mustBePositive": "Amount must be greater than 0"
+    }
+  }
+}

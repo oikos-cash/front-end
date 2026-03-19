@@ -1,10 +1,11 @@
 "use client";
 
 // Components
+import Card from "@/components/atoms/card";
 import Badge from "@/components/atoms/badge";
-import Button from "@/components/atoms/button";
 import Empty from "@/components/atoms/empty";
-import TokenIcon from "@/components/atoms/token-icon";
+import Avatar from "@/components/atoms/avatar";
+import Button from "@/components/atoms/button";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -18,19 +19,28 @@ export default function WalletPanel() {
   const { isConnected, balances, totalValue, handleConnect } = useWallet();
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <h3 className="text-sm font-semibold">{t("title")}</h3>
-
+    <Card
+      title={t("title")}
+      description={t("description")}
+      footer={
+        isConnected && (
+          <div className="flex w-full items-center justify-between">
+            <span className="text-sm font-medium">{t("totalValue")}</span>
+            <span className="text-sm font-semibold">{totalValue}</span>
+          </div>
+        )
+      }
+    >
       {isConnected ? (
-        <>
+        <div className="flex flex-col gap-3">
           {balances.map((balance) => (
             <div
               key={balance.token}
-              className="flex flex-col gap-3 rounded-md border border-border p-3"
+              className="flex flex-col gap-2 rounded-md border border-border p-3"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <TokenIcon token={balance.token} iconUrl={balance.iconUrl} />
+                  <Avatar name={balance.token} src={balance.iconUrl} />
                   <span className="text-sm font-medium">{balance.token}</span>
                 </div>
                 <span className="text-sm font-medium">{balance.amount}</span>
@@ -46,12 +56,7 @@ export default function WalletPanel() {
               </div>
             </div>
           ))}
-
-          <div className="flex items-center justify-between border-t border-border pt-3">
-            <span className="text-sm font-medium">{t("totalValue")}</span>
-            <span className="text-sm font-semibold">{totalValue}</span>
-          </div>
-        </>
+        </div>
       ) : (
         <Empty
           title={t("connectTitle")}
@@ -64,6 +69,6 @@ export default function WalletPanel() {
           </Button>
         </Empty>
       )}
-    </div>
+    </Card>
   );
 }

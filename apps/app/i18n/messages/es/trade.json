@@ -1,0 +1,33 @@
+{
+  "trade": {
+    "title": "Operar OKS",
+    "description": "Compra y vende tokens OKS al instante con bajas comisiones",
+    "buying": "COMPRANDO",
+    "selling": "VENDIENDO",
+    "buy": "Comprar",
+    "sell": "Vender",
+    "amount": "Cantidad",
+    "balance": "Balance",
+    "useWbnb": "Usar WBNB",
+    "useWbnbDescription": "Intercambiar usando Wrapped BNB en lugar de BNB nativo",
+    "useMax": "Usar Max",
+    "receiving": "Recibiendo",
+    "priceImpact": "Impacto de Precio",
+    "minReceived": "Min Recibido",
+    "maxSlippage": "Max Slippage",
+    "custom": "Custom",
+    "networkFee": "Comision de Red",
+    "approveMax": "Aprobar Max",
+    "approveMaxDescription": "Aprobar gasto ilimitado para evitar futuras aprobaciones",
+    "buyOks": "Comprar OKS",
+    "sellOks": "Vender OKS",
+    "connectTitle": "Conecta tu Billetera",
+    "connectDescription": "Conecta tu billetera para comprar y vender tokens OKS",
+    "connectButton": "Conectar Billetera",
+    "errors": {
+      "required": "La cantidad es requerida",
+      "mustBePositive": "La cantidad debe ser mayor a 0",
+      "slippageRange": "El slippage debe estar entre 0 y 50"
+    }
+  }
+}
