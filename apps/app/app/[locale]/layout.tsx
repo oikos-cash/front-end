@@ -1,6 +1,8 @@
 // Components
 import Header from "@/components/layouts/header";
 import SideBar from "@/components/layouts/sidebar";
+import Toaster from "@/components/atoms/toaster";
+import ErrorBoundary from "@/components/atoms/error-boundary";
 import SWRProvider from "@/components/atoms/swr-provider";
 import Web3Provider from "@/components/atoms/web3-provider";
 
@@ -109,7 +111,10 @@ export default async function RootLayout({
           <Web3Provider initialState={initialState}>
             <SWRProvider>
               <Header />
-              <SideBar>{children}</SideBar>
+              <SideBar>
+                <ErrorBoundary>{children}</ErrorBoundary>
+              </SideBar>
+              <Toaster />
             </SWRProvider>
           </Web3Provider>
         </NextIntlClientProvider>

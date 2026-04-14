@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // Components
 import Empty from "@/components/atoms/empty";
 import Button from "@/components/atoms/button";
@@ -8,16 +10,18 @@ import PageHeader from "@/components/molecules/page-header";
 import LoanHistory from "@/components/organism/loan/history";
 import BorrowFormPanel from "@/components/organism/form/borrow";
 import LoanActivePosition from "@/components/organism/loan/active-position";
+import HedgeModal from "@/components/organism/hedge-modal";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
+import { useBnbPrice } from "@/hooks/use-bnb-price";
 
 // Types
 import type { VaultInfo } from "@/types/interfaces";
 
 // Icons
-import { Lock, Wallet, ServerOff } from "lucide-react";
+import { Lock, Wallet, ServerOff, Shield } from "lucide-react";
 
 export default function BorrowTemplate({
   initialVault,
@@ -26,7 +30,9 @@ export default function BorrowTemplate({
 }) {
   const t = useTranslations("borrow");
   const te = useTranslations("error");
-  const { isConnected, handleConnect } = useWallet();
+  const { isConnected, address, handleConnect } = useWallet();
+  const { bnbPrice } = useBnbPrice();
+  const [hedgeOpen, setHedgeOpen] = useState(false);
 
   if (!initialVault) {
     return (
@@ -111,7 +117,25 @@ export default function BorrowTemplate({
       </div>
       <BorrowFormPanel vault={initialVault} />
       <LoanActivePosition vault={initialVault} />
+
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => setHedgeOpen(true)}>
+          <Shield className="size-3.5" />
+          {t("hedgeButton") ?? "Hedge Loan"}
+        </Button>
+      </div>
+
       <LoanHistory vaultAddress={initialVault.address} />
+
+      <HedgeModal
+        open={hedgeOpen}
+        onOpenChange={setHedgeOpen}
+        vaultAddress={initialVault.address}
+        userAddress={address}
+        loanAmountBNB={0}
+        loanDurationDays={30}
+        bnbPrice={bnbPrice}
+      />
     </div>
   );
 }

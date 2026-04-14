@@ -317,6 +317,23 @@ export const DIVIDENDS_ABI = [
   },
 ] as const;
 
+export const IWETH_ABI = [
+  {
+    inputs: [],
+    name: "deposit",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "wad", type: "uint256" }],
+    name: "withdraw",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
+
 export const FACTORY_ABI = [
   {
     inputs: [

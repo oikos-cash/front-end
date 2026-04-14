@@ -89,6 +89,17 @@ export interface DrawerProps {
   description?: string;
 }
 
+export interface DialogProps {
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  children?: React.ReactNode;
+  content?: React.ReactNode;
+  footer?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  className?: string;
+}
+
 export interface SheetProps {
   title: string;
   description?: string;

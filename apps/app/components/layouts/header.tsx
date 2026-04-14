@@ -9,15 +9,20 @@ import Drawer from "@/components/atoms/drawer";
 import Accordion from "@/components/atoms/accordion";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Skeleton from "@/components/atoms/skeleton";
+import NetworkSelector from "@/components/organism/network-selector";
+import WrapUnwrapModal from "@/components/organism/wrap-unwrap-modal";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useBnbPrice } from "@/hooks/use-bnb-price";
 
 // Icons
-import { Menu, Wallet, X } from "lucide-react";
+import { Menu, Wallet, X, ArrowLeftRight } from "lucide-react";
+
+import { useState } from "react";
 
 export default function Header() {
+  const [wrapOpen, setWrapOpen] = useState(false);
   const t = useTranslations("header");
   const { bnbPrice } = useBnbPrice();
 
@@ -63,11 +68,12 @@ export default function Header() {
             BNB/USD ${bnbPrice.toFixed(4)}
           </Badge>
 
-          <Select
-            className="w-37.5"
-            items={networkItems}
-            placeholder={t("network")}
-          />
+          <NetworkSelector />
+
+          <Button variant="ghost" size="icon-xs" onClick={() => setWrapOpen(true)} title="Wrap/Unwrap BNB">
+            <ArrowLeftRight className="size-4" />
+          </Button>
+          <WrapUnwrapModal open={wrapOpen} onOpenChange={setWrapOpen} />
 
           <Select
             className="w-37.5"
