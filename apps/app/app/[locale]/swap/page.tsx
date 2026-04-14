@@ -1,5 +1,6 @@
 import SwapTemplate from "@/components/templates/swap";
 import { getPageMetadata } from "@/utils/seo";
+import { fetchSwapTokens } from "@/utils/swap";
 
 export async function generateMetadata({
   params,
@@ -10,6 +11,8 @@ export async function generateMetadata({
   return getPageMetadata(locale, { page: "swap" }, "/swap");
 }
 
-export default function Page() {
-  return <SwapTemplate />;
+export default async function Page() {
+  const tokens = await fetchSwapTokens();
+
+  return <SwapTemplate initialTokens={tokens} />;
 }

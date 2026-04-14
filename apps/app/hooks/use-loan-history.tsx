@@ -6,9 +6,14 @@ import Badge from "@/components/atoms/badge";
 
 // Hooks
 import { useTranslations } from "next-intl";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { useWallet } from "@/stores/wallet";
+
+// Services
+import { fetchLoansByVault } from "@/services/loan";
 
 // Types
-import type { LoanHistoryItem } from "@/types/interfaces";
+import type { LoanHistoryItem, LoanEvent, WSLoanEvent } from "@/types/interfaces";
 
 // Icons
 import { ArrowUpRight } from "lucide-react";
@@ -16,24 +21,101 @@ import { ArrowUpRight } from "lucide-react";
 // Utils
 import { timeAgo } from "@/utils/date";
 import { truncateAddress } from "@/utils/string";
-import { generateMockLoanHistory, formatStakeNumber } from "@/utils/number";
+import { formatStakeNumber } from "@/utils/number";
 
 // Constants
-import {
-  LOAN_HISTORY_PAGE_SIZE,
-  LOAN_HISTORY_MAX_ITEMS,
-} from "@/types/constants";
 import { LOAN_HISTORY_FILTERS } from "@/types/constants";
 
-export function useLoanHistory(token: string = "OKS") {
+/**
+ * Map a raw LoanEvent from the API to a LoanHistoryItem for the table.
+ */
+function toLoanHistoryItem(event: LoanEvent): LoanHistoryItem {
+  const typeMap: Record<string, LoanHistoryItem["type"]> = {
+    Borrow: "borrow",
+    Payback: "repay",
+    RollLoan: "roll",
+  };
+
+  const amount = event.args.borrowAmount ?? event.args.amount ?? "0";
+
+  return {
+    id: event.id,
+    type: typeMap[event.eventName] ?? "borrow",
+    amount: parseFloat(amount) / 1e18,
+    collateral: 0,
+    fees: 0,
+    token: event.vaultSymbol ?? "TOKEN",
+    txHash: event.transactionHash,
+    timestamp: new Date(event.timestamp * 1000),
+  };
+}
+
+export function useLoanHistory(vaultAddress?: string) {
   const t = useTranslations("borrow");
+  const { address } = useWallet();
 
   const [items, setItems] = useState<LoanHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
   const [filter, setFilter] = useState<string>("all");
 
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Fetch loan history from API
+  useEffect(() => {
+    if (!vaultAddress) {
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function load() {
+      setIsLoading(true);
+      try {
+        const data = await fetchLoansByVault(vaultAddress!);
+        if (!cancelled) {
+          const mapped = data.loans
+            .filter((e) => e.eventName !== "DefaultLoans")
+            .map(toLoanHistoryItem);
+          setItems(mapped);
+        }
+      } catch (err) {
+        console.error("[useLoanHistory] fetch error:", err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [vaultAddress]);
+
+  // WebSocket real-time updates
+  const onLoan = useCallback(
+    (event: WSLoanEvent) => {
+      const loan = event.data;
+
+      if (
+        vaultAddress &&
+        loan.vaultAddress.toLowerCase() !== vaultAddress.toLowerCase()
+      )
+        return;
+
+      if (loan.eventName === "DefaultLoans") return;
+
+      const item = toLoanHistoryItem(loan);
+      setItems((prev) => {
+        if (prev.some((i) => i.id === item.id)) return prev;
+        return [item, ...prev];
+      });
+    },
+    [vaultAddress],
+  );
+
+  useWebSocket({
+    onLoan,
+    enabled: !!vaultAddress,
+  });
 
   const columns: ColumnDef<LoanHistoryItem>[] = [
     {
@@ -123,54 +205,6 @@ export function useLoanHistory(token: string = "OKS") {
     return items.filter((item) => item.type === filter);
   }, [items, filter]);
 
-  // Appends next page or resets the list on initial/filter changes
-  const loadItems = useCallback(
-    (reset?: boolean) => {
-      setIsLoading(true);
-      const currentLength = reset ? 0 : items.length;
-      const remaining = LOAN_HISTORY_MAX_ITEMS - currentLength;
-
-      if (remaining <= 0) {
-        setHasMore(false);
-        setIsLoading(false);
-        return;
-      }
-
-      const count = Math.min(LOAN_HISTORY_PAGE_SIZE, remaining);
-      setTimeout(() => {
-        const newItems = generateMockLoanHistory(count, currentLength, token);
-        setItems((prev) => (reset ? newItems : [...prev, ...newItems]));
-        setHasMore(currentLength + count < LOAN_HISTORY_MAX_ITEMS);
-        setIsLoading(false);
-      }, 300);
-    },
-    [items.length, token],
-  );
-
-  useEffect(() => {
-    loadItems(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Infinite scroll via IntersectionObserver on the sentinel element
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasMore && !isLoading) {
-          loadItems();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, isLoading, loadItems]);
-
-  // Translated filter options derived from the constant definitions
   const filterOptions = LOAN_HISTORY_FILTERS.map((f) => ({
     value: f.value,
     label: t(f.labelKey),
@@ -180,7 +214,7 @@ export function useLoanHistory(token: string = "OKS") {
     t,
     items,
     isLoading,
-    hasMore,
+    hasMore: false,
     filter,
     setFilter,
     sentinelRef,

@@ -1,10 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
+import { useLending } from "@/hooks/use-lending";
+
+// Services
+import { fetchLoansByUser } from "@/services/loan";
 
 // Types
 import type {
@@ -12,6 +16,8 @@ import type {
   RollFormValues,
   RepayFormValues,
   AddCollateralFormValues,
+  VaultInfo,
+  LoanEvent,
 } from "@/types/interfaces";
 import { repaySchema, rollSchema, addCollateralSchema } from "@/types/schemes";
 
@@ -20,8 +26,6 @@ import {
   calculateNewLtv,
   calculateRollFee,
   formatStakeNumber,
-  generateMockActiveLoan,
-  generateMockBorrowData,
   calculateCollateralReturned,
 } from "@/utils/number";
 
@@ -29,18 +33,138 @@ import {
 import { LOAN_TAB_FIELDS, ROLL_DURATION_OPTIONS } from "@/types/constants";
 
 /**
- * Manages the entire loan active position state:
- * - 3 independent forms (repay, roll, addCollateral) with their own schemas
- * - Derived values that recalculate as users type (collateral returned, new LTV, roll fees)
- * - Tab-based form config array ready for map-rendering
+ * Derive active loan state from a user's latest Borrow event for a specific vault.
+ * The API returns loan events; the most recent Borrow that hasn't been fully repaid
+ * represents the active position.
  */
-export function useLoanPosition(token: string) {
-  const t = useTranslations("borrow");
-  const { isConnected } = useWallet();
-  const [activeTab, setActiveTab] = useState<LoanActionTab>("repay");
+function deriveActiveLoan(
+  loans: LoanEvent[],
+  vaultAddress: string,
+  vault: VaultInfo | null,
+) {
+  const vaultLoans = loans
+    .filter((l) => l.vaultAddress.toLowerCase() === vaultAddress.toLowerCase())
+    .sort((a, b) => b.timestamp - a.timestamp);
 
-  const loanData = useMemo(() => generateMockActiveLoan(token), [token]);
-  const borrowData = useMemo(() => generateMockBorrowData(token), [token]);
+  const lastBorrow = vaultLoans.find((l) => l.eventName === "Borrow");
+
+  if (!lastBorrow) return null;
+
+  const borrowAmount = parseFloat(lastBorrow.args.borrowAmount ?? "0") / 1e18;
+  const durationSec = parseInt(lastBorrow.args.duration ?? "0");
+  const expiresAt = lastBorrow.timestamp + durationSec;
+  const now = Math.floor(Date.now() / 1000);
+  const daysLeft = Math.max(0, Math.floor((expiresAt - now) / 86400));
+  const isExpired = now > expiresAt;
+
+  const imv = parseFloat(vault?.liquidityRatio ?? "0");
+  const dailyInterest = parseFloat(vault?.totalInterest ?? "0");
+  const collateralAmount = imv > 0 ? borrowAmount / imv : 0;
+  const ltv =
+    collateralAmount > 0
+      ? (borrowAmount / (collateralAmount * imv)) * 100
+      : 0;
+
+  const daysSinceBorrow = Math.floor((now - lastBorrow.timestamp) / 86400);
+  const totalInterestAccrued = borrowAmount * dailyInterest * daysSinceBorrow;
+
+  return {
+    borrowedAmount: borrowAmount,
+    collateralAmount,
+    ltv,
+    daysLeft,
+    isExpired,
+    totalInterestAccrued,
+    imv,
+    dailyInterest,
+    expiresAt,
+    hasActiveLoan: !isExpired,
+    isSelfRepaying: ltv > 1.5,
+  };
+}
+
+/**
+ * Manages the entire loan active position state:
+ * - Fetches active loan data from the API
+ * - 3 independent forms (repay, roll, addCollateral) with their own schemas
+ * - Derived values that recalculate as users type
+ */
+export function useLoanPosition(vault: VaultInfo | null) {
+  const t = useTranslations("borrow");
+  const { isConnected, address } = useWallet();
+  const [activeTab, setActiveTab] = useState<LoanActionTab>("repay");
+  const [isLoadingLoan, setIsLoadingLoan] = useState(false);
+
+  const token = vault?.tokenSymbol ?? "TOKEN";
+  const vaultAddress = vault?.address ?? "";
+
+  const {
+    borrow: lendingBorrow,
+    payback: lendingPayback,
+    roll: lendingRoll,
+    addCollateral: lendingAddCollateral,
+    loanData: onChainLoan,
+    refetch: refetchLoan,
+    isRepaying: isRepayingTx,
+    isRolling: isRollingTx,
+    isAddingCollateral: isAddingCollateralTx,
+    repaySuccess,
+    rollSuccess,
+    addCollateralSuccess,
+  } = useLending(vaultAddress || undefined, vault?.token0);
+
+  // Fetch active loan from API
+  const [activeLoan, setActiveLoan] = useState<ReturnType<
+    typeof deriveActiveLoan
+  > | null>(null);
+
+  useEffect(() => {
+    if (!isConnected || !address || !vaultAddress) {
+      setActiveLoan(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function load() {
+      setIsLoadingLoan(true);
+      try {
+        const data = await fetchLoansByUser(address!);
+        if (!cancelled) {
+          const derived = deriveActiveLoan(data.loans, vaultAddress, vault);
+          setActiveLoan(derived);
+        }
+      } catch (err) {
+        console.error("[useLoanPosition] fetch error:", err);
+      } finally {
+        if (!cancelled) setIsLoadingLoan(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [isConnected, address, vaultAddress, vault]);
+
+  const loanData = {
+    borrowedAmount: activeLoan?.borrowedAmount ?? 0,
+    collateralAmount: activeLoan?.collateralAmount ?? 0,
+    ltv: activeLoan?.ltv ?? 0,
+    daysLeft: activeLoan?.daysLeft ?? 0,
+    isExpired: activeLoan?.isExpired ?? false,
+    totalInterestAccrued: activeLoan?.totalInterestAccrued ?? 0,
+    quoteToken: "WBNB",
+    token,
+    hasActiveLoan: activeLoan?.hasActiveLoan ?? false,
+    isSelfRepaying: activeLoan?.isSelfRepaying ?? false,
+    imv: activeLoan?.imv ?? 0,
+    dailyInterest: activeLoan?.dailyInterest ?? 0,
+  };
+
+  const borrowData = {
+    imv: parseFloat(vault?.liquidityRatio ?? "0"),
+    dailyInterest: parseFloat(vault?.totalInterest ?? "0"),
+    userBalance: 0,
+  };
 
   // Each tab has its own form to avoid field name collisions and allow independent validation
   const repayForm = useForm<RepayFormValues>({
@@ -67,7 +191,7 @@ export function useLoanPosition(token: string) {
     parseFloat(collateralForm.watch("collateralAmount")) || 0;
   const rollDays = parseInt(rollForm.watch("rollDuration")) / 86400 || 0;
 
-  // Derived calculations — these update the summary rows in real time
+  // Derived calculations
   const collateralReturned = useMemo(
     () =>
       calculateCollateralReturned(
@@ -110,26 +234,30 @@ export function useLoanPosition(token: string) {
     return newDate.toLocaleDateString();
   }, [rollDays]);
 
-  // Submit handlers — mock implementations, will be replaced with real contract calls
+  // Submit handlers — call real contract methods via useLending
   async function onRepay(data: RepayFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    lendingPayback(data.repayAmount);
     repayForm.reset();
-    console.log("Repaid:", data.repayAmount, loanData.quoteToken);
   }
 
   async function onRoll(data: RollFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    lendingRoll(parseInt(data.rollDuration));
     rollForm.reset();
-    console.log("Rolled loan to:", data.rollDuration, "seconds");
   }
 
   async function onAddCollateral(data: AddCollateralFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    lendingAddCollateral(data.collateralAmount);
     collateralForm.reset();
-    console.log("Added collateral:", data.collateralAmount, token);
   }
 
-  // Position summary — displayed as KeyValueCard at the top
+  // Refetch loan data after successful transactions
+  useEffect(() => {
+    if (repaySuccess || rollSuccess || addCollateralSuccess) {
+      refetchLoan();
+    }
+  }, [repaySuccess, rollSuccess, addCollateralSuccess, refetchLoan]);
+
+  // Position summary
   const infoRows = [
     {
       label: t("positionBorrowed"),
@@ -141,7 +269,7 @@ export function useLoanPosition(token: string) {
     },
     {
       label: t("positionLtv"),
-      value: `${loanData.ltv}%`,
+      value: `${loanData.ltv.toFixed(1)}%`,
       variant: (loanData.ltv > 80 ? "destructive" : "default") as
         | "default"
         | "destructive",
@@ -161,7 +289,7 @@ export function useLoanPosition(token: string) {
     },
   ];
 
-  // Per-tab dynamic config — JSX descriptions and computed summary rows can't live in constants
+  // Per-tab dynamic config
   const dynamicConfig: Record<
     string,
     {
@@ -238,7 +366,7 @@ export function useLoanPosition(token: string) {
       summaryRows: [
         {
           label: t("addCollateralNewLtv"),
-          value: `${newLtv}%`,
+          value: `${newLtv.toFixed(1)}%`,
           variant: newLtv < loanData.ltv ? "success" : "default",
         },
       ],
@@ -267,7 +395,7 @@ export function useLoanPosition(token: string) {
     },
   };
 
-  // i18n key mapping — keys don't follow a single pattern so we map explicitly
+  // i18n key mapping
   const tabI18n: Record<LoanActionTab, { label: string; action: string }> = {
     repay: { label: t("tabRepay"), action: t("repayAction") },
     roll: { label: t("tabRoll"), action: t("rollAction") },
@@ -301,6 +429,7 @@ export function useLoanPosition(token: string) {
     activeTab,
     setActiveTab,
     isConnected,
+    isLoadingLoan,
     loanData,
     infoRows,
     tabForms,

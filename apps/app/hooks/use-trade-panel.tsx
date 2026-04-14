@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import useSWR from "swr";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -13,20 +14,17 @@ import type {
   TradeFormValues,
   TradeInfoRow,
   FieldItem,
+  VaultInfo,
 } from "@/types/interfaces";
 import { tradeSchema } from "@/types/schemes";
 
-// Components — needed for JSX in field endContent
+// Components
 import Button from "@/components/atoms/button";
 
 // Utils
-import {
-  getMockNetworkFee,
-  formatCompactNumber,
-  calculatePriceImpact,
-  calculateMinReceived,
-  calculateReceivingAmount,
-} from "@/utils/number";
+import { formatCompactNumber } from "@/utils/number";
+import { swrFetcher } from "@/utils/fetcher";
+import { VAULT_API_URL } from "@/types/constants";
 
 /**
  * Manages the full trade panel state:
@@ -38,6 +36,14 @@ import {
 export function useTradePanel() {
   const t = useTranslations("trade");
   const { isConnected, balances, handleConnect } = useWallet();
+
+  // Check if backend has vaults
+  const { data: vaults } = useSWR<VaultInfo[]>(
+    `${VAULT_API_URL}/vaults`,
+    swrFetcher,
+    { errorRetryCount: 0, revalidateOnFocus: false },
+  );
+  const hasVault = (vaults?.length ?? 0) > 0;
 
   const [side, setSide] = useState<TradeSide>("buy");
   const [slippage, setSlippage] = useState<SlippageOption>("0.5");
@@ -57,26 +63,16 @@ export function useTradePanel() {
   const customSlippage = form.watch("customSlippage");
   const numericAmount = parseFloat(amount) || 0;
 
-  // Resolve effective slippage — custom mode uses the user-typed value
   const slippagePct =
     slippage === "custom"
       ? parseFloat(customSlippage) || 0
       : parseFloat(slippage);
 
-  // Trade preview values — recalculate on every keystroke for instant feedback
-  const receiving = useMemo(
-    () => calculateReceivingAmount(numericAmount, side),
-    [numericAmount, side],
-  );
-  const priceImpact = useMemo(
-    () => calculatePriceImpact(numericAmount, side),
-    [numericAmount, side],
-  );
-  const minReceived = useMemo(
-    () => calculateMinReceived(receiving, slippagePct),
-    [receiving, slippagePct],
-  );
-  const networkFee = useMemo(() => getMockNetworkFee(), []);
+  // TODO: Replace with real simulateTrade() when backend provides vault/router addresses
+  const receiving = 0;
+  const priceImpact = 0;
+  const minReceived = 0;
+  const networkFee = { gwei: 0, bnb: 0, usd: 0 };
 
   const bnbBalance = balances.find((b) => b.token === "BNB");
   const balanceLabel = bnbBalance
@@ -177,6 +173,7 @@ export function useTradePanel() {
     form,
     isConnected,
     handleConnect,
+    hasVault,
     side,
     setSide,
     slippage,

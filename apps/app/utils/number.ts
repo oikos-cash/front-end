@@ -1295,11 +1295,11 @@ export function generateMockDividendHistory(
  */
 export function generateMockPriceTableTokens(): PriceTableToken[] {
   return [
-    { token: "OKS", price: "$0.1800", change24h: 0.16, fdv: "$801.57K" },
-    { token: "BNB", price: "$630.09", change24h: 7.19, fdv: "$94.5B" },
-    { token: "ETH", price: "$2,521.30", change24h: -1.42, fdv: "$303.2B" },
-    { token: "BTC", price: "$97,840.00", change24h: 3.25, fdv: "$1.94T" },
-    { token: "USDT", price: "$1.0000", change24h: 0.01, fdv: "$144.1B" },
+    { rank: 1, name: "Oikos", symbol: "OKS", token: "OKS", price: "$0.1800", change24h: 0.16, fdv: "$801.57K" },
+    { rank: 2, name: "BNB", symbol: "BNB", token: "BNB", price: "$630.09", change24h: 7.19, fdv: "$94.5B" },
+    { rank: 3, name: "Ethereum", symbol: "ETH", token: "ETH", price: "$2,521.30", change24h: -1.42, fdv: "$303.2B" },
+    { rank: 4, name: "Bitcoin", symbol: "BTC", token: "BTC", price: "$97,840.00", change24h: 3.25, fdv: "$1.94T" },
+    { rank: 5, name: "Tether", symbol: "USDT", token: "USDT", price: "$1.0000", change24h: 0.01, fdv: "$144.1B" },
   ];
 }
 

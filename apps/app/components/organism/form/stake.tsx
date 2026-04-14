@@ -14,7 +14,7 @@ import type { StakeFormPanelProps } from "@/types/interfaces";
 // Utils
 import { formatStakeNumber } from "@/utils/number";
 
-export default function StakeFormPanel({ token = "OKS" }: StakeFormPanelProps) {
+export default function StakeFormPanel({ vault }: StakeFormPanelProps) {
   const {
     t,
     form,
@@ -26,7 +26,7 @@ export default function StakeFormPanel({ token = "OKS" }: StakeFormPanelProps) {
     fields,
     onSubmit,
     handleUnstake,
-  } = useStakeForm(token);
+  } = useStakeForm(vault);
 
   if (!isConnected) return null;
 

@@ -11,10 +11,17 @@ import SwapHistory from "@/components/organism/swap-history";
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
 
+// Types
+import type { SwapToken } from "@/types/interfaces";
+
 // Icons
 import { Lock, Wallet } from "lucide-react";
 
-export default function SwapTemplate() {
+export default function SwapTemplate({
+  initialTokens,
+}: {
+  initialTokens: SwapToken[];
+}) {
   const t = useTranslations("swap");
   const { isConnected, handleConnect } = useWallet();
 
@@ -42,7 +49,7 @@ export default function SwapTemplate() {
         description={t("description")}
         breadcrumbs={[{ label: "Home", href: "/" }, { label: t("title") }]}
       />
-      <SwapForm />
+      <SwapForm initialTokens={initialTokens} />
       <SwapHistory />
     </div>
   );

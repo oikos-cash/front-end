@@ -30,7 +30,6 @@ import { SWAP_SLIPPAGE_OPTIONS, SWAP_ROUTES } from "@/types/constants";
 import {
   calculateSwapOutput,
   formatCompactNumber,
-  generateMockSwapTokens,
 } from "@/utils/number";
 
 // Icons
@@ -93,9 +92,13 @@ function TokenSearchList({
   );
 }
 
-export default function SwapForm() {
+export default function SwapForm({
+  initialTokens,
+}: {
+  initialTokens: SwapToken[];
+}) {
   const t = useTranslations("swap");
-  const tokens = useMemo(() => generateMockSwapTokens(), []);
+  const tokens = initialTokens;
   const form = useForm<SwapFormValues>({
     resolver: zodResolver(swapSchema),
     defaultValues: { fromToken: "", toToken: "", fromAmount: "" },

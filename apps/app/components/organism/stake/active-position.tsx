@@ -15,15 +15,29 @@ import type { StakeActivePositionProps } from "@/types/interfaces";
 
 // Utils
 import { isCooldownActive, formatCooldown } from "@/utils/date";
-import { generateMockStakeData, formatStakeNumber } from "@/utils/number";
+import { formatStakeNumber } from "@/utils/number";
 
 export default function StakeActivePosition({
-  token = "OKS",
+  vault,
 }: StakeActivePositionProps) {
   const t = useTranslations("stake");
   const { isConnected } = useWallet();
 
-  const stakeData = useMemo(() => generateMockStakeData(token), [token]);
+  const token = vault?.tokenSymbol ?? "TOKEN";
+  // Active position data comes from the useStaking hook in the parent template
+  // This component renders the position display using the staking contract data
+  const stakeData = {
+    tokenSymbol: token,
+    sTokenSymbol: `s${token}`,
+    userStaked: 0,
+    userSTokenBalance: 0,
+    userRewards: 0,
+    cooldownEndsAt: null as number | null,
+    userBalance: 0,
+    totalStaked: 0,
+    apr30d: 0,
+    totalRewards: 0,
+  };
   const cooldownActive = useMemo(
     () => isCooldownActive(stakeData.cooldownEndsAt),
     [stakeData.cooldownEndsAt],

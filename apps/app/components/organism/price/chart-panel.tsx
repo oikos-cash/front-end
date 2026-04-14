@@ -22,12 +22,16 @@ import {
 } from "@/types/interfaces";
 
 // Icons
-import { BarChart3, TrendingUp, RefreshCw } from "lucide-react";
+import { BarChart3, TrendingUp, RefreshCw, ServerOff } from "lucide-react";
 
-export default function PriceChart({}: PriceChartProps) {
+import Empty from "@/components/atoms/empty";
+
+export default function PriceChart({ poolAddress }: PriceChartProps) {
   const t = useTranslations("priceChart");
+  const te = useTranslations("error");
   const {
     ready,
+    hasData,
     chartType,
     setChartType,
     setInterval,
@@ -36,7 +40,7 @@ export default function PriceChart({}: PriceChartProps) {
     containerRef,
     tooltipRef,
     handleRefresh,
-  } = usePriceChart();
+  } = usePriceChart(poolAddress);
 
   return (
     <Card
@@ -102,12 +106,21 @@ export default function PriceChart({}: PriceChartProps) {
         </div>
       }
     >
-      <PriceChartRenderer
-        ready={ready}
-        crosshairData={crosshairData}
-        containerRef={containerRef}
-        tooltipRef={tooltipRef}
-      />
+      {!poolAddress ? (
+        <Empty
+          className="py-16"
+          title={te("noBackend")}
+          description={te("noBackendDesc")}
+          icon={<ServerOff className="size-5 text-muted-foreground" />}
+        />
+      ) : (
+        <PriceChartRenderer
+          ready={ready}
+          crosshairData={crosshairData}
+          containerRef={containerRef}
+          tooltipRef={tooltipRef}
+        />
+      )}
     </Card>
   );
 }

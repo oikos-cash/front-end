@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-
 // Components
 import Empty from "@/components/atoms/empty";
 import Button from "@/components/atoms/button";
@@ -15,21 +13,49 @@ import LoanActivePosition from "@/components/organism/loan/active-position";
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
 
-// Utils
-import { generateMockBorrowData } from "@/utils/number";
+// Types
+import type { VaultInfo } from "@/types/interfaces";
 
 // Icons
-import { Lock, Wallet } from "lucide-react";
+import { Lock, Wallet, ServerOff } from "lucide-react";
 
-export default function BorrowTemplate() {
+export default function BorrowTemplate({
+  initialVault,
+}: {
+  initialVault: VaultInfo | null;
+}) {
   const t = useTranslations("borrow");
+  const te = useTranslations("error");
   const { isConnected, handleConnect } = useWallet();
-  const borrowData = useMemo(() => generateMockBorrowData("OKS"), []);
+
+  if (!initialVault) {
+    return (
+      <div className="flex flex-col gap-6 py-4">
+        <PageHeader
+          title={t("title")}
+          description={t("description")}
+          breadcrumbs={[{ label: "Home", href: "/" }, { label: t("title") }]}
+        />
+        <Empty
+          className="py-16"
+          title={te("noBackend")}
+          description={te("noBackendDesc")}
+          icon={<ServerOff className="size-6 text-muted-foreground" />}
+        />
+      </div>
+    );
+  }
 
   if (!isConnected) {
     return (
-      <div className="flex flex-1 items-center justify-center py-20">
+      <div className="flex flex-col gap-6 py-4">
+        <PageHeader
+          title={t("title")}
+          description={t("description")}
+          breadcrumbs={[{ label: "Home", href: "/" }, { label: t("title") }]}
+        />
         <Empty
+          className="py-16"
           title={t("connectTitle")}
           description={t("connectDescription")}
           icon={<Lock className="size-6 text-muted-foreground" />}
@@ -43,6 +69,28 @@ export default function BorrowTemplate() {
     );
   }
 
+  const liquidityRatio = parseFloat(initialVault.liquidityRatio || "0");
+  const isActive = liquidityRatio > 0;
+
+  const kpis = [
+    {
+      key: "tokenPair",
+      value: `${initialVault.tokenSymbol}/WBNB`,
+    },
+    {
+      key: "imv",
+      value: `${(liquidityRatio * 100).toFixed(2)}%`,
+    },
+    {
+      key: "dailyInterest",
+      value: `${(parseFloat(initialVault.totalInterest || "0") * 100).toFixed(2)}%`,
+    },
+    {
+      key: "protocolStatus",
+      value: isActive ? "Active" : "Paused",
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6 py-4">
       <PageHeader
@@ -52,12 +100,7 @@ export default function BorrowTemplate() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { key: "tokenPair", value: borrowData.tokenPair },
-          { key: "imv", value: `${(borrowData.imv * 100).toFixed(2)}%` },
-          { key: "dailyInterest", value: `${(borrowData.dailyInterest * 100).toFixed(2)}%` },
-          { key: "protocolStatus", value: borrowData.protocolStatus === "active" ? "Active" : "Paused" },
-        ].map((kpi) => (
+        {kpis.map((kpi) => (
           <KpiCard
             key={kpi.key}
             title={t(kpi.key)}
@@ -66,9 +109,9 @@ export default function BorrowTemplate() {
           />
         ))}
       </div>
-      <BorrowFormPanel />
-      <LoanActivePosition />
-      <LoanHistory />
+      <BorrowFormPanel vault={initialVault} />
+      <LoanActivePosition vault={initialVault} />
+      <LoanHistory vaultAddress={initialVault.address} />
     </div>
   );
 }

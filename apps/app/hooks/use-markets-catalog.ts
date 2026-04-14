@@ -1,30 +1,72 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import type { Address } from "viem";
 
 // Types
 import type { MarketToken } from "@/types/interfaces";
 
-// Utils
-import { generateMockMarketTokens } from "@/utils/number";
-
-// Constants
-import { MARKETS_PAGE_SIZE, MARKETS_MAX_TOKENS } from "@/types/constants";
+// Hooks
+import { useBnbPrice } from "@/hooks/use-bnb-price";
+import { useMarketPrices } from "@/hooks/use-market-prices";
+import { useBalances } from "@/hooks/use-balances";
+import { useWallet } from "@/stores/wallet";
 
 export type FilterType = "all" | "presale" | "graduated";
 export type SortType = "default" | "marketCap" | "newest" | "raised";
 
-export function useMarketsCatalog() {
-  const [tokens, setTokens] = useState<MarketToken[]>([]);
+/**
+ * @param initialTokens — SSR-fetched tokens from the server.
+ *   Empty array means the API is not available.
+ */
+export function useMarketsCatalog(initialTokens: MarketToken[] = []) {
+  const hasData = initialTokens.length > 0;
+
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
   const [sort, setSort] = useState<SortType>("default");
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
 
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  // ----- BNB price for USD conversion -----
+  const { bnbPrice } = useBnbPrice();
 
-  // Apply search, filter, and sort in a single pass to avoid redundant iterations
+  // ----- Real-time WS prices per pool -----
+  const poolAddresses = useMemo(
+    () => initialTokens.map((t) => t.poolAddress).filter(Boolean) as string[],
+    [initialTokens],
+  );
+  const livePrices = useMarketPrices(poolAddresses);
+
+  // ----- Balances for connected wallet -----
+  const { address } = useWallet();
+  const tokenAddresses = useMemo(
+    () => initialTokens.map((t) => t.vaultAddress).filter(Boolean) as Address[],
+    [initialTokens],
+  );
+  const { tokens: balanceMap } = useBalances(
+    address as Address | null,
+    tokenAddresses,
+  );
+
+  // ----- Enrich tokens with live data -----
+  const enriched = useMemo(() => {
+    if (!hasData) return [];
+
+    return initialTokens.map((token) => {
+      const poolKey = token.poolAddress?.toLowerCase();
+      const livePrice = poolKey ? livePrices[poolKey] : undefined;
+      const price = livePrice ?? token.price;
+
+      const priceInUsd = price ? price * bnbPrice : undefined;
+      const marketCap =
+        priceInUsd && token.circulatingSupply
+          ? priceInUsd * token.circulatingSupply
+          : token.marketCap;
+
+      return { ...token, price, marketCap };
+    });
+  }, [initialTokens, hasData, livePrices, bnbPrice]);
+
+  // ----- Search, filter, sort -----
   const processed = useMemo(() => {
-    let result = tokens;
+    let result = enriched;
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -56,7 +98,7 @@ export function useMarketsCatalog() {
     }
 
     return result;
-  }, [tokens, search, filter, sort]);
+  }, [enriched, search, filter, sort]);
 
   const presaleTokens = useMemo(
     () => processed.filter((tk) => tk.isPresale),
@@ -67,83 +109,23 @@ export function useMarketsCatalog() {
     [processed],
   );
 
-  // Only show presale/graduated sections when no filters or sorting are active
   const showSections =
     filter === "all" && !search.trim() && sort === "default";
 
-  // Simulates paginated token loading; will be replaced with real API calls
-  const loadTokens = useCallback(
-    (reset?: boolean) => {
-      setIsLoading(true);
-      const currentLength = reset ? 0 : tokens.length;
-      const remaining = MARKETS_MAX_TOKENS - currentLength;
-
-      if (remaining <= 0) {
-        setHasMore(false);
-        setIsLoading(false);
-        return;
-      }
-
-      const count = Math.min(MARKETS_PAGE_SIZE, remaining);
-      setTimeout(() => {
-        const newTokens = generateMockMarketTokens(count, currentLength);
-        setTokens((prev) => (reset ? newTokens : [...prev, ...newTokens]));
-        setHasMore(currentLength + count < MARKETS_MAX_TOKENS);
-        setIsLoading(false);
-      }, 300);
-    },
-    [tokens.length],
-  );
-
-  useEffect(() => {
-    loadTokens(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Infinite scroll: load next page when the sentinel element enters the viewport
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0]?.isIntersecting &&
-          hasMore &&
-          !isLoading &&
-          !search.trim()
-        ) {
-          loadTokens();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, isLoading, loadTokens, search]);
-
   return {
-    // State
-    tokens,
+    tokens: enriched,
+    hasData,
     search,
     filter,
     sort,
-    isLoading,
-    hasMore,
-
-    // Setters
     setSearch,
     setFilter,
     setSort,
-
-    // Computed
     processed,
     presaleTokens,
     graduatedTokens,
     showSections,
-
-    // Refs
-    sentinelRef,
+    bnbPrice,
+    balanceMap,
   };
 }

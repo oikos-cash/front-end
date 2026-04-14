@@ -218,6 +218,70 @@ export interface MarketToken {
   createdAt?: Date;
   raised?: number;
   hardCap?: number;
+  // Real integration fields
+  vaultAddress?: string;
+  poolAddress?: string;
+  presaleContract?: string;
+  price?: number;
+  volume24h?: number;
+  priceChange24h?: number;
+}
+
+/** Raw vault data from the Vault API (all numbers as strings) */
+export interface VaultInfo {
+  address: string;
+  deployer: string;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDecimals: string;
+  token0: string;
+  token1: string;
+  presaleContract: string;
+  stakingContract: string;
+  sToken: string;
+  sTokenAddress?: string;
+  poolAddress: string;
+  liquidityRatio: string;
+  circulatingSupply: string;
+  spotPriceX96: string;
+  anchorCapacity: string;
+  floorCapacity: string;
+  newFloor: string;
+  totalInterest: string;
+  token0TotalSupply?: string;
+  token0CirculatingSupply?: string;
+  isGraduated?: boolean;
+  health?: string;
+}
+
+/** Raw token data from the Token API */
+export interface TokenInfo {
+  id: string;
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDescription: string;
+  tokenDecimals: string;
+  tokenSupply: string;
+  logoPreview?: string;
+  logoUrl?: string;
+  price: string;
+  floorPrice: string;
+  presalePrice: string;
+  token1: string;
+  selectedProtocol: string;
+  presale: string;
+  softCap: string;
+  duration: string;
+  deployerAddress?: string;
+  chainId?: number;
+  vaultAddress?: string;
+  poolAddress?: string;
+  tokenAddress?: string;
+  websiteUrl?: string;
+  twitterHandle?: string;
+  discordInvite?: string;
+  status: string;
+  timestamp: string;
 }
 
 export interface TokenCardProps {
@@ -311,10 +375,16 @@ export interface FieldRendererProps {
 //                     ORGANISMS
 // =================================================
 export interface PriceTableToken {
-  token: string;
-  price: string;
+  rank: number;
+  name: string;
+  symbol: string;
+  token?: string;
+  price: number | string;
   change24h: number;
-  fdv: string;
+  volume24h?: number;
+  fdv?: string;
+  iconUrl?: string;
+  poolAddress?: string;
 }
 
 export interface AvatarInfoProps {
@@ -392,7 +462,7 @@ export interface LaunchpadPresaleFormValues {
 }
 
 export interface StakeFormPanelProps {
-  token?: string;
+  vault: VaultInfo | null;
 }
 
 export interface StakeFormValues {
@@ -414,11 +484,11 @@ export interface StakeHistoryProps {
 }
 
 export interface StakeActivePositionProps {
-  token?: string;
+  vault: VaultInfo | null;
 }
 
 export interface BorrowFormPanelProps {
-  token?: string;
+  vault: VaultInfo | null;
 }
 
 export interface BorrowFormValues {
@@ -438,11 +508,11 @@ export interface LoanHistoryItem {
 }
 
 export interface LoanHistoryProps {
-  token?: string;
+  vaultAddress?: string;
 }
 
 export interface LoanActivePositionProps {
-  token?: string;
+  vault: VaultInfo | null;
 }
 
 export type LoanActionTab = "repay" | "roll" | "addCollateral";
@@ -522,6 +592,7 @@ export interface TradesHistoryProps {
 
 export interface PriceChartProps {
   token?: string;
+  poolAddress?: string;
 }
 
 export interface CrosshairData {
@@ -711,6 +782,9 @@ export interface SwapToken {
   iconUrl: string;
   balance: number;
   price: number;
+  poolAddress?: string;
+  vaultAddress?: string;
+  token0?: string;
 }
 
 export interface SwapFormValues {
@@ -788,6 +862,275 @@ export interface LiquidityData {
 }
 
 // =================================================
+//                    WEBSOCKET
+// =================================================
+export interface WSPriceUpdate {
+  poolAddress: string;
+  price: number;
+  timestamp: number;
+}
+
+export interface WSStatsUpdate {
+  poolAddress: string;
+  data: {
+    poolAddress: string;
+    currentPrice: number;
+    volume: {
+      "24h": number;
+      "7d": number;
+      "30d": number;
+      total: number;
+    };
+    priceHistory24h: Array<{ price: number; timestamp: number }>;
+    high24h: number;
+    low24h: number;
+    priceChange24h: number;
+    timestamp: number;
+  };
+}
+
+export interface WSOHLCUpdate {
+  poolAddress: string;
+  data: {
+    [interval: string]: Array<{
+      timestamp: number;
+      open: number;
+      high: number;
+      low: number;
+      close: number;
+      volume: number;
+    }>;
+  };
+  timestamp: number;
+}
+
+export interface WSBlockchainEvent {
+  poolAddress: string;
+  eventName: "Swap" | "Mint" | "Burn" | "Collect" | "Flash";
+  blockNumber: number;
+  transactionHash: string;
+  args: {
+    sender: string;
+    recipient: string;
+    amount0?: string;
+    amount1?: string;
+    sqrtPriceX96?: string;
+    liquidity?: string;
+    tick?: string;
+    [key: string]: string | undefined;
+  };
+  timestamp: number;
+}
+
+export type WSChannel = "price" | "stats" | "ohlc";
+
+export type WSMessageCallback<T> = (data: T) => void;
+
+// =================================================
+//                  LOAN SERVICE
+// =================================================
+export type LoanEventName = "Borrow" | "Payback" | "RollLoan" | "DefaultLoans";
+
+export interface LoanEvent {
+  id: string;
+  vaultAddress: string;
+  eventName: LoanEventName;
+  blockNumber: number;
+  blockHash: string;
+  transactionHash: string;
+  transactionIndex: number;
+  logIndex: number;
+  args: {
+    who?: string;
+    borrowAmount?: string;
+    duration?: string;
+    amount?: string;
+  };
+  timestamp: number;
+  storedAt: number;
+  vaultSymbol?: string;
+  vaultName?: string;
+}
+
+export interface LoanStats {
+  totalBorrows: number;
+  totalPaybacks: number;
+  totalRolls: number;
+  totalDefaults?: number;
+  totalBorrowed: string;
+  uniqueBorrowers?: number;
+  loans: LoanEvent[];
+}
+
+export interface WSLoanEvent {
+  type: "loanEvent";
+  data: LoanEvent;
+}
+
+// =================================================
+//                  HEDGE SERVICE
+// =================================================
+export interface HedgeQuote {
+  optionSymbol: string;
+  optionType: "CALL";
+  strikePrice: number;
+  expiryDate: number;
+  quantity: number;
+  premiumPerContract: number;
+  totalPremium: number;
+  premiumPercentage: number;
+  quoteAsset: string;
+  currentBnbPrice: number;
+  markPrice: number | null;
+  bidPrice: number | null;
+  askPrice: number | null;
+  breakEvenPrice: number;
+  maxLoss: number;
+  maxProfit: string;
+  rationale: string;
+  loanAmountBNB: number;
+  loanDurationDays: number;
+  timestamp: number;
+}
+
+export type HedgePositionStatus =
+  | "pending"
+  | "active"
+  | "closed"
+  | "expired"
+  | "exercised"
+  | "failed";
+
+export interface HedgePosition {
+  id: string;
+  userAddress: string;
+  vaultAddress: string;
+  loanId: string | null;
+  binanceOrderId: string | null;
+  symbol: string;
+  optionType: "CALL";
+  strikePrice: number;
+  expiryDate: number;
+  quantity: number;
+  premium: number;
+  quoteAsset: string;
+  bnbPriceAtCreation: number;
+  breakEvenPrice: number;
+  status: HedgePositionStatus;
+  closeOrderId: string | null;
+  closedAt: number | null;
+  closePrice: number | null;
+  pnl: number | null;
+  createdAt: number;
+  updatedAt: number;
+  currentBnbPrice?: number;
+  currentValue?: number | null;
+  unrealizedPnl?: number | null;
+}
+
+export interface HedgeStats {
+  total: number;
+  active: number;
+  closed: number;
+  expired: number;
+  exercised: number;
+  totalPremiumPaid: number;
+  totalPnl: number;
+}
+
+// =================================================
+//                   TOKEN API
+// =================================================
+export interface TokenApiData {
+  tokenName: string;
+  tokenSymbol: string;
+  tokenDescription: string;
+  tokenDecimals: string;
+  tokenSupply: string;
+  logoPreview?: string;
+  price: string;
+  floorPrice: string;
+  presalePrice: string;
+  token1: string;
+  selectedProtocol: string;
+  presale: string;
+  softCap: string;
+  duration: string;
+  deployerAddress?: string;
+  chainId?: number;
+  vaultAddress?: string;
+  poolAddress?: string;
+  tokenAddress?: string;
+  websiteUrl?: string;
+  twitterHandle?: string;
+  discordInvite?: string;
+}
+
+export interface TokenApiResponse extends TokenApiData {
+  id: string;
+  timestamp: string;
+  status: "pending" | "success" | "failed" | "deployed";
+  transactionHash?: string;
+  contractAddress?: string;
+  updatedAt?: string;
+  logoUrl?: string;
+}
+
+// =================================================
+//                   POOL API
+// =================================================
+export interface PoolConfigToken {
+  symbol: string;
+  address: string;
+  decimals: number;
+}
+
+export interface PoolConfig {
+  name: string;
+  address: string;
+  protocol: string;
+  version: string;
+  token0: PoolConfigToken;
+  token1: PoolConfigToken;
+  feeTier: number;
+  enabled: boolean;
+  createdAt?: string;
+}
+
+// =================================================
+//                  CREATOR API
+// =================================================
+export interface CreatorVaultStats {
+  vaultAddress: string;
+  tokenAddress: string;
+  tokenSymbol: string;
+  tokenDecimals: string;
+  currentEarnings: string;
+  currentEarningsFormatted: string;
+}
+
+export interface EarningsHistoryPoint {
+  timestamp: number;
+  earnings: string;
+  earningsFormatted: string;
+  vaultAddress: string;
+}
+
+export interface CreatorStatsResponse {
+  success: boolean;
+  data: {
+    deployer: string;
+    vaults: CreatorVaultStats[];
+    totals: {
+      totalEarnings: string;
+      totalEarningsFormatted: string;
+      vaultCount: number;
+    };
+    earningsHistory: EarningsHistoryPoint[];
+  };
+}
+
+// =================================================
 //                      STORES
 // =================================================
 export interface LaunchpadState {
@@ -814,6 +1157,7 @@ export interface LaunchpadState {
   markStepCompleted: (step: number) => void;
   getMissingFields: () => MissingField[];
   isReadyToDeploy: () => boolean;
+  saveTokenMetadata: (deployerAddress: string, contractAddress?: string, vaultAddress?: string, poolAddress?: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -831,7 +1175,10 @@ export interface TokenBalance {
 
 export interface WalletState {
   isConnected: boolean;
+  isBalancesLoading: boolean;
   address: string | null;
+  chainId: number | null;
+  isCorrectNetwork: boolean;
   balances: TokenBalance[];
   totalValue: string;
   handleConnect: () => void;

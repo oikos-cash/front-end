@@ -17,7 +17,11 @@ import { usePresale } from "@/hooks/use-presale";
 // Icons
 import { Lock, Wallet } from "lucide-react";
 
-export default function PresaleTemplate() {
+export default function PresaleTemplate({
+  initialVault,
+}: {
+  initialVault: import("@/types/interfaces").VaultInfo | null;
+}) {
   const {
     t,
     kpiCards,
@@ -26,7 +30,7 @@ export default function PresaleTemplate() {
     userBalance,
     handleConnect,
     contributionRows,
-  } = usePresale();
+  } = usePresale(initialVault);
 
   if (!isConnected) {
     return (

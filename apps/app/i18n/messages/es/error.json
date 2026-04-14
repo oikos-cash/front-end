@@ -3,6 +3,10 @@
     "title": "Algo Salio Mal",
     "description": "Ocurrio un error inesperado. Por favor intenta de nuevo.",
     "retry": "Intentar de Nuevo",
-    "errorId": "ID del Error: {id}"
+    "errorId": "ID del Error: {id}",
+    "noBackend": "No se pudo conectar al servidor",
+    "noBackendDesc": "La API del backend no esta disponible. Asegurate de que el servidor este corriendo.",
+    "noData": "Sin datos disponibles",
+    "noDataDesc": "No se pudieron cargar los datos del servidor."
   }
 }

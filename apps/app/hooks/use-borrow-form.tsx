@@ -5,16 +5,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
+import { useLending } from "@/hooks/use-lending";
 
 // Types
 import { borrowSchema } from "@/types/schemes";
-import type { BorrowFormValues, FieldItem } from "@/types/interfaces";
+import type { BorrowFormValues, FieldItem, VaultInfo } from "@/types/interfaces";
 
 // Utils
 import {
   formatStakeNumber,
   calculateLoanFees,
-  generateMockBorrowData,
   calculateCollateralRequired,
 } from "@/utils/number";
 
@@ -26,14 +26,32 @@ import Avatar from "@/components/atoms/avatar";
 
 /**
  * Manages the borrow form state:
- * - Collateral and fee calculations that update as the user types
+ * - Collateral and fee calculations from real vault data
  * - Field config with JSX descriptions (use-max button, token avatar)
- * - Mock submit handler, will be replaced with contract call
+ * - Submit handler (will be replaced with contract call)
  */
-export function useBorrowForm(token: string) {
+export function useBorrowForm(vault: VaultInfo | null) {
   const t = useTranslations("borrow");
   const { isConnected } = useWallet();
-  const borrowData = useMemo(() => generateMockBorrowData(token), [token]);
+
+  const token = vault?.tokenSymbol ?? "TOKEN";
+  const imv = parseFloat(vault?.liquidityRatio ?? "0");
+  const dailyInterest = parseFloat(vault?.totalInterest ?? "0");
+  const liquidityRatio = parseFloat(vault?.liquidityRatio ?? "0");
+  const isActive = liquidityRatio > 0;
+
+  const { borrow: lendingBorrow, isBorrowing } = useLending(
+    vault?.address,
+    vault?.token0,
+  );
+
+  const borrowData = {
+    tokenPair: `${token}/WBNB`,
+    imv,
+    dailyInterest,
+    userBalance: 0,
+    protocolStatus: (isActive ? "active" : "paused") as "active" | "paused",
+  };
 
   const form = useForm<BorrowFormValues>({
     resolver: zodResolver(borrowSchema),
@@ -68,21 +86,14 @@ export function useBorrowForm(token: string) {
     });
   }
 
-  // Mock submit — will be replaced with actual borrow contract interaction
+  // Submit — calls real borrow contract via useLending
   async function onSubmit(data: BorrowFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const durationSeconds = parseInt(data.duration) * 86400;
+    lendingBorrow(data.borrowAmount, durationSeconds);
     form.reset();
-    console.log(
-      "Borrowed:",
-      data.borrowAmount,
-      token,
-      "for",
-      data.duration,
-      "days",
-    );
   }
 
-  // Field config with JSX elements — can't live in constants due to dynamic descriptions
+  // Field config with JSX elements
   const fields: FieldItem[] = BORROW_FIELDS.map((field) => ({
     ...field,
     label: t(field.name),
