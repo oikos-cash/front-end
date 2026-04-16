@@ -233,8 +233,10 @@ export const LIQUIDITY_POOLS = [
 // =================================================
 export const LABEL_COLORS: Record<string, string> = {
   reservesWbnb: "text-yellow-400",
+  reservesToken: "text-green-400",
   reservesOks: "text-green-400",
   capacityOks: "text-green-400",
+  tickRange: "text-orange-400",
   tickLower: "text-orange-400",
   tickUpper: "text-orange-400",
 };

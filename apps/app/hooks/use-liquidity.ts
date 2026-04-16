@@ -78,18 +78,43 @@ export function useLiquidity(initialVault: VaultInfo | null = null) {
           : zone === "anchor"
             ? "#d4a84b"
             : "#86efac";
+      const amt0 = Number(pos.amount0) / 1e18;
+      const amt1 = Number(pos.amount1) / 1e18;
+      // Use total value (amount0 + amount1) as height indicator
+      const totalValue = amt0 + amt1;
       return {
         name: zone.charAt(0).toUpperCase() + zone.slice(1),
         from: tickToPrice(pos.lowerTick),
         to: tickToPrice(pos.upperTick),
-        height: Number(pos.liquidity) > 0 ? Math.min(Number(pos.liquidity) / 1e18, 1) : 0.1,
+        height: totalValue > 0 ? totalValue : 0,
         fill,
-        amount0: 0,
-        amount1: 0,
+        amount0: amt0,
+        amount1: amt1,
       };
     });
 
-    const details: LiquidityData["details"] = [];
+    // Build details table from position data
+    const posMap: Record<string, { amt0: number; amt1: number; lower: number; upper: number }> = {};
+    for (const pos of positions) {
+      posMap[pos.zone] = {
+        amt0: Number(pos.amount0) / 1e18,
+        amt1: Number(pos.amount1) / 1e18,
+        lower: pos.lowerTick,
+        upper: pos.upperTick,
+      };
+    }
+
+    const fmt = (n: number, d = 4) => n > 0 ? n.toLocaleString(undefined, { maximumFractionDigits: d }) : "0";
+    const fmtPrice = (tick: number) => tickToPrice(tick).toFixed(8);
+    const f = posMap.floor ?? { amt0: 0, amt1: 0, lower: 0, upper: 0 };
+    const a = posMap.anchor ?? { amt0: 0, amt1: 0, lower: 0, upper: 0 };
+    const d = posMap.discovery ?? { amt0: 0, amt1: 0, lower: 0, upper: 0 };
+
+    const details: LiquidityData["details"] = [
+      { label: "reservesWbnb", floor: fmt(f.amt1, 6), anchor: fmt(a.amt1, 6), discovery: fmt(d.amt1, 6) },
+      { label: "reservesToken", floor: fmt(f.amt0, 2), anchor: fmt(a.amt0, 2), discovery: fmt(d.amt0, 2) },
+      { label: "tickRange", floor: `${fmtPrice(f.lower)} – ${fmtPrice(f.upper)}`, anchor: `${fmtPrice(a.lower)} – ${fmtPrice(a.upper)}`, discovery: `${fmtPrice(d.lower)} – ${fmtPrice(d.upper)}` },
+    ];
 
     return {
       spotPrice,

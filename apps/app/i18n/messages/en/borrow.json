@@ -63,6 +63,7 @@
     "historyRepay": "REPAY",
     "historyRoll": "ROLL",
     "historyEmpty": "No loan activity yet",
+    "hedgeButton": "Hedge Loan",
     "historyEmptyDesc": "Your borrow, repay and roll transactions will appear here",
     "errors": {
       "required": "This field is required",

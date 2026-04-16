@@ -38,7 +38,7 @@ export function useBorrowForm(vault: VaultInfo | null) {
 
   const token = vault?.tokenSymbol ?? "TOKEN";
   const imv = parseFloat(vault?.liquidityRatio ?? "0");
-  const dailyInterest = parseFloat(vault?.totalInterest ?? "0");
+  const dailyInterest = parseFloat(vault?.totalInterest ?? "0") / 1e18;
   const liquidityRatio = parseFloat(vault?.liquidityRatio ?? "0");
   const isActive = liquidityRatio > 0;
 

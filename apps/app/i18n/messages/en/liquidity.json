@@ -20,8 +20,10 @@
     "anchor": "Anchor",
     "discovery": "Discovery",
     "reservesWbnb": "Reserves (WBNB)",
+    "reservesToken": "Reserves (Token)",
     "reservesOks": "Reserves (OKS)",
     "capacityOks": "Capacity (OKS)",
+    "tickRange": "Price Range",
     "tickLower": "Tick Lower",
     "tickUpper": "Tick Upper"
   }

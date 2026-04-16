@@ -30,13 +30,19 @@ export default function LiquidityBars({
   const innerWidth = width - MARGIN.left - MARGIN.right;
   const innerHeight = height - MARGIN.top - MARGIN.bottom;
 
+  // Compute scales from actual data
+  const allPrices = bars.flatMap((b) => [b.from, b.to]).concat(spotPrice);
+  const minPrice = Math.min(...allPrices) * 0.9;
+  const maxPrice = Math.max(...allPrices) * 1.1;
+  const maxHeight = Math.max(...bars.map((b) => b.height), 0.001);
+
   const xScale = scaleLinear({
-    domain: [0.0001, 0.0013],
+    domain: [minPrice, maxPrice],
     range: [0, innerWidth],
   });
 
   const yScale = scaleLinear({
-    domain: [0, 1],
+    domain: [0, maxHeight],
     range: [innerHeight, 0],
   });
 

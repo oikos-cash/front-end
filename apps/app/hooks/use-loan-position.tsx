@@ -60,7 +60,7 @@ function deriveActiveLoan(
   const isExpired = now > expiresAt;
 
   const imv = parseFloat(vault?.liquidityRatio ?? "0");
-  const dailyInterest = parseFloat(vault?.totalInterest ?? "0");
+  const dailyInterest = parseFloat(vault?.totalInterest ?? "0") / 1e18;
   const collateralAmount = imv > 0 ? borrowAmount / imv : 0;
   const ltv =
     collateralAmount > 0
@@ -164,7 +164,7 @@ export function useLoanPosition(vault: VaultInfo | null) {
 
   const borrowData = {
     imv: parseFloat(vault?.liquidityRatio ?? "0"),
-    dailyInterest: parseFloat(vault?.totalInterest ?? "0"),
+    dailyInterest: parseFloat(vault?.totalInterest ?? "0") / 1e18,
     userBalance: 0,
   };
 

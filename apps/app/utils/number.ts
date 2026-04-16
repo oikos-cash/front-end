@@ -334,6 +334,7 @@ export function generateMockStakeData(token = "OKS"): StakeMockData {
 export function formatStakeNumber(value: number, decimals = 4): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
+  if (value > 0 && value < 1e-4) return value.toExponential(3);
   return value.toFixed(decimals);
 }
 

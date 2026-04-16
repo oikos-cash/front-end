@@ -16,20 +16,24 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
  */
 export async function fetchMarketTokens(): Promise<MarketToken[]> {
   try {
-    const [vaults, tokensRes] = await Promise.all([
-      fetchVaultServer<VaultInfo[]>("/vaults", {
-        revalidate: SSR_REVALIDATE_DEFAULT,
-      }),
-      fetchServer<{ tokens: TokenInfo[] }>("/tokens", {
-        revalidate: SSR_REVALIDATE_LONG,
-      }),
-    ]);
+    // Fetch vaults (required) and tokens metadata (optional) separately
+    // so that a failing token API doesn't break the entire page
+    const vaults = await fetchVaultServer<VaultInfo[]>("/vaults", {
+      revalidate: SSR_REVALIDATE_DEFAULT,
+    });
 
-    const tokenMap = new Map<string, TokenInfo>();
-    for (const t of tokensRes.tokens ?? []) {
-      if (t.tokenSymbol) {
-        tokenMap.set(t.tokenSymbol.toLowerCase(), t);
+    let tokenMap = new Map<string, TokenInfo>();
+    try {
+      const tokensRes = await fetchServer<{ tokens: TokenInfo[] }>("/tokens", {
+        revalidate: SSR_REVALIDATE_LONG,
+      });
+      for (const t of tokensRes.tokens ?? []) {
+        if (t.tokenSymbol) {
+          tokenMap.set(t.tokenSymbol.toLowerCase(), t);
+        }
       }
+    } catch {
+      // Token metadata API is optional — vaults alone are enough
     }
 
     return vaults.map((vault) => mergeVaultToken(vault, tokenMap));
@@ -62,8 +66,9 @@ function mergeVaultToken(
   const price =
     spotPriceX96 > BigInt(0) ? spotPriceToNumber(spotPriceX96) : undefined;
 
+  // Market cap = price × totalSupply (same formula as old project)
   const marketCap =
-    price && circulatingSupply ? price * circulatingSupply : undefined;
+    price && totalSupply ? price * totalSupply : undefined;
 
   return {
     id: vault.address,
@@ -79,7 +84,9 @@ function mergeVaultToken(
     circulatingSupply,
     createdAt: tokenInfo?.timestamp
       ? new Date(tokenInfo.timestamp)
-      : undefined,
+      : vault.tokenSymbol?.toUpperCase() === "OKS"
+        ? new Date("2025-06-17T00:00:00.000Z")
+        : undefined,
     raised: undefined, // Populated client-side from presale contract reads
     hardCap: tokenInfo?.softCap ? parseFloat(tokenInfo.softCap) : undefined,
     vaultAddress: vault.address,

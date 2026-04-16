@@ -56,8 +56,8 @@ export function useMarketsCatalog(initialTokens: MarketToken[] = []) {
 
       const priceInUsd = price ? price * bnbPrice : undefined;
       const marketCap =
-        priceInUsd && token.circulatingSupply
-          ? priceInUsd * token.circulatingSupply
+        priceInUsd && token.totalSupply
+          ? priceInUsd * token.totalSupply
           : token.marketCap;
 
       return { ...token, price, marketCap };

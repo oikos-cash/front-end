@@ -35,6 +35,7 @@ export function useStakeForm(vault: VaultInfo | null) {
     tokenBalance,
     stakedBalance,
     sTokenBalance,
+    totalStaked,
     totalRewards,
     needsApproval,
     isCooldownActive,
@@ -50,17 +51,19 @@ export function useStakeForm(vault: VaultInfo | null) {
   const userBalance = tokenBalance ? Number(tokenBalance) / 1e18 : 0;
   const userStaked = stakedBalance ? Number(stakedBalance) / 1e18 : 0;
   const userSTokenBalance = sTokenBalance ? Number(sTokenBalance) / 1e18 : 0;
-  const userRewards = totalRewards ? Number(totalRewards) / 1e18 : 0;
+  const totalStakedNum = totalStaked ? Number(totalStaked) / 1e18 : 0;
+  const totalRewardsNum = totalRewards ? Number(totalRewards) / 1e18 : 0;
+  const apr30d = totalStakedNum > 0 ? (totalRewardsNum / totalStakedNum) * 100 : 0;
 
   const stakeData = {
     tokenSymbol,
     sTokenSymbol: `s${tokenSymbol}`,
-    totalStaked: 0,
-    apr30d: 0,
-    totalRewards: userRewards,
+    totalStaked: totalStakedNum,
+    apr30d,
+    totalRewards: totalRewardsNum,
     userStaked,
     userSTokenBalance,
-    userRewards,
+    userRewards: totalRewardsNum,
     cooldownEndsAt: cooldownEnd,
     userBalance,
   };

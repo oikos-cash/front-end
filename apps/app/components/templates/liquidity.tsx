@@ -2,7 +2,6 @@
 
 // Components
 import Button from "@/components/atoms/button";
-import Select from "@/components/atoms/select";
 import Tooltip from "@/components/atoms/tooltip";
 import KpiCard from "@/components/molecules/card/kpi";
 import ButtonGroup from "@/components/atoms/button-group";
@@ -21,16 +20,12 @@ import type { VaultInfo } from "@/types/interfaces";
 // Icons
 import { RefreshCw, ServerOff } from "lucide-react";
 
-// Constants
-import { LIQUIDITY_POOLS } from "@/types/constants";
-
 export default function LiquidityTemplate({
   initialVault,
 }: {
   initialVault: VaultInfo | null;
 }) {
-  const { t, data, selectedPool, handlePoolChange, handleRefresh, kpiCards } =
-    useLiquidity(initialVault);
+  const { t, data, handleRefresh, kpiCards } = useLiquidity(initialVault);
   const te = useTranslations("error");
 
   return (
@@ -40,21 +35,11 @@ export default function LiquidityTemplate({
           title={t("title")}
           breadcrumbs={[{ label: "Home", href: "/" }, { label: t("title") }]}
         />
-        <div className="flex items-center gap-2">
-          <Select
-            className="w-40"
-            value={selectedPool}
-            defaultValue="oks"
-            onValueChange={handlePoolChange}
-            items={LIQUIDITY_POOLS}
-            placeholder={t("selectPool")}
-          />
-          <Tooltip content={t("refresh")}>
-            <Button variant="ghost" size="icon-xs" onClick={handleRefresh}>
-              <RefreshCw className="size-3.5" />
-            </Button>
-          </Tooltip>
-        </div>
+        <Tooltip content={t("refresh")}>
+          <Button variant="ghost" size="icon-xs" onClick={handleRefresh}>
+            <RefreshCw className="size-3.5" />
+          </Button>
+        </Tooltip>
       </div>
 
       {!data ? (

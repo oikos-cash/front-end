@@ -104,7 +104,12 @@ export default function StakeTemplate({
         {[
           { key: "token", value: tokenSymbol },
           { key: "totalStaked", value: formatStakeNumber(totalStakedNum, 2) },
-          { key: "apr30d", value: "--" },
+          {
+            key: "apr30d",
+            value: totalStakedNum > 0
+              ? `${((totalRewardsNum / totalStakedNum) * 100).toFixed(2)}%`
+              : "--",
+          },
           {
             key: "totalRewards",
             value: `${formatStakeNumber(totalRewardsNum)} ${tokenSymbol}`,

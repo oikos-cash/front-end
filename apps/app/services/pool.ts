@@ -55,6 +55,18 @@ const VAULT_POSITIONS_ABI = [
     type: "function",
   },
   {
+    inputs: [{ name: "liquidityType", type: "uint8" }],
+    name: "getUnderlyingBalances",
+    outputs: [
+      { name: "", type: "int24" },
+      { name: "", type: "int24" },
+      { name: "", type: "uint256" },
+      { name: "", type: "uint256" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "getAccumulatedFees",
     outputs: [
@@ -136,6 +148,8 @@ export interface VaultPosition {
   liquidity: bigint;
   price: bigint;
   tickSpacing: number;
+  amount0: bigint;
+  amount1: bigint;
 }
 
 export interface VaultFees {
@@ -183,26 +197,32 @@ export async function readVaultPositions(
   const zones = ["floor", "anchor", "discovery"] as const;
 
   try {
-    const result = (await client.readContract({
-      address: vaultAddress,
-      abi: VAULT_POSITIONS_ABI,
-      functionName: "getPositions",
-    })) as unknown as Array<{
-      lowerTick: number;
-      upperTick: number;
-      liquidity: bigint;
-      price: bigint;
-      tickSpacing: number;
-    }>;
+    // Use getUnderlyingBalances for each zone (0=Floor, 1=Anchor, 2=Discovery)
+    // This returns ticks + real amounts, which is what the chart needs
+    const results = await Promise.all(
+      zones.map((_, i) =>
+        client.readContract({
+          address: vaultAddress,
+          abi: VAULT_POSITIONS_ABI,
+          functionName: "getUnderlyingBalances",
+          args: [i],
+        }),
+      ),
+    );
 
-    return result.map((pos, i) => ({
-      zone: zones[i],
-      lowerTick: pos.lowerTick,
-      upperTick: pos.upperTick,
-      liquidity: pos.liquidity,
-      price: pos.price,
-      tickSpacing: pos.tickSpacing,
-    }));
+    return results.map((r, i) => {
+      const [lowerTick, upperTick, amount0, amount1] = r as [number, number, bigint, bigint];
+      return {
+        zone: zones[i],
+        lowerTick,
+        upperTick,
+        liquidity: BigInt(0),
+        price: BigInt(0),
+        tickSpacing: 0,
+        amount0,
+        amount1,
+      };
+    });
   } catch {
     return [];
   }

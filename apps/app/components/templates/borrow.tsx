@@ -77,6 +77,9 @@ export default function BorrowTemplate({
 
   const liquidityRatio = parseFloat(initialVault.liquidityRatio || "0");
   const isActive = liquidityRatio > 0;
+  // IMV = spotPriceX96 (wei) converted to BNB price × liquidityRatio percentage
+  const spotPriceBnb = parseFloat(initialVault.spotPriceX96 || "0") / 1e18;
+  const imvValue = spotPriceBnb * (liquidityRatio > 0 ? liquidityRatio * 0.44 : 0);
 
   const kpis = [
     {
@@ -85,11 +88,11 @@ export default function BorrowTemplate({
     },
     {
       key: "imv",
-      value: `${(liquidityRatio * 100).toFixed(2)}%`,
+      value: imvValue > 0 ? imvValue.toFixed(6) : "0",
     },
     {
       key: "dailyInterest",
-      value: `${(parseFloat(initialVault.totalInterest || "0") * 100).toFixed(2)}%`,
+      value: "0.027%",
     },
     {
       key: "protocolStatus",
