@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { parseEther, formatEther } from "viem";
 
 // Components
 import Card from "@/components/atoms/card";
@@ -18,19 +19,32 @@ import KeyValueCard from "@/components/molecules/card/key-value";
 
 // Hooks
 import { useTranslations } from "next-intl";
+import { useWallet } from "@/stores/wallet";
+import { useSwap } from "@/hooks/use-swap";
+import type { Address } from "viem";
 
 // Types
 import { swapSchema } from "@/types/schemes";
 import type { SwapFormValues, SwapToken } from "@/types/interfaces";
 
-// Constants
-import { SWAP_SLIPPAGE_OPTIONS, SWAP_ROUTES } from "@/types/constants";
-
 // Utils
+import { formatCompactNumber } from "@/utils/number";
+
+// Services
 import {
-  calculateSwapOutput,
-  formatCompactNumber,
-} from "@/utils/number";
+  simulateTrade,
+  calculateMinReceived,
+  type TradeQuote,
+} from "@/services/trade-simulation";
+
+// Constants (contract addresses)
+import {
+  SWAP_SLIPPAGE_OPTIONS,
+  SWAP_ROUTES,
+  WBNB_ADDRESS,
+  QUOTER_V2_ADDRESS,
+  DEFAULT_POOL_FEE,
+} from "@/types/constants";
 
 // Icons
 import { Settings, Search, ChevronDown } from "lucide-react";
@@ -98,6 +112,7 @@ export default function SwapForm({
   initialTokens: SwapToken[];
 }) {
   const t = useTranslations("swap");
+  const { address } = useWallet();
   const tokens = initialTokens;
   const form = useForm<SwapFormValues>({
     resolver: zodResolver(swapSchema),
@@ -158,29 +173,89 @@ export default function SwapForm({
     );
   }, [tokens, fromToken, toSearch]);
 
-  const estimatedOutput = useMemo(() => {
-    if (!fromTokenData || !toTokenData || fromAmount <= 0) return 0;
-    return calculateSwapOutput(
-      fromAmount,
-      fromTokenData.price,
-      toTokenData.price,
-    );
-  }, [fromAmount, fromTokenData, toTokenData]);
+  // Resolve token addresses for swap hook
+  const fromAddr = fromTokenData?.token0
+    || (fromTokenData?.symbol === "WBNB" ? WBNB_ADDRESS : undefined);
+  const toAddr = toTokenData?.token0
+    || (toTokenData?.symbol === "WBNB" ? WBNB_ADDRESS : undefined);
+
+  const {
+    execute: executeSwap,
+    approve: approveToken,
+    needsApproval,
+    isPending: isSwapPending,
+  } = useSwap(
+    address as Address | undefined,
+    fromAddr as Address | undefined,
+    QUOTER_V2_ADDRESS as Address,
+  );
+
+  // Quoter V2 simulation for real output & price impact
+  const [quote, setQuote] = useState<TradeQuote | null>(null);
+
+  useEffect(() => {
+    if (!fromTokenData || !toTokenData || fromAmount <= 0) {
+      setQuote(null);
+      return;
+    }
+
+    const tokenIn =
+      fromTokenData.token0 || (fromTokenData.symbol === "WBNB" ? WBNB_ADDRESS : "");
+    const tokenOut =
+      toTokenData.token0 || (toTokenData.symbol === "WBNB" ? WBNB_ADDRESS : "");
+
+    if (!tokenIn || !tokenOut) {
+      setQuote(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    simulateTrade({
+      quoterAddress: QUOTER_V2_ADDRESS,
+      tokenIn: tokenIn as `0x${string}`,
+      tokenOut: tokenOut as `0x${string}`,
+      amountIn: parseEther(fromAmount.toString()),
+      fee: DEFAULT_POOL_FEE,
+    })
+      .then((result) => {
+        if (!cancelled) setQuote(result);
+      })
+      .catch(() => {
+        if (!cancelled) setQuote(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fromTokenData, toTokenData, fromAmount]);
+
+  const estimatedOutput = quote
+    ? Number(formatEther(quote.amountOut))
+    : 0;
 
   const exchangeRate = useMemo(() => {
     if (!fromTokenData || !toTokenData) return "";
+    if (estimatedOutput > 0 && fromAmount > 0) {
+      const rate = estimatedOutput / fromAmount;
+      return `1 ${fromToken} ≈ ${formatCompactNumber(rate)} ${toToken}`;
+    }
     const rate = fromTokenData.price / toTokenData.price;
-    return `1 ${fromToken} = ${formatCompactNumber(rate)} ${toToken}`;
-  }, [fromToken, toToken, fromTokenData, toTokenData]);
+    return `1 ${fromToken} ≈ ${formatCompactNumber(rate)} ${toToken}`;
+  }, [fromToken, toToken, fromTokenData, toTokenData, estimatedOutput, fromAmount]);
 
-  const priceImpact = useMemo(() => {
-    if (fromAmount <= 0 || !fromTokenData) return 0;
-    return Math.min(fromAmount * 0.001, 5);
-  }, [fromAmount, fromTokenData]);
+  const priceImpact = quote?.priceImpact ?? 0;
 
-  const minReceived = useMemo(() => {
-    return estimatedOutput * (1 - activeSlippage / 100);
-  }, [estimatedOutput, activeSlippage]);
+  const minReceived = quote
+    ? Number(
+        formatEther(
+          calculateMinReceived(
+            quote.amountOut,
+            Math.round(activeSlippage * 100),
+          ),
+        ),
+      )
+    : 0;
 
   function handleSelectFromToken(tk: SwapToken) {
     form.setValue("fromToken", tk.symbol, { shouldValidate: true });
@@ -202,8 +277,25 @@ export default function SwapForm({
   }
 
   async function onSubmit() {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    form.reset();
+    if (!fromAddr || !toAddr || !address || !quote) return;
+
+    if (needsApproval) {
+      approveToken();
+      return;
+    }
+
+    executeSwap({
+      routerAddress: QUOTER_V2_ADDRESS as Address,
+      tokenIn: fromAddr as Address,
+      tokenOut: toAddr as Address,
+      fee: DEFAULT_POOL_FEE,
+      amountIn: parseEther(fromAmount.toString()),
+      amountOutMinimum: calculateMinReceived(
+        quote.amountOut,
+        Math.round(activeSlippage * 100),
+      ),
+      recipient: address as Address,
+    });
   }
 
   return (
@@ -474,10 +566,10 @@ export default function SwapForm({
       <Button
         type="submit"
         className="w-full"
-        disabled={!form.formState.isValid}
-        isLoading={form.formState.isSubmitting}
+        disabled={!form.formState.isValid || isSwapPending}
+        isLoading={isSwapPending}
       >
-        {t("swapAction")}
+        {needsApproval ? t("approveAction") : t("swapAction")}
       </Button>
     </form>
   );

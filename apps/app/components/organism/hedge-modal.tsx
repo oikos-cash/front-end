@@ -16,7 +16,7 @@ import { useTranslations } from "next-intl";
 import { useHedge } from "@/hooks/use-hedge";
 
 // Types
-import type { HedgePosition } from "@/types/interfaces";
+import type { HedgePosition, HedgeQuote, HedgeStats } from "@/types/interfaces";
 
 // Icons
 import { Shield, Loader2 } from "lucide-react";
@@ -139,13 +139,13 @@ function CreateTab({
   isCreating,
   onCreate,
 }: {
-  quote: any;
+  quote: HedgeQuote | null;
   quoteLoading: boolean;
   loanAmountBNB: number;
   loanValueUsd: number;
   loanDurationDays: number;
   isCreating: boolean;
-  onCreate: () => Promise<any>;
+  onCreate: () => Promise<HedgePosition | null>;
 }) {
   if (quoteLoading) {
     return (
@@ -211,9 +211,9 @@ function PositionsTab({
   onClose,
 }: {
   positions: HedgePosition[];
-  stats: any;
+  stats: HedgeStats | null;
   isClosing: boolean;
-  onClose: (hedgeId: string) => Promise<any>;
+  onClose: (hedgeId: string) => Promise<HedgePosition | null>;
 }) {
   if (positions.length === 0) {
     return (

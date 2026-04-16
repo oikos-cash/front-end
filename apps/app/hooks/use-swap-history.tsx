@@ -1,4 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 
 // Hooks
@@ -91,9 +93,11 @@ export function useSwapHistory() {
   });
 
   // Mark loading as false after a short timeout if no events arrive
-  if (isLoading) {
-    setTimeout(() => setIsLoading(false), 3000);
-  }
+  useEffect(() => {
+    if (!isLoading) return;
+    const timer = setTimeout(() => setIsLoading(false), 3000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   return {
     t,

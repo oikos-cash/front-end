@@ -496,6 +496,10 @@ export interface StakeHistoryProps {
 
 export interface StakeActivePositionProps {
   vault: VaultInfo | null;
+  stakedBalance: bigint | undefined;
+  sTokenBalance: bigint | undefined;
+  cooldownEnd: number | null;
+  isCooldownActive: boolean;
 }
 
 export interface BorrowFormPanelProps {
@@ -674,6 +678,8 @@ export interface PresaleContributionFormProps {
   maxContribution: number;
   status: "active" | "ended" | "finalized";
   userBalance: number;
+  onDeposit: (amount: string) => void;
+  isDepositing: boolean;
 }
 
 export interface LiquidityChartProps {

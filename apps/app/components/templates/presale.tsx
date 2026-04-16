@@ -30,6 +30,8 @@ export default function PresaleTemplate({
     userBalance,
     handleConnect,
     contributionRows,
+    deposit,
+    isDepositing,
   } = usePresale(initialVault);
 
   if (!isConnected) {
@@ -100,6 +102,8 @@ export default function PresaleTemplate({
           status={presaleData.status}
           minContribution={presaleData.minContribution}
           maxContribution={presaleData.maxContribution}
+          onDeposit={deposit}
+          isDepositing={isDepositing}
         />
       </div>
 

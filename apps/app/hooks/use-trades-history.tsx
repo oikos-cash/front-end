@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useMemo, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -59,7 +61,7 @@ export function useTradesHistory(
         usdValue: parseFloat((bnbAmount * bnbPrice).toFixed(2)),
         wallet: event.args.sender,
         txHash: event.transactionHash,
-        timestamp: new Date(event.timestamp),
+        timestamp: new Date(event.timestamp * 1000),
       };
 
       setTrades((prev) => [trade, ...prev].slice(0, TRADES_MAX_TRADES));

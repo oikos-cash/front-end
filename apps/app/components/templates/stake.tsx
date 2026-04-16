@@ -119,7 +119,13 @@ export default function StakeTemplate({
         ))}
       </div>
 
-      <StakeActivePosition vault={initialVault} />
+      <StakeActivePosition
+        vault={initialVault}
+        stakedBalance={stakedBalance}
+        sTokenBalance={sTokenBalance}
+        cooldownEnd={cooldownEnd}
+        isCooldownActive={isCooldownActive}
+      />
       <StakeFormPanel vault={initialVault} />
       <StakeHistory />
     </div>

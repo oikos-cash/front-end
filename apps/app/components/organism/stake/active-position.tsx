@@ -14,58 +14,41 @@ import { useWallet } from "@/stores/wallet";
 import type { StakeActivePositionProps } from "@/types/interfaces";
 
 // Utils
-import { isCooldownActive, formatCooldown } from "@/utils/date";
+import { formatCooldown } from "@/utils/date";
 import { formatStakeNumber } from "@/utils/number";
 
 export default function StakeActivePosition({
   vault,
+  stakedBalance,
+  sTokenBalance,
+  cooldownEnd,
+  isCooldownActive: cooldownActive,
 }: StakeActivePositionProps) {
   const t = useTranslations("stake");
   const { isConnected } = useWallet();
 
   const token = vault?.tokenSymbol ?? "TOKEN";
-  // Active position data comes from the useStaking hook in the parent template
-  // This component renders the position display using the staking contract data
-  const stakeData = {
-    tokenSymbol: token,
-    sTokenSymbol: `s${token}`,
-    userStaked: 0,
-    userSTokenBalance: 0,
-    userRewards: 0,
-    cooldownEndsAt: null as number | null,
-    userBalance: 0,
-    totalStaked: 0,
-    apr30d: 0,
-    totalRewards: 0,
-  };
-  const cooldownActive = useMemo(
-    () => isCooldownActive(stakeData.cooldownEndsAt),
-    [stakeData.cooldownEndsAt],
-  );
+  const userStaked = stakedBalance ? Number(stakedBalance) / 1e18 : 0;
+  const userSTokenBalance = sTokenBalance ? Number(sTokenBalance) / 1e18 : 0;
 
   const cooldownLabel = useMemo(
     () =>
       cooldownActive
-        ? formatCooldown(stakeData.cooldownEndsAt)
+        ? formatCooldown(cooldownEnd)
         : t("positionCooldownReady"),
-    [stakeData.cooldownEndsAt, cooldownActive, t],
+    [cooldownEnd, cooldownActive, t],
   );
 
-  if (!isConnected || stakeData.userStaked <= 0) return null;
+  if (!isConnected || userStaked <= 0) return null;
 
   const rows = [
     {
       label: t("positionStaked"),
-      value: `${formatStakeNumber(stakeData.userStaked)} ${stakeData.tokenSymbol}`,
+      value: `${formatStakeNumber(userStaked)} ${token}`,
     },
     {
       label: t("positionSToken"),
-      value: `${formatStakeNumber(stakeData.userSTokenBalance)} ${stakeData.sTokenSymbol}`,
-    },
-    {
-      label: t("positionRewards"),
-      value: `${formatStakeNumber(stakeData.userRewards)} ${stakeData.tokenSymbol}`,
-      highlight: true,
+      value: `${formatStakeNumber(userSTokenBalance)} s${token}`,
     },
   ];
 
@@ -75,11 +58,7 @@ export default function StakeActivePosition({
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{row.label}</span>
-            <span
-              className={`text-sm font-medium ${row.highlight ? "text-primary" : ""}`}
-            >
-              {row.value}
-            </span>
+            <span className="text-sm font-medium">{row.value}</span>
           </div>
         ))}
 

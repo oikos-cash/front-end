@@ -1,7 +1,10 @@
-import { useState, useMemo } from "react";
+"use client";
+
+import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSWR from "swr";
+import { parseEther, formatEther } from "viem";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -24,13 +27,27 @@ import Button from "@/components/atoms/button";
 // Utils
 import { formatCompactNumber } from "@/utils/number";
 import { swrFetcher } from "@/utils/fetcher";
-import { VAULT_API_URL } from "@/types/constants";
+
+// Services
+import {
+  simulateTrade,
+  calculateMinReceived,
+  type TradeQuote,
+} from "@/services/trade-simulation";
+
+// Constants
+import {
+  VAULT_API_URL,
+  WBNB_ADDRESS,
+  QUOTER_V2_ADDRESS,
+  DEFAULT_POOL_FEE,
+} from "@/types/constants";
 
 /**
  * Manages the full trade panel state:
  * - Buy/sell side toggle with separate styling per mode
  * - Slippage config with preset options + custom input
- * - Real-time trade preview (receiving amount, price impact, min received)
+ * - Real-time trade preview via Quoter V2 simulation
  * - Percentage-based amount shortcuts (25/50/75/100%)
  */
 export function useTradePanel() {
@@ -44,9 +61,11 @@ export function useTradePanel() {
     { errorRetryCount: 0, revalidateOnFocus: false },
   );
   const hasVault = (vaults?.length ?? 0) > 0;
+  const vault = vaults?.[0] ?? null;
 
   const [side, setSide] = useState<TradeSide>("buy");
   const [slippage, setSlippage] = useState<SlippageOption>("0.5");
+  const [quote, setQuote] = useState<TradeQuote | null>(null);
 
   const form = useForm<TradeFormValues>({
     resolver: zodResolver(tradeSchema),
@@ -68,11 +87,55 @@ export function useTradePanel() {
       ? parseFloat(customSlippage) || 0
       : parseFloat(slippage);
 
-  // TODO: Replace with real simulateTrade() when backend provides vault/router addresses
-  const receiving = 0;
-  const priceImpact = 0;
-  const minReceived = 0;
-  const networkFee = { gwei: 0, bnb: 0, usd: 0 };
+  // Run trade simulation via Quoter V2 when amount or side changes
+  useEffect(() => {
+    if (!vault || numericAmount <= 0) {
+      setQuote(null);
+      return;
+    }
+
+    let cancelled = false;
+    const tokenIn = side === "buy" ? WBNB_ADDRESS : vault.token0;
+    const tokenOut = side === "buy" ? vault.token0 : WBNB_ADDRESS;
+
+    simulateTrade({
+      quoterAddress: QUOTER_V2_ADDRESS,
+      tokenIn: tokenIn as `0x${string}`,
+      tokenOut: tokenOut as `0x${string}`,
+      amountIn: parseEther(numericAmount.toString()),
+      fee: DEFAULT_POOL_FEE,
+      currentSqrtPriceX96: vault.spotPriceX96
+        ? BigInt(vault.spotPriceX96)
+        : undefined,
+    })
+      .then((result) => {
+        if (!cancelled) setQuote(result);
+      })
+      .catch(() => {
+        if (!cancelled) setQuote(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [vault, numericAmount, side]);
+
+  const receiving = quote ? Number(formatEther(quote.amountOut)) : 0;
+  const priceImpact = quote?.priceImpact ?? 0;
+  const minReceived = quote
+    ? Number(
+        formatEther(
+          calculateMinReceived(quote.amountOut, Math.round(slippagePct * 100)),
+        ),
+      )
+    : 0;
+  const networkFee = quote
+    ? {
+        gwei: Number(quote.gasEstimate) / 1e9,
+        bnb: Number(quote.gasEstimate) / 1e18,
+        usd: 0,
+      }
+    : { gwei: 0, bnb: 0, usd: 0 };
 
   const bnbBalance = balances.find((b) => b.token === "BNB");
   const balanceLabel = bnbBalance
@@ -96,6 +159,8 @@ export function useTradePanel() {
   function onSubmit(data: TradeFormValues) {
     console.log("Trade:", side, data);
   }
+
+  const tokenSymbol = vault?.tokenSymbol ?? "OKS";
 
   // Field configs — contain JSX so they can't be defined in constants
   const amountFields: FieldItem[] = [
@@ -155,7 +220,7 @@ export function useTradePanel() {
   const detailRows: TradeInfoRow[] = [
     {
       label: t("receiving"),
-      value: `≈ ${formatCompactNumber(receiving)} ${side === "buy" ? "OKS" : "BNB"}`,
+      value: `≈ ${formatCompactNumber(receiving)} ${side === "buy" ? tokenSymbol : "BNB"}`,
     },
     {
       label: t("priceImpact"),
@@ -164,7 +229,7 @@ export function useTradePanel() {
     },
     {
       label: t("minReceived"),
-      value: `${formatCompactNumber(minReceived)} ${side === "buy" ? "OKS" : "BNB"}`,
+      value: `${formatCompactNumber(minReceived)} ${side === "buy" ? tokenSymbol : "BNB"}`,
     },
   ];
 

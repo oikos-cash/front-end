@@ -30,6 +30,13 @@ export const WBNB_ADDRESS =
 export const FACTORY_ADDRESS =
   "0x9F5973EC7E5f0781E0fCE71Dd949c997c38508Fc" as const;
 
+/** Uniswap V3 Quoter V2 on BSC */
+export const QUOTER_V2_ADDRESS =
+  "0x78D78E420Da98ad378D7799bE8f4AF69033EB077" as const;
+
+/** Default pool fee tier (0.3%) */
+export const DEFAULT_POOL_FEE = 3000;
+
 /** Zero address constant */
 export const ZERO_ADDRESS =
   "0x0000000000000000000000000000000000000000" as const;
