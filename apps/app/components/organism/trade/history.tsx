@@ -10,29 +10,29 @@ import Skeleton from "@/components/atoms/skeleton";
 import ButtonGroup from "@/components/atoms/button-group";
 
 // Hooks
+import { useTranslations } from "next-intl";
 import { useTradesHistory } from "@/hooks/use-trades-history";
 
 // Types
 import { TradesHistoryProps } from "@/types/interfaces";
 
 // Icons
-import { Loader2 } from "lucide-react";
+import { ServerOff } from "lucide-react";
 
-export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
+export default function TradesHistory({ token = "OKS", poolAddress }: TradesHistoryProps) {
+  const te = useTranslations("error");
   const {
     t,
     view,
-    trades,
     columns,
     isLoading,
     tokenFilter,
-    sentinelRef,
     tokenOptions,
     filteredTrades,
     setTokenFilter,
     handleViewChange,
     handleClearHistory,
-  } = useTradesHistory(token);
+  } = useTradesHistory(token, poolAddress);
 
   return (
     <Card
@@ -65,7 +65,7 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
           <Button
             variant="ghost"
             size="sm"
-            disabled={isLoading && trades.length === 0}
+            disabled={filteredTrades.length === 0}
             onClick={handleClearHistory}
           >
             {t("clearHistory")}
@@ -73,63 +73,14 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
         </div>
       }
     >
-      {filteredTrades.length > 0 ? (
-        <div>
-          <Table columns={columns} data={filteredTrades} />
-          <div ref={sentinelRef} className="h-1" />
-          {isLoading && (
-            <div className="flex items-center justify-center py-3">
-              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
+      {isLoading ? (
+        <div className="flex flex-col gap-3 p-4">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
         </div>
-      ) : isLoading ? (
-        <div className="overflow-hidden rounded-md border">
-          <div className="relative w-full overflow-x-auto">
-            <table className="w-full caption-bottom text-sm">
-              <thead className="[&_tr]:border-b">
-                <tr className="border-b">
-                  <th className="h-10 px-2 text-left align-middle">
-                    <Skeleton className="h-3 w-10" />
-                  </th>
-                  <th className="h-10 px-2 text-left align-middle">
-                    <Skeleton className="h-3 w-14" />
-                  </th>
-                  <th className="h-10 px-2 text-left align-middle">
-                    <Skeleton className="h-3 w-12" />
-                  </th>
-                  <th className="h-10 px-2 text-left align-middle">
-                    <Skeleton className="h-3 w-14" />
-                  </th>
-                  <th className="h-10 px-2 text-left align-middle">
-                    <Skeleton className="h-3 w-10" />
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="[&_tr:last-child]:border-0">
-                {Array.from({ length: 8 }, (_, i) => (
-                  <tr key={i} className="border-b">
-                    <td className="p-2 align-middle">
-                      <Skeleton className="h-5 w-10 rounded-full" />
-                    </td>
-                    <td className="p-2 align-middle">
-                      <Skeleton className="h-3 w-44" />
-                    </td>
-                    <td className="p-2 align-middle">
-                      <Skeleton className="h-3 w-40" />
-                    </td>
-                    <td className="p-2 align-middle">
-                      <Skeleton className="h-3 w-24" />
-                    </td>
-                    <td className="p-2 align-middle">
-                      <Skeleton className="h-3 w-14" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      ) : filteredTrades.length > 0 ? (
+        <Table columns={columns} data={filteredTrades} />
       ) : (
         <Empty
           className="py-12"

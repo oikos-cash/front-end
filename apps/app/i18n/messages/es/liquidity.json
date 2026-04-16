@@ -20,8 +20,10 @@
     "anchor": "Ancla",
     "discovery": "Descubrimiento",
     "reservesWbnb": "Reservas (WBNB)",
+    "reservesToken": "Reservas (Token)",
     "reservesOks": "Reservas (OKS)",
     "capacityOks": "Capacidad (OKS)",
+    "tickRange": "Rango de Precio",
     "tickLower": "Tick Inferior",
     "tickUpper": "Tick Superior"
   }

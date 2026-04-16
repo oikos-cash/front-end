@@ -14,7 +14,7 @@ import type { StakeFormPanelProps } from "@/types/interfaces";
 // Utils
 import { formatStakeNumber } from "@/utils/number";
 
-export default function StakeFormPanel({ token = "OKS" }: StakeFormPanelProps) {
+export default function StakeFormPanel({ vault }: StakeFormPanelProps) {
   const {
     t,
     form,
@@ -26,7 +26,11 @@ export default function StakeFormPanel({ token = "OKS" }: StakeFormPanelProps) {
     fields,
     onSubmit,
     handleUnstake,
-  } = useStakeForm(token);
+    needsApproval,
+    isApproving,
+    isStaking,
+    isUnstaking,
+  } = useStakeForm(vault);
 
   if (!isConnected) return null;
 
@@ -60,7 +64,8 @@ export default function StakeFormPanel({ token = "OKS" }: StakeFormPanelProps) {
               type="button"
               variant="outline"
               onClick={handleUnstake}
-              disabled={cooldownActive || stakeData.userStaked <= 0}
+              disabled={cooldownActive || stakeData.userStaked <= 0 || isUnstaking}
+              isLoading={isUnstaking}
             >
               {cooldownActive
                 ? `${t("unstakeAll")} (${cooldownLabel})`
@@ -69,11 +74,12 @@ export default function StakeFormPanel({ token = "OKS" }: StakeFormPanelProps) {
           )}
 
           <Button
-            type="submit"
-            disabled={!form.formState.isValid}
-            isLoading={form.formState.isSubmitting}
+            type="button"
+            disabled={!form.formState.isValid || isApproving || isStaking}
+            isLoading={isApproving || isStaking}
+            onClick={form.handleSubmit(onSubmit)}
           >
-            {t("stakeAction")}
+            {needsApproval ? t("approveAction") : t("stakeAction")}
           </Button>
         </div>
       }

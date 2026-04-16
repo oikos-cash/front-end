@@ -17,7 +17,11 @@ import { usePresale } from "@/hooks/use-presale";
 // Icons
 import { Lock, Wallet } from "lucide-react";
 
-export default function PresaleTemplate() {
+export default function PresaleTemplate({
+  initialVault,
+}: {
+  initialVault: import("@/types/interfaces").VaultInfo | null;
+}) {
   const {
     t,
     kpiCards,
@@ -26,7 +30,9 @@ export default function PresaleTemplate() {
     userBalance,
     handleConnect,
     contributionRows,
-  } = usePresale();
+    deposit,
+    isDepositing,
+  } = usePresale(initialVault);
 
   if (!isConnected) {
     return (
@@ -96,6 +102,8 @@ export default function PresaleTemplate() {
           status={presaleData.status}
           minContribution={presaleData.minContribution}
           maxContribution={presaleData.maxContribution}
+          onDeposit={deposit}
+          isDepositing={isDepositing}
         />
       </div>
 

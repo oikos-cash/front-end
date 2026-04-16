@@ -334,6 +334,7 @@ export function generateMockStakeData(token = "OKS"): StakeMockData {
 export function formatStakeNumber(value: number, decimals = 4): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
+  if (value > 0 && value < 1e-4) return value.toExponential(3);
   return value.toFixed(decimals);
 }
 
@@ -733,10 +734,12 @@ export function calculateMinReceived(
  * @returns A compact formatted string (e.g. "1.25M", "50.00K", "3.14", or "0.000150")
  */
 export function formatCompactNumber(value: number): string {
+  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
   if (value >= 1) return value.toFixed(2);
-  return value.toFixed(6);
+  if (value > 0) return value.toFixed(4);
+  return "0.00";
 }
 
 /**
@@ -1295,11 +1298,11 @@ export function generateMockDividendHistory(
  */
 export function generateMockPriceTableTokens(): PriceTableToken[] {
   return [
-    { token: "OKS", price: "$0.1800", change24h: 0.16, fdv: "$801.57K" },
-    { token: "BNB", price: "$630.09", change24h: 7.19, fdv: "$94.5B" },
-    { token: "ETH", price: "$2,521.30", change24h: -1.42, fdv: "$303.2B" },
-    { token: "BTC", price: "$97,840.00", change24h: 3.25, fdv: "$1.94T" },
-    { token: "USDT", price: "$1.0000", change24h: 0.01, fdv: "$144.1B" },
+    { rank: 1, name: "Oikos", symbol: "OKS", token: "OKS", price: "$0.1800", change24h: 0.16, fdv: "$801.57K" },
+    { rank: 2, name: "BNB", symbol: "BNB", token: "BNB", price: "$630.09", change24h: 7.19, fdv: "$94.5B" },
+    { rank: 3, name: "Ethereum", symbol: "ETH", token: "ETH", price: "$2,521.30", change24h: -1.42, fdv: "$303.2B" },
+    { rank: 4, name: "Bitcoin", symbol: "BTC", token: "BTC", price: "$97,840.00", change24h: 3.25, fdv: "$1.94T" },
+    { rank: 5, name: "Tether", symbol: "USDT", token: "USDT", price: "$1.0000", change24h: 0.01, fdv: "$144.1B" },
   ];
 }
 

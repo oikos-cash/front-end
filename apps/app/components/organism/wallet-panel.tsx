@@ -14,9 +14,35 @@ import { useWallet } from "@/stores/wallet";
 // Icons
 import { Lock, Wallet } from "lucide-react";
 
+function BalanceSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {[0, 1].map((i) => (
+        <div
+          key={i}
+          className="flex flex-col gap-2 rounded-md border border-border p-3"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="size-8 animate-pulse rounded-full bg-muted" />
+              <div className="h-4 w-10 animate-pulse rounded bg-muted" />
+            </div>
+            <div className="h-4 w-14 animate-pulse rounded bg-muted" />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="h-5 w-12 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-16 animate-pulse rounded bg-muted" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function WalletPanel() {
   const t = useTranslations("wallet");
-  const { isConnected, balances, totalValue, handleConnect } = useWallet();
+  const { isConnected, isBalancesLoading, balances, totalValue, handleConnect } =
+    useWallet();
 
   return (
     <Card
@@ -26,37 +52,49 @@ export default function WalletPanel() {
         isConnected && (
           <div className="flex w-full items-center justify-between">
             <span className="text-sm font-medium">{t("totalValue")}</span>
-            <span className="text-sm font-semibold">{totalValue}</span>
+            <span className="text-sm font-semibold">
+              {isBalancesLoading ? (
+                <span className="inline-block h-4 w-14 animate-pulse rounded bg-muted" />
+              ) : (
+                totalValue
+              )}
+            </span>
           </div>
         )
       }
     >
       {isConnected ? (
-        <div className="flex flex-col gap-3">
-          {balances.map((balance) => (
-            <div
-              key={balance.token}
-              className="flex flex-col gap-2 rounded-md border border-border p-3"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Avatar name={balance.token} src={balance.iconUrl} />
-                  <span className="text-sm font-medium">{balance.token}</span>
+        isBalancesLoading ? (
+          <BalanceSkeleton />
+        ) : (
+          <div className="flex flex-col gap-3">
+            {balances.map((balance) => (
+              <div
+                key={balance.token}
+                className="flex flex-col gap-2 rounded-md border border-border p-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Avatar name={balance.token} src={balance.iconUrl} />
+                    <span className="text-sm font-medium">
+                      {balance.token}
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium">{balance.amount}</span>
                 </div>
-                <span className="text-sm font-medium">{balance.amount}</span>
-              </div>
 
-              <div className="flex items-center justify-between">
-                <Badge variant="outline" className="text-xs">
-                  {t("wrap")}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  ≈ {balance.usd}
-                </span>
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-xs">
+                    {t("wrap")}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">
+                    ≈ {balance.usd}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )
       ) : (
         <Empty
           title={t("connectTitle")}

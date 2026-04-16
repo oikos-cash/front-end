@@ -1,5 +1,6 @@
 import Template from "@/components/templates/home";
 import { getPageMetadata } from "@/utils/seo";
+import { fetchDefaultVault } from "@/utils/exchange";
 
 export async function generateMetadata({
   params,
@@ -10,6 +11,8 @@ export async function generateMetadata({
   return getPageMetadata(locale, { page: "home" }, "/");
 }
 
-export default function Main() {
-  return <Template />;
+export default async function Main() {
+  const vault = await fetchDefaultVault();
+
+  return <Template initialVault={vault} />;
 }

@@ -15,18 +15,19 @@ import type { BorrowFormPanelProps } from "@/types/interfaces";
 import { formatStakeNumber } from "@/utils/number";
 
 export default function BorrowFormPanel({
-  token = "OKS",
+  vault,
 }: BorrowFormPanelProps) {
   const {
     t,
     form,
+    token,
     isConnected,
     numericAmount,
     collateralRequired,
     loanFees,
     fields,
     onSubmit,
-  } = useBorrowForm(token);
+  } = useBorrowForm(vault);
 
   if (!isConnected) return null;
 

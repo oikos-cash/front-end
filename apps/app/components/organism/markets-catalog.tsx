@@ -18,17 +18,21 @@ import type { FilterType, SortType } from "@/hooks/use-markets-catalog";
 import type { MarketToken } from "@/types/interfaces";
 
 // Icons
-import { Loader2, Search, SearchX } from "lucide-react";
+import { Search, SearchX, ServerOff } from "lucide-react";
 
-export default function MarketsCatalog() {
+export default function MarketsCatalog({
+  initialTokens,
+}: {
+  initialTokens: MarketToken[];
+}) {
   const t = useTranslations("markets");
+  const te = useTranslations("error");
 
   const {
-    tokens,
+    hasData,
     search,
     filter,
     sort,
-    isLoading,
     setSearch,
     setFilter,
     setSort,
@@ -36,8 +40,7 @@ export default function MarketsCatalog() {
     presaleTokens,
     graduatedTokens,
     showSections,
-    sentinelRef,
-  } = useMarketsCatalog();
+  } = useMarketsCatalog(initialTokens);
 
   const sortOptions = [
     { value: "default", label: t("sortDefault") },
@@ -53,6 +56,18 @@ export default function MarketsCatalog() {
           <TokenCard key={token.id} token={token} />
         ))}
       </div>
+    );
+  }
+
+  // No data from API
+  if (!hasData) {
+    return (
+      <Empty
+        className="py-16"
+        title={te("noBackend")}
+        description={te("noBackendDesc")}
+        icon={<ServerOff className="size-6 text-muted-foreground" />}
+      />
     );
   }
 
@@ -91,43 +106,30 @@ export default function MarketsCatalog() {
         </div>
       </div>
 
-      {tokens.length === 0 && isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          <TokenCardSkeleton count={8} />
-        </div>
-      ) : processed.length > 0 ? (
-        <>
-          {showSections ? (
-            <div className="flex flex-col gap-6">
-              {presaleTokens.length > 0 && (
-                <div className="flex flex-col gap-3">
-                  <h2 className="text-lg font-semibold">
-                    {t("sectionPresales")}
-                  </h2>
-                  {renderGrid(presaleTokens)}
-                </div>
-              )}
+      {processed.length > 0 ? (
+        showSections ? (
+          <div className="flex flex-col gap-6">
+            {presaleTokens.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold">
+                  {t("sectionPresales")}
+                </h2>
+                {renderGrid(presaleTokens)}
+              </div>
+            )}
 
-              {graduatedTokens.length > 0 && (
-                <div className="flex flex-col gap-3">
-                  <h2 className="text-lg font-semibold">
-                    {t("sectionGraduated")}
-                  </h2>
-                  {renderGrid(graduatedTokens)}
-                </div>
-              )}
-            </div>
-          ) : (
-            renderGrid(processed)
-          )}
-
-          <div ref={sentinelRef} className="h-1" />
-          {isLoading && (
-            <div className="flex items-center justify-center py-3">
-              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
-        </>
+            {graduatedTokens.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold">
+                  {t("sectionGraduated")}
+                </h2>
+                {renderGrid(graduatedTokens)}
+              </div>
+            )}
+          </div>
+        ) : (
+          renderGrid(processed)
+        )
       ) : (
         <Empty
           className="py-16"

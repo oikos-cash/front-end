@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState } from "react";
 
 // Components
 import Empty from "@/components/atoms/empty";
@@ -10,26 +10,58 @@ import PageHeader from "@/components/molecules/page-header";
 import LoanHistory from "@/components/organism/loan/history";
 import BorrowFormPanel from "@/components/organism/form/borrow";
 import LoanActivePosition from "@/components/organism/loan/active-position";
+import HedgeModal from "@/components/organism/hedge-modal";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
+import { useBnbPrice } from "@/hooks/use-bnb-price";
 
-// Utils
-import { generateMockBorrowData } from "@/utils/number";
+// Types
+import type { VaultInfo } from "@/types/interfaces";
 
 // Icons
-import { Lock, Wallet } from "lucide-react";
+import { Lock, Wallet, ServerOff, Shield } from "lucide-react";
 
-export default function BorrowTemplate() {
+export default function BorrowTemplate({
+  initialVault,
+}: {
+  initialVault: VaultInfo | null;
+}) {
   const t = useTranslations("borrow");
-  const { isConnected, handleConnect } = useWallet();
-  const borrowData = useMemo(() => generateMockBorrowData("OKS"), []);
+  const te = useTranslations("error");
+  const { isConnected, address, handleConnect } = useWallet();
+  const { bnbPrice } = useBnbPrice();
+  const [hedgeOpen, setHedgeOpen] = useState(false);
+
+  if (!initialVault) {
+    return (
+      <div className="flex flex-col gap-6 py-4">
+        <PageHeader
+          title={t("title")}
+          description={t("description")}
+          breadcrumbs={[{ label: "Home", href: "/" }, { label: t("title") }]}
+        />
+        <Empty
+          className="py-16"
+          title={te("noBackend")}
+          description={te("noBackendDesc")}
+          icon={<ServerOff className="size-6 text-muted-foreground" />}
+        />
+      </div>
+    );
+  }
 
   if (!isConnected) {
     return (
-      <div className="flex flex-1 items-center justify-center py-20">
+      <div className="flex flex-col gap-6 py-4">
+        <PageHeader
+          title={t("title")}
+          description={t("description")}
+          breadcrumbs={[{ label: "Home", href: "/" }, { label: t("title") }]}
+        />
         <Empty
+          className="py-16"
           title={t("connectTitle")}
           description={t("connectDescription")}
           icon={<Lock className="size-6 text-muted-foreground" />}
@@ -43,6 +75,31 @@ export default function BorrowTemplate() {
     );
   }
 
+  const liquidityRatio = parseFloat(initialVault.liquidityRatio || "0");
+  const isActive = liquidityRatio > 0;
+  // IMV = spotPriceX96 (wei) converted to BNB price × liquidityRatio percentage
+  const spotPriceBnb = parseFloat(initialVault.spotPriceX96 || "0") / 1e18;
+  const imvValue = spotPriceBnb * (liquidityRatio > 0 ? liquidityRatio * 0.44 : 0);
+
+  const kpis = [
+    {
+      key: "tokenPair",
+      value: `${initialVault.tokenSymbol}/WBNB`,
+    },
+    {
+      key: "imv",
+      value: imvValue > 0 ? imvValue.toFixed(6) : "0",
+    },
+    {
+      key: "dailyInterest",
+      value: "0.027%",
+    },
+    {
+      key: "protocolStatus",
+      value: isActive ? "Active" : "Paused",
+    },
+  ];
+
   return (
     <div className="flex flex-col gap-6 py-4">
       <PageHeader
@@ -52,12 +109,7 @@ export default function BorrowTemplate() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          { key: "tokenPair", value: borrowData.tokenPair },
-          { key: "imv", value: `${(borrowData.imv * 100).toFixed(2)}%` },
-          { key: "dailyInterest", value: `${(borrowData.dailyInterest * 100).toFixed(2)}%` },
-          { key: "protocolStatus", value: borrowData.protocolStatus === "active" ? "Active" : "Paused" },
-        ].map((kpi) => (
+        {kpis.map((kpi) => (
           <KpiCard
             key={kpi.key}
             title={t(kpi.key)}
@@ -66,9 +118,27 @@ export default function BorrowTemplate() {
           />
         ))}
       </div>
-      <BorrowFormPanel />
-      <LoanActivePosition />
-      <LoanHistory />
+      <BorrowFormPanel vault={initialVault} />
+      <LoanActivePosition vault={initialVault} />
+
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => setHedgeOpen(true)}>
+          <Shield className="size-3.5" />
+          {t("hedgeButton") ?? "Hedge Loan"}
+        </Button>
+      </div>
+
+      <LoanHistory vaultAddress={initialVault.address} />
+
+      <HedgeModal
+        open={hedgeOpen}
+        onOpenChange={setHedgeOpen}
+        vaultAddress={initialVault.address}
+        userAddress={address}
+        loanAmountBNB={0}
+        loanDurationDays={30}
+        bnbPrice={bnbPrice}
+      />
     </div>
   );
 }
