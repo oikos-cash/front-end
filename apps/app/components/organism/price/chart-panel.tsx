@@ -107,12 +107,7 @@ export default function PriceChart({ poolAddress }: PriceChartProps) {
       }
     >
       {!poolAddress ? (
-        <Empty
-          className="py-16"
-          title={te("noBackend")}
-          description={te("noBackendDesc")}
-          icon={<ServerOff className="size-5 text-muted-foreground" />}
-        />
+        <Skeleton className="h-[400px] w-full" />
       ) : (
         <PriceChartRenderer
           ready={ready}

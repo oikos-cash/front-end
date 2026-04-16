@@ -9,6 +9,8 @@ import { parseEther, formatEther } from "viem";
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
+import { useSwap } from "@/hooks/use-swap";
+import type { Address } from "viem";
 
 // Types
 import type {
@@ -52,16 +54,32 @@ import {
  */
 export function useTradePanel() {
   const t = useTranslations("trade");
-  const { isConnected, balances, handleConnect } = useWallet();
+  const { isConnected, address, balances, handleConnect } = useWallet();
 
   // Check if backend has vaults
-  const { data: vaults } = useSWR<VaultInfo[]>(
+  const { data: vaults, isLoading: isLoadingVaults } = useSWR<VaultInfo[]>(
     `${VAULT_API_URL}/vaults`,
     swrFetcher,
     { errorRetryCount: 0, revalidateOnFocus: false },
   );
   const hasVault = (vaults?.length ?? 0) > 0;
   const vault = vaults?.[0] ?? null;
+
+  // Token addresses for swap
+  const tokenIn = vault ? WBNB_ADDRESS : undefined;
+  const tokenOut = vault?.token0 as Address | undefined;
+
+  // Swap execution hook
+  const {
+    execute: executeSwap,
+    approve: approveToken,
+    needsApproval,
+    isPending: isSwapPending,
+  } = useSwap(
+    address as Address | undefined,
+    tokenIn as Address | undefined,
+    QUOTER_V2_ADDRESS as Address,
+  );
 
   const [side, setSide] = useState<TradeSide>("buy");
   const [slippage, setSlippage] = useState<SlippageOption>("0.5");
@@ -104,9 +122,6 @@ export function useTradePanel() {
       tokenOut: tokenOut as `0x${string}`,
       amountIn: parseEther(numericAmount.toString()),
       fee: DEFAULT_POOL_FEE,
-      currentSqrtPriceX96: vault.spotPriceX96
-        ? BigInt(vault.spotPriceX96)
-        : undefined,
     })
       .then((result) => {
         if (!cancelled) setQuote(result);
@@ -157,7 +172,32 @@ export function useTradePanel() {
   }
 
   function onSubmit(data: TradeFormValues) {
-    console.log("Trade:", side, data);
+    if (!vault || !address || !quote) return;
+
+    if (needsApproval) {
+      approveToken();
+      return;
+    }
+
+    const swapTokenIn = side === "buy"
+      ? (WBNB_ADDRESS as Address)
+      : (vault.token0 as Address);
+    const swapTokenOut = side === "buy"
+      ? (vault.token0 as Address)
+      : (WBNB_ADDRESS as Address);
+
+    executeSwap({
+      routerAddress: QUOTER_V2_ADDRESS as Address,
+      tokenIn: swapTokenIn,
+      tokenOut: swapTokenOut,
+      fee: DEFAULT_POOL_FEE,
+      amountIn: parseEther(data.amount),
+      amountOutMinimum: calculateMinReceived(
+        quote.amountOut,
+        Math.round(slippagePct * 100),
+      ),
+      recipient: address as Address,
+    });
   }
 
   const tokenSymbol = vault?.tokenSymbol ?? "OKS";
@@ -239,6 +279,7 @@ export function useTradePanel() {
     isConnected,
     handleConnect,
     hasVault,
+    isLoadingVaults,
     side,
     setSide,
     slippage,
@@ -251,5 +292,7 @@ export function useTradePanel() {
     detailRows,
     handlePercentage,
     onSubmit,
+    needsApproval,
+    isSwapPending,
   };
 }

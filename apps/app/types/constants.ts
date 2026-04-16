@@ -11,6 +11,12 @@ export const API_BASE_URL =
 export const VAULT_API_URL =
   process.env.NEXT_PUBLIC_VAULT_API_URL ?? "/api";
 
+/** OHLC price data endpoint */
+export const OHLC_API_URL =
+  process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL}/price/ohlc`
+    : "/api/price/ohlc";
+
 export const WS_URL =
   process.env.NEXT_PUBLIC_WS_URL ?? "wss://trollbox-ws.oikos.cash";
 
@@ -54,9 +60,13 @@ export const BNB_USDT_POOL_ADDRESS =
 export const BNB_PRICE_CACHE_KEY = "oikos_bnb_price_cache";
 export const BNB_PRICE_CACHE_DURATION = 5 * 60 * 1000;
 export const BNB_PRICE_REFRESH_INTERVAL = 30_000;
-export const BNB_PRICE_FALLBACK = 0;
+export const BNB_PRICE_FALLBACK = 600;
 
-export const BNB_PRICE_API_URL = "/api/price/bnb";
+/** BNB price endpoint — uses the backend API with local route as fallback */
+export const BNB_PRICE_API_URL =
+  process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL}/price/BNB`
+    : "/api/price/bnb";
 
 // =================================================
 //                 WEBSOCKET CONFIG

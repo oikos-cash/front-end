@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 
 // Components
@@ -10,6 +10,8 @@ import Badge from "@/components/atoms/badge";
 import { useTranslations } from "next-intl";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useBnbPrice } from "@/hooks/use-bnb-price";
+import { useWallet } from "@/stores/wallet";
+import { getWebSocketService } from "@/services/websocket";
 
 // Types
 import { Trade, WSBlockchainEvent } from "@/types/interfaces";
@@ -34,8 +36,10 @@ export function useTradesHistory(
 ) {
   const t = useTranslations("tradesHistory");
   const { bnbPrice } = useBnbPrice();
+  const { address } = useWallet();
 
   const [trades, setTrades] = useState<Trade[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState("global");
   const [tokenFilter, setTokenFilter] = useState("all");
 
@@ -44,8 +48,11 @@ export function useTradesHistory(
     (event: WSBlockchainEvent) => {
       if (event.eventName !== "Swap") return;
 
-      const amount0 = parseFloat(event.args.amount0 ?? "0");
-      const amount1 = parseFloat(event.args.amount1 ?? "0");
+      const raw0 = parseFloat(event.args.amount0 ?? "0");
+      const raw1 = parseFloat(event.args.amount1 ?? "0");
+      // amounts come as wei (18 decimals) — convert to human-readable
+      const amount0 = raw0 / 1e18;
+      const amount1 = raw1 / 1e18;
       const isBuy = amount1 < 0; // Negative amount1 = token out = buy
       const amount = Math.abs(amount0);
       const bnbAmount = Math.abs(amount1);
@@ -61,7 +68,9 @@ export function useTradesHistory(
         usdValue: parseFloat((bnbAmount * bnbPrice).toFixed(2)),
         wallet: event.args.sender,
         txHash: event.transactionHash,
-        timestamp: new Date(event.timestamp * 1000),
+        timestamp: new Date(
+          event.timestamp > 1e12 ? event.timestamp : event.timestamp * 1000,
+        ),
       };
 
       setTrades((prev) => [trade, ...prev].slice(0, TRADES_MAX_TRADES));
@@ -75,6 +84,68 @@ export function useTradesHistory(
     onEvent,
     enabled: !!poolAddress,
   });
+
+  // Load historical trades via WS getGlobalTrades
+  useEffect(() => {
+    let cancelled = false;
+    const ws = getWebSocketService();
+
+    function parseSwapEvent(event: WSBlockchainEvent): Trade {
+      const raw0 = parseFloat(event.args.amount0 ?? "0");
+      const raw1 = parseFloat(event.args.amount1 ?? "0");
+      const amount0 = raw0 / 1e18;
+      const amount1 = raw1 / 1e18;
+      const isBuy = amount1 < 0;
+      const amount = Math.abs(amount0);
+      const bnbAmount = Math.abs(amount1);
+      const price = amount > 0 ? bnbAmount / amount : 0;
+      // timestamp from WS is already in ms
+      const ts = event.timestamp > 1e12
+        ? event.timestamp
+        : event.timestamp * 1000;
+
+      return {
+        id: event.id ?? `${event.transactionHash}-${event.logIndex ?? event.blockNumber}`,
+        type: (isBuy ? "buy" : "sell") as Trade["type"],
+        token: event.tokenSymbol ?? token,
+        amount,
+        price,
+        bnbAmount,
+        usdValue: parseFloat((bnbAmount * bnbPrice).toFixed(2)),
+        wallet: event.args.sender ?? event.actualSender ?? "",
+        txHash: event.transactionHash,
+        timestamp: new Date(ts),
+      };
+    }
+
+    function loadTrades() {
+      if (cancelled) return;
+      ws.getGlobalTrades(100)
+        .then((events) => {
+          if (cancelled) return;
+          const swapEvents = events.filter((e) => e.eventName === "Swap");
+          const historical = swapEvents.map(parseSwapEvent);
+          setTrades(historical.slice(0, TRADES_MAX_TRADES));
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          console.error("[useTradesHistory] getGlobalTrades failed:", err);
+          setIsLoading(false);
+        });
+    }
+
+    if (ws.isConnected()) {
+      loadTrades();
+    } else {
+      ws.connect()
+        .then(() => loadTrades())
+        .catch((err) => {
+          console.error("[useTradesHistory] WS connect failed:", err);
+        });
+    }
+
+    return () => { cancelled = true; };
+  }, [token, bnbPrice]);
 
   const columns: ColumnDef<Trade>[] = useMemo(
     () => [
@@ -144,10 +215,13 @@ export function useTradesHistory(
     [t],
   );
 
-  const filteredTrades =
-    tokenFilter === "all"
-      ? trades
-      : trades.filter((trade) => trade.token === tokenFilter);
+  const filteredTrades = trades.filter((trade) => {
+    if (view === "myTrades" && address) {
+      if (trade.wallet.toLowerCase() !== address.toLowerCase()) return false;
+    }
+    if (tokenFilter !== "all" && trade.token !== tokenFilter) return false;
+    return true;
+  });
 
   const tokenOptions = [
     { value: "all", label: t("allTokens") },
@@ -156,7 +230,6 @@ export function useTradesHistory(
 
   const handleViewChange = (value: string) => {
     setView(value);
-    setTrades([]);
   };
 
   const handleClearHistory = () => {
@@ -169,9 +242,9 @@ export function useTradesHistory(
     view,
     tokenFilter,
     setTokenFilter,
-    isLoading: false,
+    isLoading,
     isConnected,
-    hasData: !!poolAddress,
+    hasData: true,
     columns,
     filteredTrades,
     tokenOptions,

@@ -58,7 +58,7 @@ export async function fetchPriceTableTokens(): Promise<PriceTableToken[]> {
       const info = tokenMap.get(vault.tokenSymbol.toLowerCase());
       const spotPriceX96 = BigInt(vault.spotPriceX96 || "0");
       const price =
-        spotPriceX96 > BigInt(0) ? sqrtPriceX96ToPrice(spotPriceX96) : 0;
+        spotPriceX96 > BigInt(0) ? spotPriceToNumber(spotPriceX96) : 0;
 
       return {
         rank: i + 1,
@@ -76,7 +76,7 @@ export async function fetchPriceTableTokens(): Promise<PriceTableToken[]> {
   }
 }
 
-function sqrtPriceX96ToPrice(sqrtPriceX96: bigint): number {
-  const sqrtPrice = Number(sqrtPriceX96) / 2 ** 96;
-  return sqrtPrice * sqrtPrice;
+/** Convert vault spotPriceX96 (stored as wei-denominated BNB price) to a number. */
+function spotPriceToNumber(spotPriceX96: bigint): number {
+  return Number(spotPriceX96) / 1e18;
 }

@@ -58,30 +58,40 @@ class WebSocketService {
   //                      CONNECTION
   // ===========================================================
 
-  connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.ws?.readyState === WebSocket.OPEN) {
-        resolve();
-        return;
-      }
+  private connectPromise: Promise<void> | null = null;
 
+  connect(): Promise<void> {
+    // Already open
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      return Promise.resolve();
+    }
+
+    // Already connecting — reuse the pending promise
+    if (this.connectPromise && this.ws?.readyState === WebSocket.CONNECTING) {
+      return this.connectPromise;
+    }
+
+    this.connectPromise = new Promise<void>((resolve, reject) => {
       try {
         this.ws = new WebSocket(this.url);
 
         this.ws.onopen = () => {
           this.reconnectAttempts = 0;
+          this.connectPromise = null;
           this.startPing();
           this.notifyConnection(true);
           resolve();
         };
 
         this.ws.onclose = () => {
+          this.connectPromise = null;
           this.stopPing();
           this.notifyConnection(false);
           this.attemptReconnect();
         };
 
         this.ws.onerror = (err) => {
+          this.connectPromise = null;
           console.error("[WS] Connection error", err);
           this.notifyError("WebSocket connection error");
           reject(err);
@@ -89,15 +99,21 @@ class WebSocketService {
 
         this.ws.onmessage = (event) => {
           try {
-            this.handleMessage(JSON.parse(event.data));
-          } catch {
-            console.error("[WS] Failed to parse message");
+            const raw = typeof event.data === "string"
+              ? event.data
+              : event.data.toString();
+            this.handleMessage(JSON.parse(raw));
+          } catch (err) {
+            console.error("[WS] Failed to parse message:", err);
           }
         };
       } catch (err) {
+        this.connectPromise = null;
         reject(err);
       }
     });
+
+    return this.connectPromise;
   }
 
   disconnect(): void {
@@ -169,6 +185,35 @@ class WebSocketService {
     if (channel === "ohlc" && interval) msg.interval = interval;
 
     this.send(msg);
+  }
+
+  // ===========================================================
+  //                REQUEST-RESPONSE METHODS
+  // ===========================================================
+
+  private globalTradesResolve: ((events: WSBlockchainEvent[]) => void) | null = null;
+
+  /**
+   * Request historical global trades from the WS server.
+   * The server responds with a "globalTrades" message.
+   */
+  getGlobalTrades(limit = 100): Promise<WSBlockchainEvent[]> {
+    return new Promise((resolve, reject) => {
+      if (!this.isConnected()) {
+        reject(new Error("Not connected"));
+        return;
+      }
+
+      this.globalTradesResolve = resolve;
+      this.send({ type: "getGlobalTrades", limit });
+
+      setTimeout(() => {
+        if (this.globalTradesResolve) {
+          this.globalTradesResolve = null;
+          reject(new Error("getGlobalTrades timeout"));
+        }
+      }, 15000);
+    });
   }
 
   // ===========================================================
@@ -258,6 +303,22 @@ class WebSocketService {
         this.notifyError((msg.message as string) ?? "Unknown WS error");
         break;
 
+      case "globalTrades":
+        if (this.globalTradesResolve) {
+          const trades = (msg.trades ?? msg.data ?? []) as WSBlockchainEvent[];
+          this.globalTradesResolve(Array.isArray(trades) ? trades : []);
+          this.globalTradesResolve = null;
+        }
+        break;
+
+      case "history":
+        if (this.globalTradesResolve) {
+          const events = (msg.events ?? msg.data ?? []) as WSBlockchainEvent[];
+          this.globalTradesResolve(Array.isArray(events) ? events : []);
+          this.globalTradesResolve = null;
+        }
+        break;
+
       case "pong":
       case "welcome":
       case "subscribed":
@@ -269,7 +330,7 @@ class WebSocketService {
     }
   }
 
-  private send(data: Record<string, string>): void {
+  private send(data: Record<string, unknown>): void {
     if (this.isConnected()) {
       this.ws!.send(JSON.stringify(data));
     }

@@ -6,6 +6,7 @@ import Table from "@/components/atoms/table";
 import Empty from "@/components/atoms/empty";
 import Button from "@/components/atoms/button";
 import Select from "@/components/atoms/select";
+import Skeleton from "@/components/atoms/skeleton";
 import ButtonGroup from "@/components/atoms/button-group";
 
 // Hooks
@@ -18,20 +19,20 @@ import { TradesHistoryProps } from "@/types/interfaces";
 // Icons
 import { ServerOff } from "lucide-react";
 
-export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
+export default function TradesHistory({ token = "OKS", poolAddress }: TradesHistoryProps) {
   const te = useTranslations("error");
   const {
     t,
     view,
     columns,
-    hasData,
+    isLoading,
     tokenFilter,
     tokenOptions,
     filteredTrades,
     setTokenFilter,
     handleViewChange,
     handleClearHistory,
-  } = useTradesHistory(token);
+  } = useTradesHistory(token, poolAddress);
 
   return (
     <Card
@@ -72,13 +73,12 @@ export default function TradesHistory({ token = "OKS" }: TradesHistoryProps) {
         </div>
       }
     >
-      {!hasData ? (
-        <Empty
-          className="py-12"
-          title={te("noBackend")}
-          description={te("noBackendDesc")}
-          icon={<ServerOff className="size-5 text-muted-foreground" />}
-        />
+      {isLoading ? (
+        <div className="flex flex-col gap-3 p-4">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
       ) : filteredTrades.length > 0 ? (
         <Table columns={columns} data={filteredTrades} />
       ) : (

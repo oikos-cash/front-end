@@ -49,18 +49,25 @@ export function useLiquidity(initialVault: VaultInfo | null = null) {
   const data: LiquidityData | null = useMemo(() => {
     if (!hasVault || !initialVault) return null;
 
-    const spotPriceX96 = poolState?.sqrtPriceX96 ?? BigInt(initialVault.spotPriceX96 || "0");
-    const spotBnb =
-      spotPriceX96 > BigInt(0)
-        ? (Number(spotPriceX96) / 2 ** 96) ** 2
-        : 0;
+    // poolState.sqrtPriceX96 is a real Uniswap sqrtPriceX96 → (val/2^96)^2
+    // vault.spotPriceX96 is stored as wei-denominated BNB price → val/1e18
+    let spotBnb = 0;
+    if (poolState?.sqrtPriceX96 && poolState.sqrtPriceX96 > BigInt(0)) {
+      const sqrtPrice = Number(poolState.sqrtPriceX96) / 2 ** 96;
+      spotBnb = sqrtPrice * sqrtPrice;
+    } else {
+      const vaultPrice = BigInt(initialVault.spotPriceX96 || "0");
+      spotBnb = vaultPrice > BigInt(0) ? Number(vaultPrice) / 1e18 : 0;
+    }
     const currentSpot = livePrice ?? spotBnb;
     const spotPrice = currentSpot * bnbPrice;
 
     const liquidityRatio = parseFloat(initialVault.liquidityRatio || "0");
-    const circulatingSupply = parseFloat(
+    const decimals = parseInt(initialVault.tokenDecimals || "18", 10);
+    const rawCirculating = parseFloat(
       initialVault.circulatingSupply || initialVault.token0CirculatingSupply || "0",
     );
+    const circulatingSupply = rawCirculating / 10 ** decimals;
     const imvPrice = spotPrice * 0.44;
 
     const bars = positions.map((pos) => {

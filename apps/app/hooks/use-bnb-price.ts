@@ -90,10 +90,10 @@ async function fetchPriceOnChain(): Promise<number> {
 }
 
 // -------------------------------------------------------
-//             PRICE FROM API (fallback)
+//          PRICE FROM BACKEND API (primary)
 // -------------------------------------------------------
 
-async function fetchPriceApi(): Promise<number> {
+async function fetchPriceBackendApi(): Promise<number> {
   const res = await fetch(BNB_PRICE_API_URL);
   if (!res.ok) throw new Error(`API ${res.status}`);
   const data = await res.json();
@@ -109,20 +109,20 @@ async function fetchBnbPrice(): Promise<number> {
   const cached = getCachedPrice();
   if (cached) return cached;
 
-  // 2. Try on-chain read
+  // 2. Try backend API first (most reliable)
   try {
-    const price = await fetchPriceOnChain();
+    const price = await fetchPriceBackendApi();
     if (price > 0.01 && price < 100_000) {
       setCachedPrice(price);
       return price;
     }
   } catch {
-    /* fall through to API */
+    /* fall through to on-chain */
   }
 
-  // 3. Try API fallback
+  // 3. Try on-chain read (direct RPC)
   try {
-    const price = await fetchPriceApi();
+    const price = await fetchPriceOnChain();
     if (price > 0.01 && price < 100_000) {
       setCachedPrice(price);
       return price;

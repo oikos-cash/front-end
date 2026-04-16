@@ -733,10 +733,12 @@ export function calculateMinReceived(
  * @returns A compact formatted string (e.g. "1.25M", "50.00K", "3.14", or "0.000150")
  */
 export function formatCompactNumber(value: number): string {
+  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
   if (value >= 1) return value.toFixed(2);
-  return value.toFixed(6);
+  if (value > 0) return value.toFixed(4);
+  return "0.00";
 }
 
 /**

@@ -4,6 +4,7 @@
 import Badge from "@/components/atoms/badge";
 import Card from "@/components/atoms/card";
 import Empty from "@/components/atoms/empty";
+import Skeleton from "@/components/atoms/skeleton";
 import KeyValueCard from "@/components/molecules/card/key-value";
 import Button from "@/components/atoms/button";
 import ButtonGroup from "@/components/atoms/button-group";
@@ -39,6 +40,9 @@ export default function TradePanel() {
     handleConnect,
     handlePercentage,
     hasVault,
+    isLoadingVaults,
+    needsApproval,
+    isSwapPending,
   } = useTradePanel();
 
   return (
@@ -56,13 +60,12 @@ export default function TradePanel() {
         ) : undefined
       }
     >
-      {!hasVault ? (
-        <Empty
-          className="py-8"
-          title={te("noBackend")}
-          description={te("noBackendDesc")}
-          icon={<ServerOff className="size-5 text-muted-foreground" />}
-        />
+      {isLoadingVaults ? (
+        <div className="flex flex-col gap-3 p-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </div>
       ) : !isConnected ? (
         <Empty
           title={t("connectTitle")}
@@ -165,10 +168,15 @@ export default function TradePanel() {
             <Button
               type="submit"
               variant={side === "buy" ? "default" : "destructive"}
-              disabled={!form.formState.isValid}
+              disabled={!form.formState.isValid || isSwapPending}
+              isLoading={isSwapPending}
               className="w-full"
             >
-              {side === "buy" ? t("buyOks") : t("sellOks")}
+              {needsApproval
+                ? t("approve")
+                : side === "buy"
+                  ? t("buyOks")
+                  : t("sellOks")}
             </Button>
           </div>
         </form>

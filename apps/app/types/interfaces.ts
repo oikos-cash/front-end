@@ -118,6 +118,7 @@ export interface TableProps<TData, TValue> {
   columns: import("@tanstack/react-table").ColumnDef<TData, TValue>[];
   data: TData[];
   className?: string;
+  pageSize?: number;
 }
 
 export interface AvatarProps {
@@ -396,6 +397,7 @@ export interface PriceTableToken {
   fdv?: string;
   iconUrl?: string;
   poolAddress?: string;
+  totalSupply?: number;
 }
 
 export interface AvatarInfoProps {
@@ -603,6 +605,7 @@ export interface Trade {
 
 export interface TradesHistoryProps {
   token?: string;
+  poolAddress?: string;
 }
 
 export interface PriceChartProps {
@@ -922,10 +925,18 @@ export interface WSOHLCUpdate {
 }
 
 export interface WSBlockchainEvent {
+  id?: string;
   poolAddress: string;
   eventName: "Swap" | "Mint" | "Burn" | "Collect" | "Flash";
   blockNumber: number;
+  blockHash?: string;
   transactionHash: string;
+  transactionIndex?: number;
+  logIndex?: number;
+  tokenSymbol?: string;
+  poolName?: string;
+  actualSender?: string;
+  actualRecipient?: string;
   args: {
     sender: string;
     recipient: string;

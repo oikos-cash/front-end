@@ -26,6 +26,8 @@ import { useWebSocket } from "@/hooks/use-websocket";
 
 // Utils
 import { getThemeColors } from "@/utils/color";
+import { swrFetcher } from "@/utils/fetcher";
+import { OHLC_API_URL } from "@/types/constants";
 
 const CROSSHAIR_INITIAL: CrosshairData = {
   visible: false,
@@ -86,6 +88,48 @@ export default function usePriceChart(poolAddress?: string) {
     onOhlc,
     enabled: !!poolAddress,
   });
+
+  // Fetch initial OHLC data from HTTP API (WS may not deliver historical data)
+  useEffect(() => {
+    if (!poolAddress) return;
+    let cancelled = false;
+
+    swrFetcher<{ ohlc: Array<{ timestamp: number; open: number; high: number; low: number; close: number; volume: number }> }>(
+      `${OHLC_API_URL}?interval=${interval}&pool=${poolAddress}`,
+    )
+      .then((data) => {
+        if (cancelled || !data.ohlc || data.ohlc.length === 0) return;
+        // Filter to selected period
+        const now = Date.now();
+        const periodMs: Record<string, number> = {
+          "1d": 86_400_000,
+          "5d": 5 * 86_400_000,
+          "1m": 30 * 86_400_000,
+          "3m": 90 * 86_400_000,
+          "6m": 180 * 86_400_000,
+          "1y": 365 * 86_400_000,
+        };
+        const cutoff = now - (periodMs[period] ?? 30 * 86_400_000);
+        const filtered = data.ohlc.filter((c) => c.timestamp >= cutoff);
+        if (filtered.length === 0) return;
+
+        const bars: OHLCVBar[] = filtered.map((b) => ({
+          time: Math.floor(b.timestamp / 1000) as OHLCVBar["time"],
+          open: b.open,
+          high: b.high,
+          low: b.low,
+          close: b.close,
+          volume: b.volume,
+        }));
+
+        barsRef.current = bars;
+        setHasData(true);
+        pushBarsToChart(bars);
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [poolAddress, interval, period]);
 
   function pushBarsToChart(bars: OHLCVBar[]) {
     if (!priceSeriesRef.current || !volumeSeriesRef.current) return;

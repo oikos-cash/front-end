@@ -17,6 +17,7 @@
     "maxSlippage": "Max Slippage",
     "custom": "Custom",
     "networkFee": "Comision de Red",
+    "approve": "Aprobar Token",
     "approveMax": "Aprobar Max",
     "approveMaxDescription": "Aprobar gasto ilimitado para evitar futuras aprobaciones",
     "buyOks": "Comprar OKS",

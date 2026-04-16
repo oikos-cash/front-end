@@ -52,14 +52,15 @@ function mergeVaultToken(
   const status = resolveStatus(vault, hasPresale, isGraduated);
   const health = resolveHealth(vault);
 
-  const totalSupply = parseFloat(vault.token0TotalSupply ?? "0") || undefined;
-  const circulatingSupply =
-    parseFloat(vault.circulatingSupply || vault.token0CirculatingSupply || "0") ||
-    undefined;
+  const decimals = parseInt(vault.tokenDecimals || "18", 10);
+  const rawTotalSupply = parseFloat(vault.token0TotalSupply ?? "0");
+  const totalSupply = rawTotalSupply > 0 ? rawTotalSupply / 10 ** decimals : undefined;
+  const rawCirculating = parseFloat(vault.circulatingSupply || vault.token0CirculatingSupply || "0");
+  const circulatingSupply = rawCirculating > 0 ? rawCirculating / 10 ** decimals : undefined;
 
   const spotPriceX96 = BigInt(vault.spotPriceX96 || "0");
   const price =
-    spotPriceX96 > BigInt(0) ? sqrtPriceX96ToTokenPrice(spotPriceX96) : undefined;
+    spotPriceX96 > BigInt(0) ? spotPriceToNumber(spotPriceX96) : undefined;
 
   const marketCap =
     price && circulatingSupply ? price * circulatingSupply : undefined;
@@ -106,8 +107,7 @@ function resolveHealth(vault: VaultInfo): TokenHealth {
   return "healthy";
 }
 
-/** Convert sqrtPriceX96 from pool to a human-readable token price in BNB. */
-function sqrtPriceX96ToTokenPrice(sqrtPriceX96: bigint): number {
-  const sqrtPrice = Number(sqrtPriceX96) / 2 ** 96;
-  return sqrtPrice * sqrtPrice;
+/** Convert vault spotPriceX96 (stored as wei-denominated BNB price) to a number. */
+function spotPriceToNumber(spotPriceX96: bigint): number {
+  return Number(spotPriceX96) / 1e18;
 }
