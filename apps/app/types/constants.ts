@@ -1,6 +1,92 @@
 import type { SlippageOption, FieldItem } from "@/types/interfaces";
 
 // =================================================
+//                   API CONFIG
+// =================================================
+/** Internal Next.js API routes (default for local dev) */
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "/api";
+
+/** Vault API — uses internal route or external backend */
+export const VAULT_API_URL =
+  process.env.NEXT_PUBLIC_VAULT_API_URL ?? "/api";
+
+/** OHLC price data endpoint */
+export const OHLC_API_URL =
+  process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL}/price/ohlc`
+    : "/api/price/ohlc";
+
+export const WS_URL =
+  process.env.NEXT_PUBLIC_WS_URL ?? "wss://trollbox-ws.oikos.cash";
+
+export const WALLETCONNECT_PROJECT_ID =
+  process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
+
+export const SUPPORTED_CHAIN_IDS = [56, 97] as const;
+
+// =================================================
+//                CONTRACT ADDRESSES
+// =================================================
+/** WBNB on BSC Mainnet */
+export const WBNB_ADDRESS =
+  "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" as const;
+
+/** Oikos Factory on BSC Mainnet */
+export const FACTORY_ADDRESS =
+  "0x9F5973EC7E5f0781E0fCE71Dd949c997c38508Fc" as const;
+
+/** Uniswap V3 Quoter V2 on BSC */
+export const QUOTER_V2_ADDRESS =
+  "0x78D78E420Da98ad378D7799bE8f4AF69033EB077" as const;
+
+/** Default pool fee tier (0.3%) */
+export const DEFAULT_POOL_FEE = 3000;
+
+/** Zero address constant */
+export const ZERO_ADDRESS =
+  "0x0000000000000000000000000000000000000000" as const;
+
+// =================================================
+//                 WEBSOCKET CONFIG
+// =================================================
+// =================================================
+//               BNB PRICE CONFIG
+// =================================================
+/** PancakeSwap V3 WBNB/USDT pool on BSC Mainnet */
+export const BNB_USDT_POOL_ADDRESS =
+  "0x7862d9b4be2156b15d54f41ee4ede2d5b0b455e4" as const;
+
+export const BNB_PRICE_CACHE_KEY = "oikos_bnb_price_cache";
+export const BNB_PRICE_CACHE_DURATION = 5 * 60 * 1000;
+export const BNB_PRICE_REFRESH_INTERVAL = 30_000;
+export const BNB_PRICE_FALLBACK = 600;
+
+/** BNB price endpoint — uses the backend API with local route as fallback */
+export const BNB_PRICE_API_URL =
+  process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL}/price/BNB`
+    : "/api/price/bnb";
+
+// =================================================
+//                 WEBSOCKET CONFIG
+// =================================================
+export const WS_PING_INTERVAL = 30_000;
+export const WS_MAX_RECONNECT_ATTEMPTS = 5;
+export const WS_RECONNECT_BASE_DELAY = 5_000;
+
+// =================================================
+//                 SWR / CACHE CONFIG
+// =================================================
+export const SWR_DEDUPE_INTERVAL = 2000;
+export const SWR_ERROR_RETRY_COUNT = 3;
+export const SWR_ERROR_RETRY_INTERVAL = 5000;
+
+export const SSR_REVALIDATE_SHORT = 30;
+export const SSR_REVALIDATE_DEFAULT = 60;
+export const SSR_REVALIDATE_LONG = 300;
+
+// =================================================
 //                   TOKEN CARD
 // =================================================
 export const STATUS_VARIANT = {
@@ -147,8 +233,10 @@ export const LIQUIDITY_POOLS = [
 // =================================================
 export const LABEL_COLORS: Record<string, string> = {
   reservesWbnb: "text-yellow-400",
+  reservesToken: "text-green-400",
   reservesOks: "text-green-400",
   capacityOks: "text-green-400",
+  tickRange: "text-orange-400",
   tickLower: "text-orange-400",
   tickUpper: "text-orange-400",
 };

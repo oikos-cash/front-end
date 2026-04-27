@@ -5,31 +5,68 @@ import { zodResolver } from "@hookform/resolvers/zod";
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
+import { useStaking } from "@/hooks/use-staking";
 
 // Types
 import { stakeSchema } from "@/types/schemes";
-import type { StakeFormValues, FieldItem } from "@/types/interfaces";
+import type { StakeFormValues, FieldItem, VaultInfo } from "@/types/interfaces";
 
 // Utils
-import { generateMockStakeData, formatStakeNumber } from "@/utils/number";
-import { isCooldownActive, formatCooldown } from "@/utils/date";
+import { formatStakeNumber } from "@/utils/number";
 
 // Constants
 import { STAKE_FIELDS } from "@/types/constants";
 
-// Components — needed for JSX descriptions in field config
+// Components
 import Avatar from "@/components/atoms/avatar";
 
 /**
- * Manages the stake form state:
- * - Cooldown timer that prevents unstaking until the period expires
- * - Field config with JSX use-max button and token avatar
- * - Mock submit/unstake handlers, will be replaced with contract calls
+ * Manages the stake form state with real contract interactions:
+ * - Reads token balance and allowance from blockchain
+ * - Approve + Stake contract writes
+ * - Cooldown timer from on-chain data
  */
-export function useStakeForm(token: string) {
+export function useStakeForm(vault: VaultInfo | null) {
   const t = useTranslations("stake");
   const { isConnected } = useWallet();
-  const stakeData = useMemo(() => generateMockStakeData(token), [token]);
+  const tokenSymbol = vault?.tokenSymbol ?? "TOKEN";
+
+  const {
+    tokenBalance,
+    stakedBalance,
+    sTokenBalance,
+    totalStaked,
+    totalRewards,
+    needsApproval,
+    isCooldownActive,
+    cooldownEnd,
+    approve,
+    stake,
+    unstake,
+    isApproving,
+    isStaking,
+    isUnstaking,
+  } = useStaking(vault?.stakingContract, vault?.token0, vault?.sTokenAddress ?? vault?.sToken);
+
+  const userBalance = tokenBalance ? Number(tokenBalance) / 1e18 : 0;
+  const userStaked = stakedBalance ? Number(stakedBalance) / 1e18 : 0;
+  const userSTokenBalance = sTokenBalance ? Number(sTokenBalance) / 1e18 : 0;
+  const totalStakedNum = totalStaked ? Number(totalStaked) / 1e18 : 0;
+  const totalRewardsNum = totalRewards ? Number(totalRewards) / 1e18 : 0;
+  const apr30d = totalStakedNum > 0 ? (totalRewardsNum / totalStakedNum) * 100 : 0;
+
+  const stakeData = {
+    tokenSymbol,
+    sTokenSymbol: `s${tokenSymbol}`,
+    totalStaked: totalStakedNum,
+    apr30d,
+    totalRewards: totalRewardsNum,
+    userStaked,
+    userSTokenBalance,
+    userRewards: totalRewardsNum,
+    cooldownEndsAt: cooldownEnd,
+    userBalance,
+  };
 
   const form = useForm<StakeFormValues>({
     resolver: zodResolver(stakeSchema),
@@ -40,41 +77,34 @@ export function useStakeForm(token: string) {
   const amountValue = form.watch("amount");
   const numericAmount = parseFloat(amountValue) || 0;
 
-  // Cooldown prevents unstaking for a protocol-defined period after staking
-  const cooldownActive = useMemo(
-    () => isCooldownActive(stakeData.cooldownEndsAt),
-    [stakeData.cooldownEndsAt],
-  );
-
-  const cooldownLabel = useMemo(
-    () => (cooldownActive ? formatCooldown(stakeData.cooldownEndsAt) : ""),
-    [stakeData.cooldownEndsAt, cooldownActive],
-  );
+  const cooldownActive = isCooldownActive;
+  const cooldownLabel = cooldownActive && cooldownEnd
+    ? `${Math.ceil((cooldownEnd - Date.now() / 1000) / 3600)}h`
+    : "";
 
   function handleUseMax() {
-    form.setValue("amount", stakeData.userBalance.toString(), {
-      shouldValidate: true,
-    });
+    form.setValue("amount", userBalance.toString(), { shouldValidate: true });
   }
 
-  // Mock submit — will be replaced with actual stake contract interaction
   async function onSubmit(data: StakeFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    form.reset();
-    console.log("Staked:", data.amount, token);
+    if (needsApproval) {
+      approve();
+    } else {
+      stake(data.amount);
+      form.reset();
+    }
   }
 
   function handleUnstake() {
-    if (cooldownActive || stakeData.userStaked <= 0) return;
-    console.log("Unstaking all for:", token);
+    if (cooldownActive || userStaked <= 0) return;
+    unstake();
   }
 
-  // Field config with JSX elements — can't live in constants due to dynamic descriptions
   const fields: FieldItem[] = STAKE_FIELDS.map((field) => ({
     ...field,
     label: t("amountToStake"),
     ariaLabel: t("amountToStake"),
-    endContent: <Avatar name={stakeData.tokenSymbol} size="default" />,
+    endContent: <Avatar name={tokenSymbol} size="default" />,
     description: (
       <button
         type="button"
@@ -82,8 +112,8 @@ export function useStakeForm(token: string) {
         className="text-xs text-primary hover:underline"
       >
         {t("useMax", {
-          amount: formatStakeNumber(stakeData.userBalance),
-          token: stakeData.tokenSymbol,
+          amount: formatStakeNumber(userBalance),
+          token: tokenSymbol,
         })}
       </button>
     ),
@@ -100,5 +130,9 @@ export function useStakeForm(token: string) {
     fields,
     onSubmit,
     handleUnstake,
+    needsApproval,
+    isApproving,
+    isStaking,
+    isUnstaking,
   };
 }

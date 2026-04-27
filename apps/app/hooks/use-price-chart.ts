@@ -13,11 +13,21 @@ import {
 } from "lightweight-charts";
 
 // Types
-import type { ChartPeriod, ChartType, CrosshairData } from "@/types/interfaces";
+import type {
+  ChartPeriod,
+  ChartType,
+  CrosshairData,
+  OHLCVBar,
+  WSOHLCUpdate,
+} from "@/types/interfaces";
+
+// Hooks
+import { useWebSocket } from "@/hooks/use-websocket";
 
 // Utils
-import { generateMockOHLCV } from "@/utils/number";
 import { getThemeColors } from "@/utils/color";
+import { swrFetcher } from "@/utils/fetcher";
+import { OHLC_API_URL } from "@/types/constants";
 
 const CROSSHAIR_INITIAL: CrosshairData = {
   visible: false,
@@ -28,9 +38,10 @@ const CROSSHAIR_INITIAL: CrosshairData = {
   volume: "",
 };
 
-export default function usePriceChart() {
+export default function usePriceChart(poolAddress?: string) {
   // State
   const [ready, setReady] = useState(false);
+  const [hasData, setHasData] = useState(false);
   const [period, setPeriod] = useState<ChartPeriod>("1m");
   const [interval, setInterval] = useState("1h");
   const [chartType, setChartType] = useState<ChartType>("line");
@@ -41,16 +52,88 @@ export default function usePriceChart() {
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Chart instance refs — stored in refs to avoid re-renders on chart mutations
+  // Chart instance refs
   const chartRef = useRef<IChartApi | null>(null);
   const priceSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null);
   const colorsRef = useRef<ReturnType<typeof getThemeColors> | null>(null);
+  const barsRef = useRef<OHLCVBar[]>([]);
 
-  // Pushes new OHLCV data into the existing series without recreating the chart
-  const updateData = useCallback(() => {
+  // Receive OHLC data from WS
+  const onOhlc = useCallback(
+    (data: WSOHLCUpdate) => {
+      const intervalBars = data.data[interval];
+      if (!intervalBars || intervalBars.length === 0) return;
+
+      const bars: OHLCVBar[] = intervalBars.map((b) => ({
+        time: b.timestamp as OHLCVBar["time"],
+        open: b.open,
+        high: b.high,
+        low: b.low,
+        close: b.close,
+        volume: b.volume,
+      }));
+
+      barsRef.current = bars;
+      setHasData(true);
+      pushBarsToChart(bars);
+    },
+    [interval, chartType],
+  );
+
+  useWebSocket({
+    poolAddress,
+    channels: ["ohlc"],
+    ohlcInterval: interval,
+    onOhlc,
+    enabled: !!poolAddress,
+  });
+
+  // Fetch initial OHLC data from HTTP API (WS may not deliver historical data)
+  useEffect(() => {
+    if (!poolAddress) return;
+    let cancelled = false;
+
+    swrFetcher<{ ohlc: Array<{ timestamp: number; open: number; high: number; low: number; close: number; volume: number }> }>(
+      `${OHLC_API_URL}?interval=${interval}&pool=${poolAddress}`,
+    )
+      .then((data) => {
+        if (cancelled || !data.ohlc || data.ohlc.length === 0) return;
+        // Filter to selected period
+        const now = Date.now();
+        const periodMs: Record<string, number> = {
+          "1d": 86_400_000,
+          "5d": 5 * 86_400_000,
+          "1m": 30 * 86_400_000,
+          "3m": 90 * 86_400_000,
+          "6m": 180 * 86_400_000,
+          "1y": 365 * 86_400_000,
+        };
+        const cutoff = now - (periodMs[period] ?? 30 * 86_400_000);
+        const filtered = data.ohlc.filter((c) => c.timestamp >= cutoff);
+        if (filtered.length === 0) return;
+
+        const bars: OHLCVBar[] = filtered.map((b) => ({
+          time: Math.floor(b.timestamp / 1000) as OHLCVBar["time"],
+          open: b.open,
+          high: b.high,
+          low: b.low,
+          close: b.close,
+          volume: b.volume,
+        }));
+
+        barsRef.current = bars;
+        setHasData(true);
+        pushBarsToChart(bars);
+      })
+      .catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [poolAddress, interval, period]);
+
+  function pushBarsToChart(bars: OHLCVBar[]) {
     if (!priceSeriesRef.current || !volumeSeriesRef.current) return;
-    const bars = generateMockOHLCV(period, interval);
+    const c = colorsRef.current;
 
     if (chartType === "line") {
       priceSeriesRef.current.setData(
@@ -68,7 +151,6 @@ export default function usePriceChart() {
       );
     }
 
-    const c = colorsRef.current;
     volumeSeriesRef.current.setData(
       bars.map((b) => ({
         time: b.time,
@@ -79,10 +161,11 @@ export default function usePriceChart() {
             : (c?.destructive ?? "#ef4444") + "66",
       })),
     );
-  }, [period, interval, chartType]);
 
-  // Full chart creation — re-runs when chartType changes because
-  // lightweight-charts requires a new series type (Line vs Bar)
+    chartRef.current?.timeScale().fitContent();
+  }
+
+  // Full chart creation
   useEffect(() => {
     setReady(false);
     const container = containerRef.current;
@@ -105,39 +188,30 @@ export default function usePriceChart() {
         horzLine: { style: LineStyle.Dashed, color: colors.textColor },
         vertLine: { style: LineStyle.Dashed, color: colors.textColor },
       },
-      rightPriceScale: {
-        borderColor: colors.borderColor,
-      },
-      timeScale: {
-        borderColor: colors.borderColor,
-        timeVisible: true,
-      },
+      rightPriceScale: { borderColor: colors.borderColor },
+      timeScale: { borderColor: colors.borderColor, timeVisible: true },
       width: container.clientWidth,
       height: 400,
     });
 
     chartRef.current = chart;
 
-    // Price series — type depends on chartType
     if (chartType === "line") {
-      const priceSeries = chart.addSeries(LineSeries, {
+      priceSeriesRef.current = chart.addSeries(LineSeries, {
         color: colors.success,
         lineWidth: 2,
         lineType: LineType.WithSteps,
         crosshairMarkerRadius: 4,
         priceScaleId: "right",
       });
-      priceSeriesRef.current = priceSeries;
     } else {
-      const priceSeries = chart.addSeries(BarSeries, {
+      priceSeriesRef.current = chart.addSeries(BarSeries, {
         upColor: colors.success,
         downColor: colors.destructive,
         priceScaleId: "right",
       });
-      priceSeriesRef.current = priceSeries;
     }
 
-    // Volume series — always a histogram pinned to the bottom 20% of the chart
     const volumeSeries = chart.addSeries(HistogramSeries, {
       color: colors.chart1,
       priceFormat: { type: "volume" },
@@ -149,39 +223,14 @@ export default function usePriceChart() {
       scaleMargins: { top: 0.8, bottom: 0 },
     });
 
-    // Populate initial data
-    const bars = generateMockOHLCV(period, interval);
-
-    if (chartType === "line") {
-      priceSeriesRef.current.setData(
-        bars.map((b) => ({ time: b.time, value: b.close })),
-      );
-    } else {
-      priceSeriesRef.current.setData(
-        bars.map((b) => ({
-          time: b.time,
-          open: b.open,
-          high: b.high,
-          low: b.low,
-          close: b.close,
-        })),
-      );
+    // If we already have bars from WS, render them
+    if (barsRef.current.length > 0) {
+      pushBarsToChart(barsRef.current);
     }
 
-    volumeSeries.setData(
-      bars.map((b) => ({
-        time: b.time,
-        value: b.volume,
-        color:
-          b.close >= b.open
-            ? colors.success + "66"
-            : colors.destructive + "66",
-      })),
-    );
-    chart.timeScale().fitContent();
     setReady(true);
 
-    // Tooltip follows the crosshair, repositioning to stay within bounds
+    // Tooltip crosshair
     chart.subscribeCrosshairMove((param) => {
       if (
         !param.time ||
@@ -212,7 +261,6 @@ export default function usePriceChart() {
       const tooltipHeight = tooltipRef.current?.offsetHeight ?? 70;
       const containerWidth = container.clientWidth;
 
-      // Flip tooltip to the left side if it would overflow the container
       let x = param.point.x + 16;
       let y = param.point.y - tooltipHeight / 2;
 
@@ -246,30 +294,18 @@ export default function usePriceChart() {
       volumeSeriesRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartType]); // recreate chart when type changes
-
-  // Skip the first mount since the chart init effect already loaded data
-  const isFirstMount = useRef(true);
-  useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
-      return;
-    }
-    updateData();
-    if (chartRef.current) {
-      chartRef.current.timeScale().fitContent();
-    }
-  }, [period, interval, updateData]);
+  }, [chartType]);
 
   const handleRefresh = useCallback(() => {
-    updateData();
-    if (chartRef.current) {
-      chartRef.current.timeScale().fitContent();
+    if (barsRef.current.length > 0) {
+      pushBarsToChart(barsRef.current);
     }
-  }, [updateData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartType]);
 
   return {
     ready,
+    hasData,
     period,
     setPeriod,
     interval,

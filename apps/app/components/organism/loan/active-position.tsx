@@ -19,7 +19,7 @@ import type { LoanActivePositionProps } from "@/types/interfaces";
 import { FileX } from "lucide-react";
 
 export default function LoanActivePosition({
-  token = "OKS",
+  vault,
 }: LoanActivePositionProps) {
   const {
     t,
@@ -29,7 +29,7 @@ export default function LoanActivePosition({
     activeTab,
     setActiveTab,
     isConnected,
-  } = useLoanPosition(token);
+  } = useLoanPosition(vault);
 
   if (!isConnected) return null;
 

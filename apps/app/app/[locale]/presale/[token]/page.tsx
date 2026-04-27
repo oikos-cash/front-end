@@ -1,5 +1,6 @@
 import PresaleTemplate from "@/components/templates/presale";
 import { getPageMetadata } from "@/utils/seo";
+import { fetchVaultByToken } from "@/utils/liquidity";
 
 export async function generateMetadata({
   params,
@@ -14,6 +15,13 @@ export async function generateMetadata({
   );
 }
 
-export default function PresalePage() {
-  return <PresaleTemplate />;
+export default async function PresalePage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+  const vault = await fetchVaultByToken(token);
+
+  return <PresaleTemplate initialVault={vault} />;
 }

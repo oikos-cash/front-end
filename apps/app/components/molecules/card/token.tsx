@@ -9,6 +9,9 @@ import ProgressBar from "@/components/atoms/progress-bar";
 // Hooks
 import { useTranslations } from "next-intl";
 
+// Utils
+import { formatCompactNumber } from "@/utils/number";
+
 // Types
 import { TokenCardProps } from "@/types/interfaces";
 
@@ -16,7 +19,7 @@ import { TokenCardProps } from "@/types/interfaces";
 import { STATUS_VARIANT, HEALTH_VARIANT } from "@/types/constants";
 
 // Utils
-import { formatShortDate } from "@/utils/date";
+import { timeAgo } from "@/utils/date";
 
 export default function TokenCard({ token }: TokenCardProps) {
   const t = useTranslations("markets");
@@ -88,19 +91,25 @@ export default function TokenCard({ token }: TokenCardProps) {
             {[
               {
                 label: "marketCap",
-                value: `$${(token.marketCap ?? 0).toLocaleString()}`,
+                value: token.marketCap
+                  ? `$${formatCompactNumber(token.marketCap)}`
+                  : "—",
               },
               {
                 label: "created",
-                value: token.createdAt ? formatShortDate(token.createdAt) : "—",
+                value: token.createdAt ? timeAgo(token.createdAt) : "—",
               },
               {
                 label: "totalSupply",
-                value: (token.totalSupply ?? 0).toLocaleString(),
+                value: token.totalSupply
+                  ? formatCompactNumber(token.totalSupply)
+                  : "—",
               },
               {
                 label: "circSupply",
-                value: (token.circulatingSupply ?? 0).toLocaleString(),
+                value: token.circulatingSupply
+                  ? formatCompactNumber(token.circulatingSupply)
+                  : "—",
               },
             ].map((stat) => (
               <div

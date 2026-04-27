@@ -17,6 +17,7 @@
     "maxSlippage": "Max Slippage",
     "custom": "Custom",
     "networkFee": "Network Fee",
+    "approve": "Approve Token",
     "approveMax": "Approve Max",
     "approveMaxDescription": "Approve unlimited spending to avoid future approvals",
     "buyOks": "Buy OKS",

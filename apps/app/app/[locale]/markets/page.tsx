@@ -1,5 +1,6 @@
 import MarketsTemplate from "@/components/templates/markets";
 import { getPageMetadata } from "@/utils/seo";
+import { fetchMarketTokens } from "@/utils/markets";
 
 export async function generateMetadata({
   params,
@@ -10,6 +11,8 @@ export async function generateMetadata({
   return getPageMetadata(locale, { page: "markets" }, "/markets");
 }
 
-export default function Page() {
-  return <MarketsTemplate />;
+export default async function Page() {
+  const tokens = await fetchMarketTokens();
+
+  return <MarketsTemplate initialTokens={tokens} />;
 }

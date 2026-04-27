@@ -4,21 +4,24 @@
 import Badge from "@/components/atoms/badge";
 import Card from "@/components/atoms/card";
 import Empty from "@/components/atoms/empty";
+import Skeleton from "@/components/atoms/skeleton";
 import KeyValueCard from "@/components/molecules/card/key-value";
 import Button from "@/components/atoms/button";
 import ButtonGroup from "@/components/atoms/button-group";
 import FieldRenderer from "@/components/molecules/field-renderer";
 
 // Hooks
+import { useTranslations } from "next-intl";
 import { useTradePanel } from "@/hooks/use-trade-panel";
 
 // Icons
-import { Lock, Wallet, Settings } from "lucide-react";
+import { Lock, Wallet, Settings, ServerOff } from "lucide-react";
 
 // Constants
 import { SLIPPAGE_OPTIONS } from "@/types/constants";
 
 export default function TradePanel() {
+  const te = useTranslations("error");
   const {
     t,
     form,
@@ -36,36 +39,46 @@ export default function TradePanel() {
     numericAmount,
     handleConnect,
     handlePercentage,
+    hasVault,
+    isLoadingVaults,
+    needsApproval,
+    isSwapPending,
   } = useTradePanel();
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
-      <Card
-        title={t("title")}
-        description={t("description")}
-        action={
+    <Card
+      title={t("title")}
+      description={t("description")}
+      action={
+        hasVault && isConnected ? (
           <Badge
             variant={side === "buy" ? "default" : "destructive"}
             className="text-xs"
           >
             {side === "buy" ? t("buying") : t("selling")}
           </Badge>
-        }
-        footer={
-          isConnected && (
-            <div className="flex w-full justify-end">
-              <Button
-                type="submit"
-                variant={side === "buy" ? "default" : "destructive"}
-                disabled={!form.formState.isValid}
-              >
-                {side === "buy" ? t("buyOks") : t("sellOks")}
-              </Button>
-            </div>
-          )
-        }
-      >
-        {isConnected ? (
+        ) : undefined
+      }
+    >
+      {isLoadingVaults ? (
+        <div className="flex flex-col gap-3 p-2">
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </div>
+      ) : !isConnected ? (
+        <Empty
+          title={t("connectTitle")}
+          description={t("connectDescription")}
+          icon={<Lock className="size-6 text-muted-foreground" />}
+        >
+          <Button variant="default" size="sm" onClick={handleConnect}>
+            <Wallet className="size-3.5" />
+            {t("connectButton")}
+          </Button>
+        </Empty>
+      ) : (
+        <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-3">
             <ButtonGroup className="self-center">
               <Button
@@ -151,20 +164,23 @@ export default function TradePanel() {
             </div>
 
             <FieldRenderer fields={approveField} control={form.control} t={t} />
-          </div>
-        ) : (
-          <Empty
-            title={t("connectTitle")}
-            description={t("connectDescription")}
-            icon={<Lock className="size-6 text-muted-foreground" />}
-          >
-            <Button variant="default" size="sm" onClick={handleConnect}>
-              <Wallet className="size-3.5" />
-              {t("connectButton")}
+
+            <Button
+              type="submit"
+              variant={side === "buy" ? "default" : "destructive"}
+              disabled={!form.formState.isValid || isSwapPending}
+              isLoading={isSwapPending}
+              className="w-full"
+            >
+              {needsApproval
+                ? t("approve")
+                : side === "buy"
+                  ? t("buyOks")
+                  : t("sellOks")}
             </Button>
-          </Empty>
-        )}
-      </Card>
-    </form>
+          </div>
+        </form>
+      )}
+    </Card>
   );
 }

@@ -14,44 +14,41 @@ import { useWallet } from "@/stores/wallet";
 import type { StakeActivePositionProps } from "@/types/interfaces";
 
 // Utils
-import { isCooldownActive, formatCooldown } from "@/utils/date";
-import { generateMockStakeData, formatStakeNumber } from "@/utils/number";
+import { formatCooldown } from "@/utils/date";
+import { formatStakeNumber } from "@/utils/number";
 
 export default function StakeActivePosition({
-  token = "OKS",
+  vault,
+  stakedBalance,
+  sTokenBalance,
+  cooldownEnd,
+  isCooldownActive: cooldownActive,
 }: StakeActivePositionProps) {
   const t = useTranslations("stake");
   const { isConnected } = useWallet();
 
-  const stakeData = useMemo(() => generateMockStakeData(token), [token]);
-  const cooldownActive = useMemo(
-    () => isCooldownActive(stakeData.cooldownEndsAt),
-    [stakeData.cooldownEndsAt],
-  );
+  const token = vault?.tokenSymbol ?? "TOKEN";
+  const userStaked = stakedBalance ? Number(stakedBalance) / 1e18 : 0;
+  const userSTokenBalance = sTokenBalance ? Number(sTokenBalance) / 1e18 : 0;
 
   const cooldownLabel = useMemo(
     () =>
       cooldownActive
-        ? formatCooldown(stakeData.cooldownEndsAt)
+        ? formatCooldown(cooldownEnd)
         : t("positionCooldownReady"),
-    [stakeData.cooldownEndsAt, cooldownActive, t],
+    [cooldownEnd, cooldownActive, t],
   );
 
-  if (!isConnected || stakeData.userStaked <= 0) return null;
+  if (!isConnected || userStaked <= 0) return null;
 
   const rows = [
     {
       label: t("positionStaked"),
-      value: `${formatStakeNumber(stakeData.userStaked)} ${stakeData.tokenSymbol}`,
+      value: `${formatStakeNumber(userStaked)} ${token}`,
     },
     {
       label: t("positionSToken"),
-      value: `${formatStakeNumber(stakeData.userSTokenBalance)} ${stakeData.sTokenSymbol}`,
-    },
-    {
-      label: t("positionRewards"),
-      value: `${formatStakeNumber(stakeData.userRewards)} ${stakeData.tokenSymbol}`,
-      highlight: true,
+      value: `${formatStakeNumber(userSTokenBalance)} s${token}`,
     },
   ];
 
@@ -61,11 +58,7 @@ export default function StakeActivePosition({
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{row.label}</span>
-            <span
-              className={`text-sm font-medium ${row.highlight ? "text-primary" : ""}`}
-            >
-              {row.value}
-            </span>
+            <span className="text-sm font-medium">{row.value}</span>
           </div>
         ))}
 

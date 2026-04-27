@@ -16,7 +16,7 @@ import type { LoanHistoryProps } from "@/types/interfaces";
 // Icons
 import { Loader2 } from "lucide-react";
 
-export default function LoanHistory({ token = "OKS" }: LoanHistoryProps) {
+export default function LoanHistory({ vaultAddress }: LoanHistoryProps) {
   const {
     t,
     isLoading,
@@ -26,7 +26,7 @@ export default function LoanHistory({ token = "OKS" }: LoanHistoryProps) {
     columns,
     filteredItems,
     filterOptions,
-  } = useLoanHistory(token);
+  } = useLoanHistory(vaultAddress);
 
   return (
     <Card

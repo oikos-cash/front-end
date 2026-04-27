@@ -7,17 +7,24 @@ import Button from "@/components/atoms/button";
 import Select from "@/components/atoms/select";
 import Drawer from "@/components/atoms/drawer";
 import Accordion from "@/components/atoms/accordion";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Skeleton from "@/components/atoms/skeleton";
+import NetworkSelector from "@/components/organism/network-selector";
+import WrapUnwrapModal from "@/components/organism/wrap-unwrap-modal";
 
 // Hooks
 import { useTranslations } from "next-intl";
-import { useWallet } from "@/stores/wallet";
+import { useBnbPrice } from "@/hooks/use-bnb-price";
 
 // Icons
-import { Menu, Wallet, X } from "lucide-react";
+import { Menu, Wallet, X, ArrowLeftRight } from "lucide-react";
+
+import { useState } from "react";
 
 export default function Header() {
+  const [wrapOpen, setWrapOpen] = useState(false);
   const t = useTranslations("header");
-  const { isConnected, address, handleConnect, handleDisconnect } = useWallet();
+  const { bnbPrice } = useBnbPrice();
 
   const navItems = [
     { value: "exchange", label: t("nav.exchange"), href: "/" },
@@ -33,8 +40,8 @@ export default function Header() {
   const networkItems = [{ value: "bsc-mainnet", label: t("network") }];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background">
-      <div className="flex items-center justify-between px-4 py-2 lg:px-6">
+    <header className="sticky top-0 z-50 h-15 border-b border-border bg-background">
+      <div className="flex h-full items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-3">
           <Link
             target="_blank"
@@ -58,14 +65,15 @@ export default function Header() {
 
         <div className="hidden items-center gap-3 md:flex">
           <Badge variant="outline">
-            BNB/USD $630.0900 <span className="text-success">+7.19%</span>
+            BNB/USD ${bnbPrice.toFixed(4)}
           </Badge>
 
-          <Select
-            className="w-37.5"
-            items={networkItems}
-            placeholder={t("network")}
-          />
+          <NetworkSelector />
+
+          <Button variant="ghost" size="icon-xs" onClick={() => setWrapOpen(true)} title="Wrap/Unwrap BNB">
+            <ArrowLeftRight className="size-4" />
+          </Button>
+          <WrapUnwrapModal open={wrapOpen} onOpenChange={setWrapOpen} />
 
           <Select
             className="w-37.5"
@@ -73,17 +81,37 @@ export default function Header() {
             placeholder={t("nav.exchange")}
           />
 
-          {isConnected ? (
-            <Button variant="outline" onClick={handleDisconnect}>
-              <Wallet className="size-4" />
-              {address}
-            </Button>
-          ) : (
-            <Button variant="default" onClick={handleConnect}>
-              <Wallet className="size-4" />
-              {t("connectWallet")}
-            </Button>
-          )}
+          <div className="w-40">
+            <ConnectButton.Custom>
+              {({ account, chain, openAccountModal, openConnectModal, mounted }) => {
+                if (!mounted) {
+                  return <Skeleton className="h-9 w-full rounded-md" />;
+                }
+
+                if (!account) {
+                  return (
+                    <Button variant="default" className="w-full" onClick={openConnectModal}>
+                      <Wallet className="size-4" />
+                      {t("connectWallet")}
+                    </Button>
+                  );
+                }
+
+                return (
+                  <Button variant="outline" className="w-full" onClick={openAccountModal}>
+                    {chain?.hasIcon && chain.iconUrl && (
+                      <img
+                        src={chain.iconUrl}
+                        alt={chain.name ?? ""}
+                        className="size-4 rounded-full"
+                      />
+                    )}
+                    {account.displayName}
+                  </Button>
+                );
+              }}
+            </ConnectButton.Custom>
+          </div>
         </div>
 
         <div className="md:hidden">
@@ -98,8 +126,7 @@ export default function Header() {
               <div className="flex flex-col gap-3">
                 <div className="text-center w-full">
                   <Badge variant="outline" className="w-fit">
-                    BNB/USD $630.0900{" "}
-                    <span className="text-success">+7.19%</span>
+                    BNB/USD ${bnbPrice.toFixed(4)}
                   </Badge>
                 </div>
                 <Accordion
@@ -132,25 +159,35 @@ export default function Header() {
                     },
                   ]}
                 />
-                {isConnected ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleDisconnect}
-                  >
-                    <Wallet className="size-4" />
-                    {address}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="default"
-                    className="w-full"
-                    onClick={handleConnect}
-                  >
-                    <Wallet className="size-4" />
-                    {t("connectWallet")}
-                  </Button>
-                )}
+                <ConnectButton.Custom>
+                  {({ account, chain, openAccountModal, openConnectModal, mounted }) => {
+                    if (!mounted) {
+                      return <Skeleton className="h-9 w-full rounded-md" />;
+                    }
+
+                    if (!account) {
+                      return (
+                        <Button variant="default" className="w-full" onClick={openConnectModal}>
+                          <Wallet className="size-4" />
+                          {t("connectWallet")}
+                        </Button>
+                      );
+                    }
+
+                    return (
+                      <Button variant="outline" className="w-full" onClick={openAccountModal}>
+                        {chain?.hasIcon && chain.iconUrl && (
+                          <img
+                            src={chain.iconUrl}
+                            alt={chain.name ?? ""}
+                            className="size-4 rounded-full"
+                          />
+                        )}
+                        {account.displayName}
+                      </Button>
+                    );
+                  }}
+                </ConnectButton.Custom>
               </div>
             }
           >

@@ -1,28 +1,27 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { useWallet } from "@/stores/wallet";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { useStudioData } from "@/hooks/use-studio-data";
 
 // Utils
-import {
-  formatCompactNumber,
-  generateMockStudioData,
-  generateMockStudioActivity,
-} from "@/utils/number";
+import { formatCompactNumber } from "@/utils/number";
 import { formatShortDate } from "@/utils/date";
 
 // Constants
 import { STUDIO_TOKEN_STATUS_VARIANT } from "@/types/constants";
 
 // Types
-import type { StudioActivityItem } from "@/types/interfaces";
+import type { StudioActivityItem, WSBlockchainEvent } from "@/types/interfaces";
 
 /**
  * Manages studio token detail page state:
- * - Resolves token from URL params and mock data
- * - Builds token info rows, KPI cards, and activity badge variants
+ * - Resolves token from URL params and creator API data
+ * - Builds token info rows, KPI cards
+ * - Receives real-time trade activity via WebSocket
  */
 export function useStudioTokenDetail() {
   const t = useTranslations("studio");
@@ -30,12 +29,38 @@ export function useStudioTokenDetail() {
   const params = useParams();
   const tokenSymbol = (params.token as string)?.toUpperCase() ?? "OKS";
 
-  const { tokens } = useMemo(() => generateMockStudioData(), []);
+  const { tokens } = useStudioData();
   const token = tokens.find((tk) => tk.symbol === tokenSymbol) ?? tokens[0];
-  const activity = useMemo(
-    () => (token ? generateMockStudioActivity(token.symbol) : []),
-    [token],
+
+  // Real-time activity via WebSocket
+  const [activity, setActivity] = useState<StudioActivityItem[]>([]);
+
+  const onEvent = useCallback(
+    (event: WSBlockchainEvent) => {
+      if (event.eventName !== "Swap") return;
+
+      const amount = Math.abs(parseFloat(event.args.amount0 ?? "0")) / 1e18;
+      const item: StudioActivityItem = {
+        id: `${event.transactionHash}-${event.timestamp}`,
+        type: "trade",
+        token: tokenSymbol,
+        amount,
+        wallet: event.args.sender ?? "",
+        timestamp: new Date(event.timestamp * 1000),
+      };
+
+      setActivity((prev) => {
+        if (prev.some((i) => i.id === item.id)) return prev;
+        return [item, ...prev].slice(0, 50);
+      });
+    },
+    [tokenSymbol],
   );
+
+  useWebSocket({
+    onEvent,
+    enabled: !!token,
+  });
 
   // Token info rows for the detail Card
   const tokenInfoRows = token
@@ -55,14 +80,19 @@ export function useStudioTokenDetail() {
           change: `${token.change24h >= 0 ? "+" : ""}${token.change24h}%`,
         },
         { key: "volume24h", value: `$${formatCompactNumber(token.volume24h)}` },
-        { key: "totalVolumeLabel", value: `$${formatCompactNumber(token.totalVolume)}` },
+        {
+          key: "totalVolumeLabel",
+          value: `$${formatCompactNumber(token.totalVolume)}`,
+        },
         { key: "holders", value: String(token.holders) },
         { key: "earnings", value: `$${formatCompactNumber(token.earnings)}` },
       ]
     : [];
 
-  // Activity type → badge variant mapping
-  const ACTIVITY_VARIANT: Record<StudioActivityItem["type"], "default" | "secondary" | "outline"> = {
+  const ACTIVITY_VARIANT: Record<
+    StudioActivityItem["type"],
+    "default" | "secondary" | "outline"
+  > = {
     trade: "default",
     stake: "secondary",
     lp_add: "outline",

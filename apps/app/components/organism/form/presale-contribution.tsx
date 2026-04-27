@@ -29,6 +29,8 @@ export default function PresaleContributionForm({
   userBalance,
   minContribution,
   maxContribution,
+  onDeposit,
+  isDepositing,
 }: PresaleContributionFormProps) {
   const t = useTranslations("presale");
   const isDisabled = status !== "active";
@@ -49,10 +51,8 @@ export default function PresaleContributionForm({
     form.setValue("amount", max.toString(), { shouldValidate: true });
   }
 
-  async function onSubmit(data: PresaleContributionFormValues) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    form.reset();
-    console.log("Contributed:", data.amount, "BNB");
+  function onSubmit(data: PresaleContributionFormValues) {
+    onDeposit(data.amount);
   }
 
   return (
@@ -63,8 +63,8 @@ export default function PresaleContributionForm({
         <div className="flex w-full justify-end">
           <Button
             type="submit"
-            disabled={!form.formState.isValid || isDisabled}
-            isLoading={form.formState.isSubmitting}
+            disabled={!form.formState.isValid || isDisabled || isDepositing}
+            isLoading={isDepositing}
             onClick={form.handleSubmit(onSubmit)}
           >
             {t("contributeAction")}

@@ -1,6 +1,10 @@
 // Components
 import Header from "@/components/layouts/header";
 import SideBar from "@/components/layouts/sidebar";
+import Toaster from "@/components/atoms/toaster";
+import ErrorBoundary from "@/components/atoms/error-boundary";
+import SWRProvider from "@/components/atoms/swr-provider";
+import Web3Provider from "@/components/atoms/web3-provider";
 
 // Styles
 import "@/styles/globals.css";
@@ -10,6 +14,11 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
+
+// Wagmi SSR
+import { cookieToInitialState } from "wagmi";
+import { headers } from "next/headers";
+import { wagmiConfig } from "@/lib/wagmi";
 
 // Types
 import type { Metadata } from "next";
@@ -88,6 +97,9 @@ export default async function RootLayout({
   }
 
   const messages = await getMessages();
+  const headersList = await headers();
+  const cookie = headersList.get("cookie");
+  const initialState = cookieToInitialState(wagmiConfig, cookie);
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -96,8 +108,15 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Header />
-          <SideBar>{children}</SideBar>
+          <Web3Provider initialState={initialState}>
+            <SWRProvider>
+              <Header />
+              <SideBar>
+                <ErrorBoundary>{children}</ErrorBoundary>
+              </SideBar>
+              <Toaster />
+            </SWRProvider>
+          </Web3Provider>
         </NextIntlClientProvider>
       </body>
     </html>

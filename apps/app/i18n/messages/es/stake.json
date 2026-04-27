@@ -20,6 +20,7 @@
     "useMax": "Usar maximo ({amount} {token})",
     "youllReceive": "Recibiras",
     "currentApr": "APR Actual",
+    "approveAction": "Aprobar Token",
     "stakeAction": "Stakear",
     "unstakeAll": "Retirar Todo",
     "cooldownTooltip": "Espera a que finalice el periodo de espera ({time} restante)",
@@ -43,6 +44,8 @@
     "walletDescription": "Balances de tus tokens de staking",
     "historyEmpty": "Sin actividad de staking",
     "historyEmptyDesc": "Tus transacciones de stake y unstake apareceran aqui",
+    "historyPending": "Pendiente de integracion",
+    "historyPendingDesc": "El historial de staking requiere un indexador de eventos en el backend. Endpoint sugerido: GET /api/staking/events/vault/{vaultAddress}",
     "errors": {
       "required": "La cantidad es requerida",
       "mustBePositive": "La cantidad debe ser mayor a 0"

@@ -1,28 +1,30 @@
+"use client";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 
 // Hooks
 import { useTranslations } from "next-intl";
+import { useWebSocket } from "@/hooks/use-websocket";
 
 // Types
-import type { RecentSwap } from "@/types/interfaces";
+import type { RecentSwap, WSBlockchainEvent } from "@/types/interfaces";
 
 // Icons
 import { ArrowRight } from "lucide-react";
 
 // Utils
 import { timeAgo } from "@/utils/date";
-import { generateMockRecentSwaps, formatCompactNumber } from "@/utils/number";
+import { formatCompactNumber } from "@/utils/number";
 
 // Constants
-import { SWAP_HISTORY_PAGE_SIZE, SWAP_HISTORY_MAX_ITEMS } from "@/types/constants";
+import { SWAP_HISTORY_MAX_ITEMS } from "@/types/constants";
 
 export function useSwapHistory() {
   const t = useTranslations("swap");
 
   const [items, setItems] = useState<RecentSwap[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasMore, setHasMore] = useState(true);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -61,57 +63,47 @@ export function useSwapHistory() {
     },
   ];
 
-  const loadItems = useCallback(
-    (reset?: boolean) => {
-      setIsLoading(true);
-      const currentLength = reset ? 0 : items.length;
-      const remaining = SWAP_HISTORY_MAX_ITEMS - currentLength;
+  // Listen for real Swap events via WebSocket
+  const onEvent = useCallback((event: WSBlockchainEvent) => {
+    if (event.eventName !== "Swap") return;
 
-      if (remaining <= 0) {
-        setHasMore(false);
-        setIsLoading(false);
-        return;
-      }
+    const amount0 = Math.abs(parseFloat(event.args.amount0 ?? "0")) / 1e18;
+    const amount1 = Math.abs(parseFloat(event.args.amount1 ?? "0")) / 1e18;
+    const isBuy = parseFloat(event.args.amount0 ?? "0") < 0;
 
-      const count = Math.min(SWAP_HISTORY_PAGE_SIZE, remaining);
-      setTimeout(() => {
-        const newItems = generateMockRecentSwaps(count, currentLength);
-        setItems((prev) => (reset ? newItems : [...prev, ...newItems]));
-        setHasMore(currentLength + count < SWAP_HISTORY_MAX_ITEMS);
-        setIsLoading(false);
-      }, 300);
-    },
-    [items.length],
-  );
+    const swap: RecentSwap = {
+      id: `${event.transactionHash}-${event.timestamp}`,
+      fromToken: isBuy ? "WBNB" : "TOKEN",
+      toToken: isBuy ? "TOKEN" : "WBNB",
+      fromAmount: isBuy ? amount1 : amount0,
+      toAmount: isBuy ? amount0 : amount1,
+      timestamp: new Date(event.timestamp * 1000),
+    };
 
-  useEffect(() => {
-    loadItems(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setItems((prev) => {
+      if (prev.some((i) => i.id === swap.id)) return prev;
+      setIsLoading(false);
+      return [swap, ...prev].slice(0, SWAP_HISTORY_MAX_ITEMS);
+    });
   }, []);
 
-  // Infinite scroll via IntersectionObserver on the sentinel element
+  useWebSocket({
+    onEvent,
+    enabled: true,
+  });
+
+  // Mark loading as false after a short timeout if no events arrive
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting && hasMore && !isLoading) {
-          loadItems();
-        }
-      },
-      { threshold: 0.1 },
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [hasMore, isLoading, loadItems]);
+    if (!isLoading) return;
+    const timer = setTimeout(() => setIsLoading(false), 3000);
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   return {
     t,
     items,
     isLoading,
-    hasMore,
+    hasMore: false,
     sentinelRef,
     columns,
   };

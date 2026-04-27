@@ -63,6 +63,7 @@
     "historyRepay": "PAGO",
     "historyRoll": "RENOVAR",
     "historyEmpty": "Sin actividad de prestamos",
+    "hedgeButton": "Cobertura de Prestamo",
     "historyEmptyDesc": "Tus transacciones de prestamo, pago y renovacion apareceran aqui",
     "errors": {
       "required": "Este campo es requerido",
