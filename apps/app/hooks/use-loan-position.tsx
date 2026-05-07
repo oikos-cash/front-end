@@ -131,9 +131,9 @@ export function useLoanPosition(vault: VaultInfo | null) {
     async function load() {
       setIsLoadingLoan(true);
       try {
-        const data = await fetchLoansByUser(address!);
+        const loans = await fetchLoansByUser(address!);
         if (!cancelled) {
-          const derived = deriveActiveLoan(data.loans, vaultAddress, vault);
+          const derived = deriveActiveLoan(loans, vaultAddress, vault);
           setActiveLoan(derived);
         }
       } catch (err) {

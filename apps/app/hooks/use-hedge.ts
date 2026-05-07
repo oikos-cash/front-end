@@ -12,13 +12,18 @@ import {
   createHedge,
   closeHedge,
 } from "@/services/hedge";
+import { formatAuthMessage, buildAuthHeaders } from "@/utils/auth-fetch";
 
 // Types
 import type { HedgeQuote, HedgePosition, HedgeStats } from "@/types/interfaces";
 
 /**
  * Manages hedge state: quote fetching, position management, create/close actions.
- * Uses message signing for authentication with the hedge API.
+ *
+ * Auth: each mutation prompts the wallet for an EIP-191 signature, which is
+ * sent as `x-address`/`x-signature`/`x-message` headers (NOT in the body).
+ * The backend's `CreateHedgeDto` rejects extra body fields under
+ * `forbidNonWhitelisted: true`, so signature/message MUST go in headers.
  */
 export function useHedge(options: {
   userAddress?: string | null;
@@ -67,18 +72,23 @@ export function useHedge(options: {
   const fetchPositionsList = useCallback(async () => {
     if (!userAddress) return;
     setPositionsLoading(true);
-    try {
-      const [pos, st] = await Promise.all([
-        fetchHedgePositions(userAddress),
-        fetchHedgeUserStats(userAddress),
-      ]);
-      setPositions(pos);
-      setStats(st);
-    } catch (err) {
-      console.error("[useHedge] positions error:", err);
-    } finally {
-      setPositionsLoading(false);
+    // Settle the two calls independently so a stats failure doesn't blank
+    // out the positions list (and vice versa).
+    const [posResult, statsResult] = await Promise.allSettled([
+      fetchHedgePositions(userAddress),
+      fetchHedgeUserStats(userAddress),
+    ]);
+    if (posResult.status === "fulfilled") {
+      setPositions(posResult.value);
+    } else {
+      console.error("[useHedge] positions error:", posResult.reason);
     }
+    if (statsResult.status === "fulfilled") {
+      setStats(statsResult.value);
+    } else {
+      console.error("[useHedge] stats error:", statsResult.reason);
+    }
+    setPositionsLoading(false);
   }, [userAddress]);
 
   useEffect(() => {
@@ -93,16 +103,21 @@ export function useHedge(options: {
     if (!userAddress || !vaultAddress || !quote) return null;
     setIsCreating(true);
     try {
-      const message = `Create hedge for vault ${vaultAddress} at ${Date.now()}`;
+      const message = formatAuthMessage(userAddress);
       const signature = await signMessageAsync({ message });
-      const result = await createHedge({
-        userAddress,
-        vaultAddress,
-        loanAmountBNB,
-        loanDurationDays,
+      const auth = buildAuthHeaders({
+        address: userAddress,
         signature,
         message,
       });
+      const result = await createHedge(
+        {
+          vaultAddress,
+          loanAmountBNB,
+          loanDurationDays,
+        },
+        auth,
+      );
       toast.success("Hedge position created");
       await fetchPositionsList();
       return result.hedge;
@@ -119,14 +134,14 @@ export function useHedge(options: {
     if (!userAddress) return null;
     setIsClosing(true);
     try {
-      const message = `Close hedge ${hedgeId} at ${Date.now()}`;
+      const message = formatAuthMessage(userAddress);
       const signature = await signMessageAsync({ message });
-      const result = await closeHedge({
-        hedgeId,
-        userAddress,
+      const auth = buildAuthHeaders({
+        address: userAddress,
         signature,
         message,
       });
+      const result = await closeHedge(hedgeId, auth);
       toast.success("Hedge position closed");
       await fetchPositionsList();
       return result.hedge;

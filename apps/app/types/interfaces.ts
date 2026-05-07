@@ -1185,7 +1185,13 @@ export interface LaunchpadState {
   markStepCompleted: (step: number) => void;
   getMissingFields: () => MissingField[];
   isReadyToDeploy: () => boolean;
-  saveTokenMetadata: (deployerAddress: string, contractAddress?: string, vaultAddress?: string, poolAddress?: string) => Promise<void>;
+  saveTokenMetadata: (
+    auth: Record<string, string>,
+    deployerAddress: string,
+    contractAddress?: string,
+    vaultAddress?: string,
+    poolAddress?: string,
+  ) => Promise<void>;
   reset: () => void;
 }
 

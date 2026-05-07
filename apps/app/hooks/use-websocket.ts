@@ -4,9 +4,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 import { getWebSocketService } from "@/services/websocket";
 import type {
-  WSPriceUpdate,
-  WSStatsUpdate,
-  WSOHLCUpdate,
   WSBlockchainEvent,
   WSLoanEvent,
   WSChannel,
@@ -14,52 +11,56 @@ import type {
 } from "@/types/interfaces";
 
 /**
- * Hook to connect to the WebSocket service and subscribe to a pool's channels.
+ * Hook to connect to the Socket.IO `/events` namespace and subscribe to a
+ * pool's PUSH channels (`event`, `loanEvent`).
  *
- * Handles connect, subscribe, unsubscribe, and cleanup automatically.
+ * For HTTP-polled data (spot price, OHLC candles, etc.) use the dedicated
+ * SWR hooks instead — they give you proper dedupe + backoff for free:
+ *   - `useSpotPrice(poolAddress)`
+ *   - `useOhlcCandles(poolAddress, interval)`
+ *
+ * Implementation note: callbacks are stored in refs so they don't have to
+ * be memoized at the call site. The effects only depend on the *identity*
+ * of the channels (joined as a string) plus `poolAddress`/`enabled`, so a
+ * parent re-render with new inline callbacks does NOT trigger a
+ * subscribe/unsubscribe cycle.
  *
  * @example
- * const { isConnected } = useWebSocket({
- *   poolAddress: "0x...",
- *   channels: ["price", "stats"],
- *   ohlcInterval: "1h",
- *   onPrice: (data) => setPrice(data.price),
- *   onStats: (data) => setStats(data.data),
- *   onOhlc:  (data) => setBars(data.data),
+ * useWebSocket({
+ *   poolAddress,
+ *   channels: ["event", "loanEvent"],
+ *   onEvent: (e) => handleSwap(e),
+ *   onLoan:  (e) => handleLoanEvent(e),
  * });
  */
 export function useWebSocket(options: {
   poolAddress?: string;
   channels?: WSChannel[];
-  ohlcInterval?: string;
-  onPrice?: WSMessageCallback<WSPriceUpdate>;
-  onStats?: WSMessageCallback<WSStatsUpdate>;
-  onOhlc?: WSMessageCallback<WSOHLCUpdate>;
   onEvent?: WSMessageCallback<WSBlockchainEvent>;
   onLoan?: WSMessageCallback<WSLoanEvent>;
   enabled?: boolean;
 }) {
-  const {
-    poolAddress,
-    channels = [],
-    ohlcInterval,
-    onPrice,
-    onStats,
-    onOhlc,
-    onEvent,
-    onLoan,
-    enabled = true,
-  } = options;
+  const { poolAddress, channels = [], onEvent, onLoan, enabled = true } = options;
 
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef(getWebSocketService());
+
+  // Keep the latest callbacks in refs so effect deps stay stable across
+  // re-renders even when callers pass inline closures.
+  const onEventRef = useRef(onEvent);
+  const onLoanRef = useRef(onLoan);
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
+  useEffect(() => {
+    onLoanRef.current = onLoan;
+  }, [onLoan]);
 
   // Connect on mount
   useEffect(() => {
     if (!enabled) return;
 
     const ws = wsRef.current;
-
     const unsub = ws.onConnectionChange(setIsConnected);
 
     if (!ws.isConnected()) {
@@ -73,42 +74,44 @@ export function useWebSocket(options: {
     return unsub;
   }, [enabled]);
 
-  // Register data callbacks
+  // Register data callbacks once. The handler dereferences the ref so
+  // updates to `onEvent`/`onLoan` propagate without re-registering.
   useEffect(() => {
     if (!enabled) return;
     const ws = wsRef.current;
-    const cleanups: (() => void)[] = [];
+    const cleanups: Array<() => void> = [];
 
-    if (onPrice) cleanups.push(ws.onPrice(onPrice));
-    if (onStats) cleanups.push(ws.onStats(onStats));
-    if (onOhlc) cleanups.push(ws.onOhlc(onOhlc));
-    if (onEvent) cleanups.push(ws.onEvent(onEvent));
-    if (onLoan) cleanups.push(ws.onLoan(onLoan));
+    cleanups.push(
+      ws.onEvent((data) => onEventRef.current?.(data)),
+      ws.onLoan((data) => onLoanRef.current?.(data)),
+    );
 
     return () => cleanups.forEach((fn) => fn());
-  }, [enabled, onPrice, onStats, onOhlc, onEvent, onLoan]);
+  }, [enabled]);
 
-  // Subscribe / unsubscribe to channels when connected + poolAddress changes
+  // Subscribe / unsubscribe when the pool or channel set changes.
+  // We key the effect on the joined channel list (a stable string) instead
+  // of the array reference — so callers can pass a fresh array literal
+  // every render without causing a churn.
+  const channelsKey = channels.join(",");
   useEffect(() => {
     if (!enabled || !isConnected || !poolAddress || channels.length === 0)
       return;
 
     const ws = wsRef.current;
+    const subs = channels.slice();
 
-    for (const ch of channels) {
-      ws.subscribe(ch, poolAddress, ch === "ohlc" ? ohlcInterval : undefined);
+    for (const ch of subs) {
+      ws.subscribe(ch, poolAddress);
     }
 
     return () => {
-      for (const ch of channels) {
-        ws.unsubscribe(
-          ch,
-          poolAddress,
-          ch === "ohlc" ? ohlcInterval : undefined,
-        );
+      for (const ch of subs) {
+        ws.unsubscribe(ch, poolAddress);
       }
     };
-  }, [enabled, isConnected, poolAddress, channels, ohlcInterval]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, isConnected, poolAddress, channelsKey]);
 
   const disconnect = useCallback(() => {
     wsRef.current.disconnect();

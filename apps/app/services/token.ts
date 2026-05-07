@@ -1,8 +1,11 @@
-import { API_BASE_URL } from "@/types/constants";
+import { fetchApi } from "@/utils/fetcher";
 import type { TokenApiData, TokenApiResponse } from "@/types/interfaces";
 
-const BASE_URL = API_BASE_URL;
-
+/**
+ * Fetch the catalog of tokens.
+ * Backend: GET /api/tokens — returns Token[] (wrapped by TransformInterceptor,
+ * unwrapped by fetchApi).
+ */
 export async function fetchTokens(options?: {
   includeAll?: boolean;
   chainId?: number;
@@ -13,54 +16,56 @@ export async function fetchTokens(options?: {
     if (options?.chainId) params.set("chainId", options.chainId.toString());
 
     const qs = params.toString();
-    const res = await fetch(`${BASE_URL}/tokens${qs ? `?${qs}` : ""}`);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const data = await res.json();
-    return data.tokens ?? [];
+    return await fetchApi<TokenApiResponse[]>(
+      `/api/tokens${qs ? `?${qs}` : ""}`,
+    );
   } catch (error) {
     console.error("[TokenService] fetchTokens:", error);
     return [];
   }
 }
 
+/**
+ * Fetch a single token by its symbol.
+ * Backend returns an array (zero or one match); we surface the first item.
+ */
 export async function fetchTokenBySymbol(
   symbol: string,
 ): Promise<TokenApiResponse | null> {
   try {
-    const res = await fetch(`${BASE_URL}/tokens/by-symbol/${symbol}`);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const data = await res.json();
-    return data.tokens?.[0] ?? null;
+    const tokens = await fetchApi<TokenApiResponse[]>(
+      `/api/tokens/by-symbol/${symbol}`,
+    );
+    return tokens?.[0] ?? null;
   } catch (error) {
     console.error("[TokenService] fetchTokenBySymbol:", error);
     return null;
   }
 }
 
+/**
+ * Persist a new token. Protected route — requires EIP-191 auth headers built
+ * by the caller (see `buildAuthHeaders` in @/utils/auth-fetch).
+ */
 export async function saveToken(
   tokenData: TokenApiData,
+  auth: Record<string, string>,
 ): Promise<TokenApiResponse> {
-  const res = await fetch(`${BASE_URL}/tokens`, {
+  return await fetchApi<TokenApiResponse>(`/api/tokens`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(tokenData),
+    auth,
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Failed to save token: ${res.statusText}`);
-  }
-  const data = await res.json();
-  return data.token;
 }
 
+/**
+ * Fetch tokens deployed by a specific address.
+ */
 export async function fetchTokensByDeployer(
   address: string,
 ): Promise<TokenApiResponse[]> {
   try {
-    const res = await fetch(`${BASE_URL}/tokens/deployer/${address}`);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    const data = await res.json();
-    return data.tokens ?? [];
+    return await fetchApi<TokenApiResponse[]>(`/api/tokens/deployer/${address}`);
   } catch (error) {
     console.error("[TokenService] fetchTokensByDeployer:", error);
     return [];

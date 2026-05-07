@@ -5,7 +5,7 @@ import type { Address } from "viem";
 import { useTranslations } from "next-intl";
 import { useBnbPrice } from "@/hooks/use-bnb-price";
 import { usePoolState, useVaultPositions, useVaultFees } from "@/hooks/use-pool-state";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useSpotPrice } from "@/hooks/use-spot-price";
 
 // Types
 import type { VaultInfo, LiquidityData } from "@/types/interfaces";
@@ -36,14 +36,8 @@ export function useLiquidity(initialVault: VaultInfo | null = null) {
   const { positions } = useVaultPositions(vaultAddress);
   const { fees } = useVaultFees(vaultAddress);
 
-  // ----- 3.8: WS live price -----
-  const [livePrice, setLivePrice] = useState<number | null>(null);
-  useWebSocket({
-    poolAddress: initialVault?.poolAddress,
-    channels: ["price"],
-    onPrice: useCallback((d: { price: number }) => setLivePrice(d.price), []),
-    enabled: hasVault,
-  });
+  // ----- 3.8: live price via SWR poll of /api/price -----
+  const { price: livePrice } = useSpotPrice(initialVault?.poolAddress);
 
   // Build LiquidityData from real data (null when no vault)
   const data: LiquidityData | null = useMemo(() => {
