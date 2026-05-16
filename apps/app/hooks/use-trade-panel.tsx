@@ -42,6 +42,7 @@ import {
   VAULT_API_URL,
   WBNB_ADDRESS,
   QUOTER_V2_ADDRESS,
+  EXCHANGE_HELPER_ADDRESS,
   DEFAULT_POOL_FEE,
 } from "@/types/constants";
 
@@ -110,7 +111,7 @@ export function useTradePanel() {
   } = useSwap(
     address as Address | undefined,
     swapTokenIn,
-    QUOTER_V2_ADDRESS as Address,
+    EXCHANGE_HELPER_ADDRESS,
     amountInWei,
   );
 
@@ -207,7 +208,7 @@ export function useTradePanel() {
     }
 
     executeSwap({
-      routerAddress: QUOTER_V2_ADDRESS as Address,
+      routerAddress: EXCHANGE_HELPER_ADDRESS,
       tokenIn: swapTokenIn,
       tokenOut: swapTokenOut,
       fee: DEFAULT_POOL_FEE,

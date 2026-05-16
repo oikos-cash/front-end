@@ -43,6 +43,7 @@ import {
   SWAP_ROUTES,
   WBNB_ADDRESS,
   QUOTER_V2_ADDRESS,
+  EXCHANGE_HELPER_ADDRESS,
   DEFAULT_POOL_FEE,
 } from "@/types/constants";
 
@@ -209,7 +210,7 @@ export default function SwapForm({
   } = useSwap(
     address as Address | undefined,
     fromAddr as Address | undefined,
-    QUOTER_V2_ADDRESS as Address,
+    EXCHANGE_HELPER_ADDRESS,
     amountInWei,
   );
 
@@ -310,7 +311,7 @@ export default function SwapForm({
     }
 
     executeSwap({
-      routerAddress: QUOTER_V2_ADDRESS as Address,
+      routerAddress: EXCHANGE_HELPER_ADDRESS,
       tokenIn: fromAddr as Address,
       tokenOut: toAddr as Address,
       fee: DEFAULT_POOL_FEE,

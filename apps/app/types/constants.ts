@@ -41,9 +41,13 @@ export const SUPPORTED_CHAIN_IDS = [56, 97] as const;
 export const WBNB_ADDRESS =
   "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" as const;
 
-/** Oikos Factory on BSC Mainnet */
-export const FACTORY_ADDRESS =
-  "0x9F5973EC7E5f0781E0fCE71Dd949c997c38508Fc" as const;
+/** Oikos protocol addresses (Factory, ExchangeHelper, ModelHelper) sourced from
+ *  @oikos/core-addresses, pinned to core v0.1. */
+export {
+  FACTORY_ADDRESS,
+  EXCHANGE_HELPER_ADDRESS,
+  MODEL_HELPER_ADDRESS,
+} from "@/lib/oikos-addresses";
 
 /** Uniswap V3 Quoter V2 on BSC */
 export const QUOTER_V2_ADDRESS =
