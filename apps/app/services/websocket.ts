@@ -5,6 +5,7 @@ import type {
   WSLoanEvent,
   WSChannel,
   WSMessageCallback,
+  LoanEvent,
 } from "@/types/interfaces";
 
 import {
@@ -16,16 +17,27 @@ import {
 type ErrorCallback = (error: string) => void;
 type ConnectionCallback = (connected: boolean) => void;
 
-/**
- * Channel string accepted by `subscribe`/`unsubscribe`. Only the real
- * Socket.IO push channels are supported now; HTTP-polled streams (`price`,
- * `ohlc`, `stats`) moved to dedicated SWR hooks (`useSpotPrice`,
- * `useOhlcCandles`) which give us proper dedupe + backoff for free.
- */
-type SubscribableChannel = WSChannel | "event" | "loanEvent";
 
 /** Timeout for the `globalTrades` reply (one-shot listener). */
 const GLOBAL_TRADES_TIMEOUT_MS = 15_000;
+
+/**
+ * Peel the `{ type, data }` envelope the backend wraps push events in
+ * (legacy raw-WS parity inherited by the NestJS gateway). Tolerates
+ * already-bare payloads so the backend contract can be simplified later
+ * without breaking the client.
+ */
+function unwrapEnvelope<T>(payload: unknown, expectedType: string): T {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
+    (payload as { type?: string }).type === expectedType
+  ) {
+    return (payload as { data: T }).data;
+  }
+  return payload as T;
+}
 
 /**
  * Realtime push service backed by Socket.IO `/events` namespace.
@@ -132,17 +144,16 @@ class WebSocketService {
         this.notifyError(err.message ?? "WebSocket connection error");
       });
 
-      socket.on("event", (payload: WSBlockchainEvent) => {
-        this.notify(this.eventCallbacks, payload);
+      socket.on("event", (payload: unknown) => {
+        const event = unwrapEnvelope<WSBlockchainEvent>(payload, "event");
+        this.notify(this.eventCallbacks, event);
       });
 
-      socket.on("loanEvent", (payload: WSLoanEvent["data"]) => {
-        // Backend emits the inner event payload; preserve the
-        // `{ type, data }` envelope the existing WSLoanEvent contract uses.
-        this.notify(this.loanCallbacks, {
-          type: "loanEvent",
-          data: payload,
-        } as WSLoanEvent);
+      socket.on("loanEvent", (payload: unknown) => {
+        // Peel the wire envelope, then re-wrap into the FE's WSLoanEvent
+        // contract (`{ type, data }`) that downstream hooks consume.
+        const loan = unwrapEnvelope<LoanEvent>(payload, "loanEvent");
+        this.notify(this.loanCallbacks, { type: "loanEvent", data: loan });
       });
     });
   }
@@ -177,11 +188,8 @@ class WebSocketService {
     poolAddress: string,
     interval?: string,
   ): void {
-    const ch = channel as SubscribableChannel;
-    if (ch !== "event" && ch !== "loanEvent") return;
-
     const pool = poolAddress.toLowerCase();
-    const subKey = this.subscriptionKey(ch, pool, interval);
+    const subKey = this.subscriptionKey(channel, pool, interval);
     this.acquirePoolRef(pool, subKey);
   }
 
@@ -190,11 +198,8 @@ class WebSocketService {
     poolAddress: string,
     interval?: string,
   ): void {
-    const ch = channel as SubscribableChannel;
-    if (ch !== "event" && ch !== "loanEvent") return;
-
     const pool = poolAddress.toLowerCase();
-    const subKey = this.subscriptionKey(ch, pool, interval);
+    const subKey = this.subscriptionKey(channel, pool, interval);
     this.releasePoolRef(pool, subKey);
   }
 
@@ -268,7 +273,7 @@ class WebSocketService {
   // ===========================================================
 
   private subscriptionKey(
-    channel: SubscribableChannel,
+    channel: WSChannel,
     pool: string,
     interval?: string,
   ): string {

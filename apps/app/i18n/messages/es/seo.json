@@ -16,6 +16,10 @@
       "title": "Intercambio",
       "description": "Intercambia tokens al instante con deslizamiento minimo en el exchange descentralizado Oikos"
     },
+    "trade": {
+      "title": "Operar {token}",
+      "description": "Opera {token} en Oikos — graficos en vivo, profundidad de mercado y ejecucion instantanea"
+    },
     "borrow": {
       "title": "Prestamos",
       "description": "Pide prestado contra tus holdings de tokens con prestamos auto-repagables en Oikos"

@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { useSpotPrice } from "@/hooks/use-spot-price";
 import { useOhlcCandles } from "@/hooks/use-ohlc-candles";
-import type { WSBlockchainEvent } from "@/types/interfaces";
+import type { WSBlockchainEvent, WSChannel } from "@/types/interfaces";
 
 export interface ExchangeStats {
   currentPrice: number;
@@ -15,7 +15,7 @@ export interface ExchangeStats {
   priceChange24h: number;
 }
 
-const EVENT_CHANNELS = ["event"] as const;
+const EVENT_CHANNELS: WSChannel[] = ["event"];
 
 /**
  * Aggregates all data needed by the Exchange page:
@@ -45,7 +45,7 @@ export function useExchangeWS(
 
   const { isConnected } = useWebSocket({
     poolAddress,
-    channels: EVENT_CHANNELS as unknown as ("event" | "loanEvent")[],
+    channels: EVENT_CHANNELS,
     onEvent,
     enabled: !!poolAddress,
   });

@@ -16,6 +16,10 @@
       "title": "Swap",
       "description": "Swap tokens instantly with minimal slippage on the Oikos decentralized exchange"
     },
+    "trade": {
+      "title": "Trade {token}",
+      "description": "Trade {token} on Oikos — live charts, market depth, and instant execution"
+    },
     "borrow": {
       "title": "Borrow",
       "description": "Borrow against your token holdings with self-repaying loans on Oikos"

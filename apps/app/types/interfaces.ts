@@ -187,13 +187,18 @@ export interface TextareaProps extends React.ComponentProps<"textarea"> {
 
 export interface FieldProps {
   name: string;
-  control: import("react-hook-form").Control<any>;
+  // `any` (not `Control<T>`) because RHF's Control is invariant in TFieldValues
+  // and any narrower type breaks assignability across forms with different shapes.
+  control: any;
   label?: string;
   description?: React.ReactNode;
   children:
     | React.ReactNode
     | ((
-        field: import("react-hook-form").ControllerRenderProps<any, string>,
+        field: import("react-hook-form").ControllerRenderProps<
+          import("react-hook-form").FieldValues,
+          string
+        >,
       ) => React.ReactNode);
   className?: string;
   orientation?: "vertical" | "horizontal" | "responsive";
@@ -378,7 +383,8 @@ export type FieldItem =
 
 export interface FieldRendererProps {
   fields: FieldItem[];
-  control: import("react-hook-form").Control<any>;
+  // See FieldProps.control — RHF Control invariance forces `any`.
+  control: any;
   t?: (key: string) => string;
   className?: string;
 }
@@ -950,7 +956,9 @@ export interface WSBlockchainEvent {
   timestamp: number;
 }
 
-export type WSChannel = "price" | "stats" | "ohlc";
+// Real Socket.IO push channels. Polled streams (`price`, `ohlc`, `stats`)
+// moved to dedicated SWR hooks — they are not subscribed via WebSocket.
+export type WSChannel = "event" | "loanEvent";
 
 export type WSMessageCallback<T> = (data: T) => void;
 
