@@ -3,22 +3,31 @@ import type { SlippageOption, FieldItem } from "@/types/interfaces";
 // =================================================
 //                   API CONFIG
 // =================================================
-/** Internal Next.js API routes (default for local dev) */
+/**
+ * Backend origin (no trailing /api). Empty string = same-origin
+ * (production deploy behind a reverse proxy that maps /api/* to the backend).
+ * Override in dev via NEXT_PUBLIC_API_URL=http://localhost:3004.
+ *
+ * Convention: every fetch path includes the literal backend route
+ * (e.g. "/api/tokens", "/api/loans/...") so paths are grep-able against
+ * the NestJS @Controller(...) decorators.
+ */
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "/api";
+  process.env.NEXT_PUBLIC_API_URL ?? "";
 
-/** Vault API — uses internal route or external backend */
+/** Vault API — same backend, separate env to allow split deploys. */
 export const VAULT_API_URL =
-  process.env.NEXT_PUBLIC_VAULT_API_URL ?? "/api";
+  process.env.NEXT_PUBLIC_VAULT_API_URL ?? "";
 
-/** OHLC price data endpoint */
-export const OHLC_API_URL =
-  process.env.NEXT_PUBLIC_API_URL
-    ? `${process.env.NEXT_PUBLIC_API_URL}/price/ohlc`
-    : "/api/price/ohlc";
+/** OHLC price data endpoint (full URL). */
+export const OHLC_API_URL = `${API_BASE_URL}/api/price/ohlc`;
 
+/**
+ * Socket.IO base URL. Uses HTTP upgrade (not raw wss://).
+ * Defaults to local NestJS backend; override via NEXT_PUBLIC_WS_URL.
+ */
 export const WS_URL =
-  process.env.NEXT_PUBLIC_WS_URL ?? "wss://trollbox-ws.oikos.cash";
+  process.env.NEXT_PUBLIC_WS_URL ?? "http://localhost:3004";
 
 export const WALLETCONNECT_PROJECT_ID =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
@@ -62,11 +71,8 @@ export const BNB_PRICE_CACHE_DURATION = 5 * 60 * 1000;
 export const BNB_PRICE_REFRESH_INTERVAL = 30_000;
 export const BNB_PRICE_FALLBACK = 600;
 
-/** BNB price endpoint — uses the backend API with local route as fallback */
-export const BNB_PRICE_API_URL =
-  process.env.NEXT_PUBLIC_API_URL
-    ? `${process.env.NEXT_PUBLIC_API_URL}/price/BNB`
-    : "/api/price/bnb";
+/** BNB price endpoint. Backend exposes GET /api/price/BNB (Public). */
+export const BNB_PRICE_API_URL = `${API_BASE_URL}/api/price/BNB`;
 
 // =================================================
 //                 WEBSOCKET CONFIG

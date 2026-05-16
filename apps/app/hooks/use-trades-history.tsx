@@ -80,7 +80,7 @@ export function useTradesHistory(
 
   const { isConnected } = useWebSocket({
     poolAddress,
-    channels: ["price"],
+    channels: ["event"],
     onEvent,
     enabled: !!poolAddress,
   });

@@ -12,7 +12,7 @@ export async function fetchSwapTokens(): Promise<SwapToken[]> {
       fetchVaultServer<VaultInfo[]>("/vaults", {
         revalidate: SSR_REVALIDATE_DEFAULT,
       }),
-      fetchServer<{ tokens: TokenInfo[] }>("/tokens", {
+      fetchServer<{ tokens: TokenInfo[] }>("/api/tokens", {
         revalidate: SSR_REVALIDATE_LONG,
       }),
     ]);

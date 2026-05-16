@@ -1,14 +1,11 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useWebSocket } from "@/hooks/use-websocket";
-import type {
-  WSPriceUpdate,
-  WSStatsUpdate,
-  WSOHLCUpdate,
-  WSBlockchainEvent,
-} from "@/types/interfaces";
+import { useSpotPrice } from "@/hooks/use-spot-price";
+import { useOhlcCandles } from "@/hooks/use-ohlc-candles";
+import type { WSBlockchainEvent, WSChannel } from "@/types/interfaces";
 
 export interface ExchangeStats {
   currentPrice: number;
@@ -18,42 +15,27 @@ export interface ExchangeStats {
   priceChange24h: number;
 }
 
+const EVENT_CHANNELS: WSChannel[] = ["event"];
+
 /**
- * Subscribes to all WS channels needed by the Exchange page:
- * - price → live price ticker
- * - stats → 24h volume, high, low, change
- * - ohlc  → candlestick data
- * - events → Swap events (live trades)
+ * Aggregates all data needed by the Exchange page:
+ *   - Spot price (`useSpotPrice` → SWR poll of `/api/price`)
+ *   - OHLC candles (`useOhlcCandles` → SWR poll of `/api/price/ohlc`)
+ *   - Live trades (`useWebSocket` → Socket.IO `event` channel, server pushes
+ *     Swap events as they happen)
  *
- * @example
- * const { stats, ohlcBars, trades, isConnected } = useExchangeWS(poolAddress, "1h");
+ * `stats` is no longer populated — the backend has no aggregated 24h stats
+ * endpoint yet. Consumers that need volume/high/low should derive them from
+ * the candles array.
  */
 export function useExchangeWS(
   poolAddress: string | undefined,
   ohlcInterval: string = "1h",
 ) {
-  const [stats, setStats] = useState<ExchangeStats | null>(null);
-  const [ohlcBars, setOhlcBars] = useState<WSOHLCUpdate["data"] | null>(null);
   const [trades, setTrades] = useState<WSBlockchainEvent[]>([]);
-  const [livePrice, setLivePrice] = useState<number | null>(null);
 
-  const onPrice = useCallback((data: WSPriceUpdate) => {
-    setLivePrice(data.price);
-  }, []);
-
-  const onStats = useCallback((data: WSStatsUpdate) => {
-    setStats({
-      currentPrice: data.data.currentPrice,
-      volume24h: data.data.volume["24h"],
-      high24h: data.data.high24h,
-      low24h: data.data.low24h,
-      priceChange24h: data.data.priceChange24h,
-    });
-  }, []);
-
-  const onOhlc = useCallback((data: WSOHLCUpdate) => {
-    setOhlcBars(data.data);
-  }, []);
+  const { price: livePrice } = useSpotPrice(poolAddress);
+  const { candles } = useOhlcCandles(poolAddress, ohlcInterval);
 
   const onEvent = useCallback((event: WSBlockchainEvent) => {
     if (event.eventName === "Swap") {
@@ -63,19 +45,21 @@ export function useExchangeWS(
 
   const { isConnected } = useWebSocket({
     poolAddress,
-    channels: ["price", "stats", "ohlc"],
-    ohlcInterval,
-    onPrice,
-    onStats,
-    onOhlc,
+    channels: EVENT_CHANNELS,
     onEvent,
     enabled: !!poolAddress,
   });
 
+  // Preserve the legacy ohlcBars shape: `{ [interval]: candle[] }`
+  const ohlcBars = useMemo(
+    () => (candles.length > 0 ? { [ohlcInterval]: candles } : null),
+    [candles, ohlcInterval],
+  );
+
   return {
     isConnected,
     livePrice,
-    stats,
+    stats: null as ExchangeStats | null,
     ohlcBars,
     trades,
   };

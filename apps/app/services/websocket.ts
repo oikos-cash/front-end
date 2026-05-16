@@ -1,16 +1,15 @@
+import { io, type Socket } from "socket.io-client";
+
 import type {
-  WSPriceUpdate,
-  WSStatsUpdate,
-  WSOHLCUpdate,
   WSBlockchainEvent,
   WSLoanEvent,
   WSChannel,
   WSMessageCallback,
+  LoanEvent,
 } from "@/types/interfaces";
 
 import {
   WS_URL,
-  WS_PING_INTERVAL,
   WS_MAX_RECONNECT_ATTEMPTS,
   WS_RECONNECT_BASE_DELAY,
 } from "@/types/constants";
@@ -18,27 +17,54 @@ import {
 type ErrorCallback = (error: string) => void;
 type ConnectionCallback = (connected: boolean) => void;
 
+
+/** Timeout for the `globalTrades` reply (one-shot listener). */
+const GLOBAL_TRADES_TIMEOUT_MS = 15_000;
+
 /**
- * Unified WebSocket service for real-time data.
+ * Peel the `{ type, data }` envelope the backend wraps push events in
+ * (legacy raw-WS parity inherited by the NestJS gateway). Tolerates
+ * already-bare payloads so the backend contract can be simplified later
+ * without breaking the client.
+ */
+function unwrapEnvelope<T>(payload: unknown, expectedType: string): T {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "data" in payload &&
+    (payload as { type?: string }).type === expectedType
+  ) {
+    return (payload as { data: T }).data;
+  }
+  return payload as T;
+}
+
+/**
+ * Realtime push service backed by Socket.IO `/events` namespace.
  *
- * Handles two concerns from the old project:
- * - priceWebSocketService (price, stats, ohlc channels)
- * - websocketService (blockchain events: Swap, Mint, Burn, Collect, Flash)
+ * Channels (server → client):
+ *   - `event`     → blockchain events (Pool/ExchangeHelper)
+ *   - `loanEvent` → loan events (Borrow / Payback / Roll / Liquidation)
  *
- * Singleton pattern — use `getWebSocketService()` to access.
+ * `subscribe(channel, poolAddress)` registers interest in a pool with the
+ * backend (`subscribe` emit). Push events for that pool start flowing once
+ * the pool is registered and stop when the last reference is released.
+ *
+ * For HTTP-polled feeds (spot price, OHLC candles), use:
+ *   - `useSpotPrice(poolAddress)` — `hooks/use-spot-price.ts`
+ *   - `useOhlcCandles(poolAddress, interval)` — `hooks/use-ohlc-candles.ts`
+ *
+ * Singleton — use `getWebSocketService()`. Survives Next.js HMR via
+ * `globalThis.__oikos_ws`.
  */
 class WebSocketService {
-  private ws: WebSocket | null = null;
+  private socket: Socket | null = null;
   private url: string;
-  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
-  private reconnectAttempts = 0;
-  private pingInterval: ReturnType<typeof setInterval> | null = null;
-  private subscriptions = new Set<string>();
 
-  // Price feed callbacks
-  private priceCallbacks = new Set<WSMessageCallback<WSPriceUpdate>>();
-  private statsCallbacks = new Set<WSMessageCallback<WSStatsUpdate>>();
-  private ohlcCallbacks = new Set<WSMessageCallback<WSOHLCUpdate>>();
+  // Pool subscription bookkeeping: address (lowercased) → set of channel keys
+  // currently holding that pool. The backend `subscribe`/`unsubscribe` emit
+  // fires only on transitions to/from an empty set.
+  private poolRefs = new Map<string, Set<string>>();
 
   // Blockchain event callbacks
   private eventCallbacks = new Set<WSMessageCallback<WSBlockchainEvent>>();
@@ -58,111 +84,113 @@ class WebSocketService {
   //                      CONNECTION
   // ===========================================================
 
-  private connectPromise: Promise<void> | null = null;
-
   connect(): Promise<void> {
-    // Already open
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      return Promise.resolve();
-    }
+    if (this.socket?.connected) return Promise.resolve();
 
-    // Already connecting — reuse the pending promise
-    if (this.connectPromise && this.ws?.readyState === WebSocket.CONNECTING) {
-      return this.connectPromise;
-    }
-
-    this.connectPromise = new Promise<void>((resolve, reject) => {
-      try {
-        this.ws = new WebSocket(this.url);
-
-        this.ws.onopen = () => {
-          this.reconnectAttempts = 0;
-          this.connectPromise = null;
-          this.startPing();
-          this.notifyConnection(true);
-          resolve();
-        };
-
-        this.ws.onclose = () => {
-          this.connectPromise = null;
-          this.stopPing();
-          this.notifyConnection(false);
-          this.attemptReconnect();
-        };
-
-        this.ws.onerror = (err) => {
-          this.connectPromise = null;
-          console.error("[WS] Connection error", err);
-          this.notifyError("WebSocket connection error");
-          reject(err);
-        };
-
-        this.ws.onmessage = (event) => {
-          try {
-            const raw = typeof event.data === "string"
-              ? event.data
-              : event.data.toString();
-            this.handleMessage(JSON.parse(raw));
-          } catch (err) {
-            console.error("[WS] Failed to parse message:", err);
-          }
-        };
-      } catch (err) {
-        this.connectPromise = null;
-        reject(err);
+    return new Promise<void>((resolve, reject) => {
+      // Reuse a still-connecting socket if present.
+      const existing = this.socket;
+      if (existing && !existing.connected) {
+        existing.once("connect", () => resolve());
+        existing.once("connect_error", (err: Error) => reject(err));
+        return;
       }
-    });
 
-    return this.connectPromise;
+      const socket = io(`${this.url}/events`, {
+        transports: ["websocket"],
+        reconnectionAttempts: WS_MAX_RECONNECT_ATTEMPTS,
+        reconnectionDelay: WS_RECONNECT_BASE_DELAY,
+        autoConnect: true,
+      });
+
+      this.socket = socket;
+
+      // Initial-connect resolution: only the FIRST connect/connect_error
+      // resolves/rejects this promise. Subsequent reconnects are handled
+      // internally by Socket.IO; we still notify connection-change listeners.
+      let settled = false;
+
+      // Settle the connect promise on the FIRST connect/connect_error.
+      socket.once("connect", () => {
+        if (!settled) {
+          settled = true;
+          resolve();
+        }
+      });
+      socket.once("connect_error", (err: Error) => {
+        if (!settled) {
+          settled = true;
+          this.notifyError(err.message ?? "WebSocket connection error");
+          reject(err);
+        }
+      });
+
+      // Persistent listener: fires on initial connect AND every reconnect.
+      // Re-subscribes known pools each time so we recover after a drop.
+      socket.on("connect", () => {
+        this.notifyConnection(true);
+        const pools = Array.from(this.poolRefs.keys());
+        if (pools.length > 0) {
+          socket.emit("subscribe", { pools });
+        }
+      });
+
+      socket.on("disconnect", () => {
+        this.notifyConnection(false);
+      });
+
+      socket.on("connect_error", (err: Error) => {
+        console.error("[WS] connect_error", err);
+        this.notifyError(err.message ?? "WebSocket connection error");
+      });
+
+      socket.on("event", (payload: unknown) => {
+        const event = unwrapEnvelope<WSBlockchainEvent>(payload, "event");
+        this.notify(this.eventCallbacks, event);
+      });
+
+      socket.on("loanEvent", (payload: unknown) => {
+        // Peel the wire envelope, then re-wrap into the FE's WSLoanEvent
+        // contract (`{ type, data }`) that downstream hooks consume.
+        const loan = unwrapEnvelope<LoanEvent>(payload, "loanEvent");
+        this.notify(this.loanCallbacks, { type: "loanEvent", data: loan });
+      });
+    });
   }
 
   disconnect(): void {
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
+    // Drop pool subscriptions; on reconnect there's nothing to restore.
+    this.poolRefs.clear();
+
+    if (this.socket) {
+      this.socket.removeAllListeners();
+      this.socket.disconnect();
+      this.socket = null;
     }
-    this.stopPing();
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-    this.subscriptions.clear();
     this.notifyConnection(false);
   }
 
   isConnected(): boolean {
-    return this.ws?.readyState === WebSocket.OPEN;
+    return this.socket?.connected === true;
   }
 
   // ===========================================================
   //                    SUBSCRIPTIONS
   // ===========================================================
 
+  /**
+   * Subscribe to push events for a pool. Only `event` and `loanEvent`
+   * channels are real push streams now — anything else is silently ignored
+   * (HTTP-polled streams moved to SWR hooks).
+   */
   subscribe(
     channel: WSChannel,
     poolAddress: string,
     interval?: string,
   ): void {
-    if (!this.isConnected()) {
-      console.warn("[WS] Cannot subscribe — not connected");
-      return;
-    }
-
-    const key = interval
-      ? `${channel}:${poolAddress}:${interval}`
-      : `${channel}:${poolAddress}`;
-
-    if (this.subscriptions.has(key)) return;
-    this.subscriptions.add(key);
-
-    const msg: Record<string, string> = {
-      type: "subscribe",
-      channel,
-      poolAddress,
-    };
-    if (channel === "ohlc" && interval) msg.interval = interval;
-
-    this.send(msg);
+    const pool = poolAddress.toLowerCase();
+    const subKey = this.subscriptionKey(channel, pool, interval);
+    this.acquirePoolRef(pool, subKey);
   }
 
   unsubscribe(
@@ -170,49 +198,48 @@ class WebSocketService {
     poolAddress: string,
     interval?: string,
   ): void {
-    if (!this.isConnected()) return;
-
-    const key = interval
-      ? `${channel}:${poolAddress}:${interval}`
-      : `${channel}:${poolAddress}`;
-    this.subscriptions.delete(key);
-
-    const msg: Record<string, string> = {
-      type: "unsubscribe",
-      channel,
-      poolAddress,
-    };
-    if (channel === "ohlc" && interval) msg.interval = interval;
-
-    this.send(msg);
+    const pool = poolAddress.toLowerCase();
+    const subKey = this.subscriptionKey(channel, pool, interval);
+    this.releasePoolRef(pool, subKey);
   }
 
   // ===========================================================
   //                REQUEST-RESPONSE METHODS
   // ===========================================================
 
-  private globalTradesResolve: ((events: WSBlockchainEvent[]) => void) | null = null;
-
   /**
-   * Request historical global trades from the WS server.
-   * The server responds with a "globalTrades" message.
+   * Request historical global trades from the backend.
+   * The NestJS gateway replies via a `globalTrades` event (NOT an ACK
+   * callback), so we use a one-shot listener with a manual timeout.
+   * Resolves with the array of events (possibly empty) or rejects on
+   * transport/timeout error.
    */
   getGlobalTrades(limit = 100): Promise<WSBlockchainEvent[]> {
     return new Promise((resolve, reject) => {
-      if (!this.isConnected()) {
+      const socket = this.socket;
+      if (!socket || !socket.connected) {
         reject(new Error("Not connected"));
         return;
       }
 
-      this.globalTradesResolve = resolve;
-      this.send({ type: "getGlobalTrades", limit });
+      const timer = setTimeout(() => {
+        socket.off("globalTrades", handler);
+        reject(new Error("getGlobalTrades timeout"));
+      }, GLOBAL_TRADES_TIMEOUT_MS);
 
-      setTimeout(() => {
-        if (this.globalTradesResolve) {
-          this.globalTradesResolve = null;
-          reject(new Error("getGlobalTrades timeout"));
-        }
-      }, 15000);
+      const handler = (payload: unknown) => {
+        clearTimeout(timer);
+        socket.off("globalTrades", handler);
+        // Backend shape: { type, trades, count } or array, depending on version.
+        const trades = Array.isArray(payload)
+          ? payload
+          : ((payload as { trades?: unknown })?.trades ??
+              (payload as { data?: unknown })?.data);
+        resolve(Array.isArray(trades) ? (trades as WSBlockchainEvent[]) : []);
+      };
+
+      socket.on("globalTrades", handler);
+      socket.emit("getGlobalTrades", { limit });
     });
   }
 
@@ -220,21 +247,6 @@ class WebSocketService {
   //                CALLBACK REGISTRATION
   // Returns an unsubscribe function for cleanup.
   // ===========================================================
-
-  onPrice(cb: WSMessageCallback<WSPriceUpdate>): () => void {
-    this.priceCallbacks.add(cb);
-    return () => this.priceCallbacks.delete(cb);
-  }
-
-  onStats(cb: WSMessageCallback<WSStatsUpdate>): () => void {
-    this.statsCallbacks.add(cb);
-    return () => this.statsCallbacks.delete(cb);
-  }
-
-  onOhlc(cb: WSMessageCallback<WSOHLCUpdate>): () => void {
-    this.ohlcCallbacks.add(cb);
-    return () => this.ohlcCallbacks.delete(cb);
-  }
 
   onEvent(cb: WSMessageCallback<WSBlockchainEvent>): () => void {
     this.eventCallbacks.add(cb);
@@ -260,113 +272,46 @@ class WebSocketService {
   //                      INTERNALS
   // ===========================================================
 
-  private handleMessage(msg: Record<string, unknown>): void {
-    switch (msg.type) {
-      case "price":
-        this.notify(this.priceCallbacks, {
-          poolAddress: msg.poolAddress as string,
-          price: msg.price as number,
-          timestamp: msg.timestamp as number,
-        });
-        break;
+  private subscriptionKey(
+    channel: WSChannel,
+    pool: string,
+    interval?: string,
+  ): string {
+    return `${channel}:${pool}:${interval ?? ""}`;
+  }
 
-      case "stats":
-        this.notify(this.statsCallbacks, {
-          poolAddress: msg.poolAddress as string,
-          data: msg.data as WSStatsUpdate["data"],
-        });
-        break;
-
-      case "ohlc":
-        this.notify(this.ohlcCallbacks, {
-          poolAddress: msg.poolAddress as string,
-          data: msg.data as WSOHLCUpdate["data"],
-          timestamp: msg.timestamp as number,
-        });
-        break;
-
-      case "event":
-        this.notify(
-          this.eventCallbacks,
-          msg.data as WSBlockchainEvent,
-        );
-        break;
-
-      case "loanEvent":
-        this.notify(this.loanCallbacks, {
-          type: "loanEvent",
-          data: msg.data,
-        } as WSLoanEvent);
-        break;
-
-      case "error":
-        this.notifyError((msg.message as string) ?? "Unknown WS error");
-        break;
-
-      case "globalTrades":
-        if (this.globalTradesResolve) {
-          const trades = (msg.trades ?? msg.data ?? []) as WSBlockchainEvent[];
-          this.globalTradesResolve(Array.isArray(trades) ? trades : []);
-          this.globalTradesResolve = null;
-        }
-        break;
-
-      case "history":
-        if (this.globalTradesResolve) {
-          const events = (msg.events ?? msg.data ?? []) as WSBlockchainEvent[];
-          this.globalTradesResolve(Array.isArray(events) ? events : []);
-          this.globalTradesResolve = null;
-        }
-        break;
-
-      case "pong":
-      case "welcome":
-      case "subscribed":
-      case "unsubscribed":
-        break;
-
-      default:
-        break;
+  /**
+   * Add a reference for a pool. Emits `subscribe` to the backend the first
+   * time we hold a reference for that pool.
+   */
+  private acquirePoolRef(pool: string, subKey: string): void {
+    let refs = this.poolRefs.get(pool);
+    if (!refs) {
+      refs = new Set<string>();
+      this.poolRefs.set(pool, refs);
+    }
+    if (refs.has(subKey)) return;
+    const wasEmpty = refs.size === 0;
+    refs.add(subKey);
+    if (wasEmpty && this.socket?.connected) {
+      this.socket.emit("subscribe", { pools: [pool] });
     }
   }
 
-  private send(data: Record<string, unknown>): void {
-    if (this.isConnected()) {
-      this.ws!.send(JSON.stringify(data));
+  /**
+   * Remove a reference for a pool. Emits `unsubscribe` to the backend only
+   * when the last reference for that pool is released.
+   */
+  private releasePoolRef(pool: string, subKey: string): void {
+    const refs = this.poolRefs.get(pool);
+    if (!refs) return;
+    if (!refs.delete(subKey)) return;
+    if (refs.size === 0) {
+      this.poolRefs.delete(pool);
+      if (this.socket?.connected) {
+        this.socket.emit("unsubscribe", { pools: [pool] });
+      }
     }
-  }
-
-  private startPing(): void {
-    this.stopPing();
-    this.pingInterval = setInterval(() => {
-      if (this.isConnected()) this.send({ type: "ping" });
-    }, WS_PING_INTERVAL);
-  }
-
-  private stopPing(): void {
-    if (this.pingInterval) {
-      clearInterval(this.pingInterval);
-      this.pingInterval = null;
-    }
-  }
-
-  private attemptReconnect(): void {
-    if (this.reconnectAttempts >= WS_MAX_RECONNECT_ATTEMPTS) {
-      console.error("[WS] Max reconnection attempts reached");
-      return;
-    }
-
-    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
-
-    const delay =
-      WS_RECONNECT_BASE_DELAY * Math.pow(2, this.reconnectAttempts);
-    this.reconnectAttempts++;
-
-    this.reconnectTimeout = setTimeout(() => {
-      this.connect().catch((err) =>
-        console.error("[WS] Reconnection failed", err),
-      );
-    }, delay);
   }
 
   private notify<T>(cbs: Set<WSMessageCallback<T>>, data: T): void {

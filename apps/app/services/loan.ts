@@ -1,82 +1,109 @@
 import { VAULT_API_URL } from "@/types/constants";
+import { fetchApi } from "@/utils/fetcher";
 import type { LoanEvent, LoanStats } from "@/types/interfaces";
 
-const BASE_URL = `${VAULT_API_URL}/api/loans`;
+/**
+ * Loan service — talks to NestJS @Controller('api/loans'). All read endpoints
+ * are @Public(). The backend returns LoanEvent[] arrays directly (wrapped by
+ * TransformInterceptor as { data: LoanEvent[], timestamp }), and `fetchApi`
+ * unwraps to the bare array.
+ *
+ * SHAPE CHANGE: list endpoints used to return `{ loans, count, ... }`. They
+ * now return `LoanEvent[]` directly. Hook callers must be updated separately.
+ */
 
-export async function fetchLatestLoans(
-  limit = 100,
-): Promise<{ loans: LoanEvent[]; count: number }> {
+/**
+ * Latest loan events across all vaults.
+ */
+export async function fetchLatestLoans(limit = 100): Promise<LoanEvent[]> {
   try {
-    const res = await fetch(`${BASE_URL}/latest?limit=${limit}`);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return await res.json();
+    return await fetchApi<LoanEvent[]>(`/api/loans/latest?limit=${limit}`, {
+      baseUrl: VAULT_API_URL,
+    });
   } catch (error) {
     console.error("[LoanService] fetchLatestLoans:", error);
-    return { loans: [], count: 0 };
+    return [];
   }
 }
 
+/**
+ * Loan events for a specific user.
+ */
 export async function fetchLoansByUser(
   userAddress: string,
-): Promise<{ userAddress: string; loans: LoanEvent[]; count: number }> {
+): Promise<LoanEvent[]> {
   try {
-    const res = await fetch(`${BASE_URL}/user/${userAddress}`);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return await res.json();
+    return await fetchApi<LoanEvent[]>(`/api/loans/user/${userAddress}`, {
+      baseUrl: VAULT_API_URL,
+    });
   } catch (error) {
     console.error("[LoanService] fetchLoansByUser:", error);
-    return { userAddress, loans: [], count: 0 };
+    return [];
   }
 }
 
+/**
+ * Loan events for a specific vault.
+ */
 export async function fetchLoansByVault(
   vaultAddress: string,
-): Promise<{ vaultAddress: string; loans: LoanEvent[]; count: number }> {
+): Promise<LoanEvent[]> {
   try {
-    const res = await fetch(`${BASE_URL}/vault/${vaultAddress}`);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return await res.json();
+    return await fetchApi<LoanEvent[]>(`/api/loans/vault/${vaultAddress}`, {
+      baseUrl: VAULT_API_URL,
+    });
   } catch (error) {
     console.error("[LoanService] fetchLoansByVault:", error);
-    return { vaultAddress, loans: [], count: 0 };
+    return [];
   }
 }
 
+/**
+ * Aggregate loan stats for a user. Object shape — already unwrapped by fetchApi.
+ */
 export async function fetchUserLoanStats(
   userAddress: string,
 ): Promise<LoanStats | null> {
   try {
-    const res = await fetch(`${BASE_URL}/stats/user/${userAddress}`);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return await res.json();
+    return await fetchApi<LoanStats>(
+      `/api/loans/stats/user/${userAddress}`,
+      { baseUrl: VAULT_API_URL },
+    );
   } catch (error) {
     console.error("[LoanService] fetchUserLoanStats:", error);
     return null;
   }
 }
 
+/**
+ * Aggregate loan stats for a vault. Object shape — already unwrapped by fetchApi.
+ */
 export async function fetchVaultLoanStats(
   vaultAddress: string,
 ): Promise<LoanStats | null> {
   try {
-    const res = await fetch(`${BASE_URL}/stats/vault/${vaultAddress}`);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return await res.json();
+    return await fetchApi<LoanStats>(
+      `/api/loans/stats/vault/${vaultAddress}`,
+      { baseUrl: VAULT_API_URL },
+    );
   } catch (error) {
     console.error("[LoanService] fetchVaultLoanStats:", error);
     return null;
   }
 }
 
+/**
+ * Loan events filtered by event type.
+ */
 export async function fetchLoansByType(
   type: "Borrow" | "Payback" | "RollLoan" | "DefaultLoans",
-): Promise<{ type: string; loans: LoanEvent[]; count: number }> {
+): Promise<LoanEvent[]> {
   try {
-    const res = await fetch(`${BASE_URL}/type/${type}`);
-    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-    return await res.json();
+    return await fetchApi<LoanEvent[]>(`/api/loans/type/${type}`, {
+      baseUrl: VAULT_API_URL,
+    });
   } catch (error) {
     console.error("[LoanService] fetchLoansByType:", error);
-    return { type, loans: [], count: 0 };
+    return [];
   }
 }

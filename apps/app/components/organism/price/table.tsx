@@ -62,7 +62,7 @@ async function fetch24hChange(poolAddress: string): Promise<number> {
 async function fetchPriceTable(): Promise<PriceTableToken[]> {
   const [vaults, tokensRes] = await Promise.all([
     swrFetcher<VaultInfo[]>(`${VAULT_API_URL}/vaults`),
-    swrFetcher<{ tokens: TokenInfo[] }>(`${API_BASE_URL}/tokens`),
+    swrFetcher<{ tokens: TokenInfo[] }>(`${API_BASE_URL}/api/tokens`),
   ]);
 
   const tokenMap = new Map<string, TokenInfo>();

@@ -24,7 +24,7 @@ export async function fetchMarketTokens(): Promise<MarketToken[]> {
 
     let tokenMap = new Map<string, TokenInfo>();
     try {
-      const tokensRes = await fetchServer<{ tokens: TokenInfo[] }>("/tokens", {
+      const tokensRes = await fetchServer<{ tokens: TokenInfo[] }>("/api/tokens", {
         revalidate: SSR_REVALIDATE_LONG,
       });
       for (const t of tokensRes.tokens ?? []) {

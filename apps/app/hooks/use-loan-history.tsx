@@ -72,9 +72,9 @@ export function useLoanHistory(vaultAddress?: string) {
     async function load() {
       setIsLoading(true);
       try {
-        const data = await fetchLoansByVault(vaultAddress!);
+        const loans = await fetchLoansByVault(vaultAddress!);
         if (!cancelled) {
-          const mapped = data.loans
+          const mapped = loans
             .filter((e) => e.eventName !== "DefaultLoans")
             .map(toLoanHistoryItem);
           setItems(mapped);

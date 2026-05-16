@@ -10,7 +10,7 @@ export async function generateMetadata({
   const { locale, token } = await params;
   return getPageMetadata(
     locale,
-    { page: "home", token: token.toUpperCase() },
+    { page: "trade", params: { token: token.toUpperCase() } },
     `/trade/${token}`,
   );
 }
