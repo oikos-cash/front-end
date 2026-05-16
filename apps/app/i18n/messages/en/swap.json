@@ -19,6 +19,8 @@
     "custom": "Custom",
     "mevProtection": "MEV Protection",
     "mevProtectionDesc": "Protect your transaction from front-running bots",
+    "approveMax": "Approve Max",
+    "approveMaxDesc": "Approve unlimited spending to avoid future approvals",
     "saveSettings": "Save",
     "cancel": "Cancel",
     "confirmToken": "Select",

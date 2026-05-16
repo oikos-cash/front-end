@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { parseEther, formatEther } from "viem";
+import { parseEther, formatEther, maxUint256 } from "viem";
 
 // Components
 import Card from "@/components/atoms/card";
@@ -112,8 +112,25 @@ export default function SwapForm({
   initialTokens: SwapToken[];
 }) {
   const t = useTranslations("swap");
-  const { address } = useWallet();
-  const tokens = initialTokens;
+  const { address, tokenBalances } = useWallet();
+
+  // Merge live wallet balances into the SSR-built token list. SSR has no idea
+  // who the user is so it hardcodes balance: 0 — without this, "Use max" would
+  // always fill 0.
+  const tokens = useMemo<SwapToken[]>(() => {
+    return initialTokens.map((tk) => {
+      const addr =
+        tk.token0 && tk.token0.length > 0
+          ? tk.token0
+          : tk.symbol === "WBNB"
+            ? WBNB_ADDRESS
+            : "";
+      if (!addr) return tk;
+      const formatted = tokenBalances[addr.toLowerCase()];
+      if (formatted == null) return tk;
+      return { ...tk, balance: parseFloat(formatted) || 0 };
+    });
+  }, [initialTokens, tokenBalances]);
   const form = useForm<SwapFormValues>({
     resolver: zodResolver(swapSchema),
     defaultValues: { fromToken: "", toToken: "", fromAmount: "" },
@@ -129,6 +146,7 @@ export default function SwapForm({
   const [slippage, setSlippage] = useState("0.5");
   const [customSlippage, setCustomSlippage] = useState("");
   const [mevProtection, setMevProtection] = useState(true);
+  const [approveMax, setApproveMax] = useState(false);
 
   // Sheet state
   const [fromSheetOpen, setFromSheetOpen] = useState(false);
@@ -179,6 +197,10 @@ export default function SwapForm({
   const toAddr = toTokenData?.token0
     || (toTokenData?.symbol === "WBNB" ? WBNB_ADDRESS : undefined);
 
+  const amountInWei = fromAmount > 0
+    ? parseEther(fromAmount.toString())
+    : undefined;
+
   const {
     execute: executeSwap,
     approve: approveToken,
@@ -188,6 +210,7 @@ export default function SwapForm({
     address as Address | undefined,
     fromAddr as Address | undefined,
     QUOTER_V2_ADDRESS as Address,
+    amountInWei,
   );
 
   // Quoter V2 simulation for real output & price impact
@@ -279,8 +302,10 @@ export default function SwapForm({
   async function onSubmit() {
     if (!fromAddr || !toAddr || !address || !quote) return;
 
+    const amountIn = parseEther(fromAmount.toString());
+
     if (needsApproval) {
-      approveToken();
+      approveToken(approveMax ? maxUint256 : amountIn);
       return;
     }
 
@@ -289,7 +314,7 @@ export default function SwapForm({
       tokenIn: fromAddr as Address,
       tokenOut: toAddr as Address,
       fee: DEFAULT_POOL_FEE,
-      amountIn: parseEther(fromAmount.toString()),
+      amountIn,
       amountOutMinimum: calculateMinReceived(
         quote.amountOut,
         Math.round(activeSlippage * 100),
@@ -364,6 +389,13 @@ export default function SwapForm({
                 onCheckedChange={(v) => setMevProtection(v as boolean)}
                 label={t("mevProtection")}
                 description={t("mevProtectionDesc")}
+              />
+
+              <Checkbox
+                checked={approveMax}
+                onCheckedChange={(v) => setApproveMax(v as boolean)}
+                label={t("approveMax")}
+                description={t("approveMaxDesc")}
               />
             </div>
           }

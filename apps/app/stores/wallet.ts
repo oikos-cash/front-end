@@ -27,31 +27,42 @@ export function useWallet(): WalletState {
     chainId != null &&
     (SUPPORTED_CHAIN_IDS as readonly number[]).includes(chainId);
 
-  // Active pair = first vault returned by the backend (same convention TradePanel uses).
-  // Shared SWR key dedupes the request when both panels mount.
+  // Shared SWR key with TradePanel / swap page — no extra request.
   const { data: vaults } = useSWR<VaultInfo[]>(
     `${VAULT_API_URL}/vaults`,
     swrFetcher,
     { errorRetryCount: 0, revalidateOnFocus: false },
   );
   const activeVault = vaults?.[0] ?? null;
-  const pairToken =
-    activeVault?.token0 &&
-    activeVault.token0.toLowerCase() !== WBNB_ADDRESS.toLowerCase()
-      ? (activeVault.token0 as Address)
-      : null;
+  const wbnbLower = WBNB_ADDRESS.toLowerCase();
 
+  // Fetch WBNB + every vault token0 so any panel can look up its source token's balance.
   const tokenList = useMemo<Address[]>(() => {
+    const seen = new Set<string>([wbnbLower]);
     const list: Address[] = [WBNB_ADDRESS as Address];
-    if (pairToken) list.push(pairToken);
+    for (const v of vaults ?? []) {
+      const addr = v.token0?.toLowerCase();
+      if (addr && !seen.has(addr)) {
+        seen.add(addr);
+        list.push(v.token0 as Address);
+      }
+    }
     return list;
-  }, [pairToken]);
+  }, [vaults, wbnbLower]);
 
   const { native, tokens: tokenMap, isLoading: isBalancesLoading } = useBalances(
     address as Address | undefined,
     tokenList,
     chainId ?? undefined,
   );
+
+  const tokenBalances = useMemo<Record<string, string>>(() => {
+    const out: Record<string, string> = {};
+    for (const [addr, info] of Object.entries(tokenMap)) {
+      out[addr] = info.formatted;
+    }
+    return out;
+  }, [tokenMap]);
 
   const balances = useMemo<TokenBalance[]>(() => {
     if (!isConnected || !native) return [];
@@ -69,7 +80,7 @@ export function useWallet(): WalletState {
       },
     ];
 
-    const wbnb = tokenMap[WBNB_ADDRESS.toLowerCase()];
+    const wbnb = tokenMap[wbnbLower];
     if (wbnb && wbnb.balance > BigInt(0)) {
       const wbnbAmount = parseFloat(wbnb.formatted);
       const wbnbUsd = wbnbAmount * bnbPrice;
@@ -82,11 +93,14 @@ export function useWallet(): WalletState {
       });
     }
 
-    if (pairToken && activeVault) {
-      const pair = tokenMap[pairToken.toLowerCase()];
+    if (
+      activeVault &&
+      activeVault.token0 &&
+      activeVault.token0.toLowerCase() !== wbnbLower
+    ) {
+      const pair = tokenMap[activeVault.token0.toLowerCase()];
       if (pair && pair.balance > BigInt(0)) {
         const pairAmount = parseFloat(pair.formatted);
-        // spotPriceX96 here is stored as wei-denominated BNB price (see use-exchange-kpis.ts).
         const priceBnb =
           Number(BigInt(activeVault.spotPriceX96 || "0")) / 1e18;
         const pairUsd = pairAmount * priceBnb * bnbPrice;
@@ -100,7 +114,7 @@ export function useWallet(): WalletState {
     }
 
     return result;
-  }, [isConnected, native, tokenMap, bnbPrice, pairToken, activeVault]);
+  }, [isConnected, native, tokenMap, bnbPrice, activeVault, wbnbLower]);
 
   const totalValue = useMemo(() => {
     if (balances.length === 0) return "$0.00";
@@ -118,6 +132,7 @@ export function useWallet(): WalletState {
     chainId: chainId ?? null,
     isCorrectNetwork,
     balances,
+    tokenBalances,
     totalValue,
     handleConnect: () => openConnectModal?.(),
     handleDisconnect: () => disconnect(),

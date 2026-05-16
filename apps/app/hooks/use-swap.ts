@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { type Address, erc20Abi, maxUint256 } from "viem";
+import { type Address, erc20Abi } from "viem";
 
 import { useAllowances } from "@/hooks/use-allowances";
 
@@ -49,17 +49,25 @@ export interface SwapParams {
  * Hook for executing swaps on Uniswap V3 / PancakeSwap V3 routers.
  * Handles allowance check → approve → swap flow.
  *
+ * Pass `amountIn` so `needsApproval` reflects the actual trade size — without
+ * it the hook can't tell if the existing allowance is enough.
+ *
  * @example
  * const { execute, approve, needsApproval, isPending } = useSwap(
  *   walletAddress,
  *   tokenInAddress,
  *   routerAddress,
+ *   parseEther("1.5"),
  * );
+ * approve(parseEther("1.5")); // exact amount
+ * // or
+ * approve(maxUint256);        // unlimited
  */
 export function useSwap(
   ownerAddress: Address | null | undefined,
   tokenIn: Address | undefined,
   spenderAddress: Address | undefined,
+  amountIn?: bigint,
 ) {
   const [lastTxHash, setLastTxHash] = useState<`0x${string}` | undefined>();
 
@@ -72,7 +80,12 @@ export function useSwap(
     ownerAddress,
     pairs,
   );
-  const needsApproval = allowances.length > 0 && !allowances[0].isMaxApproved;
+  const allowance = allowances[0]?.allowance ?? BigInt(0);
+  const needsApproval = useMemo(() => {
+    if (!tokenIn || !spenderAddress) return false;
+    if (amountIn == null || amountIn === BigInt(0)) return false;
+    return allowance < amountIn;
+  }, [allowance, amountIn, tokenIn, spenderAddress]);
 
   // Contract writes
   const {
@@ -89,14 +102,14 @@ export function useSwap(
     hash: lastTxHash,
   });
 
-  async function approve() {
+  async function approve(amount: bigint) {
     if (!tokenIn || !spenderAddress) return;
     writeApprove(
       {
         address: tokenIn,
         abi: erc20Abi,
         functionName: "approve",
-        args: [spenderAddress, maxUint256],
+        args: [spenderAddress, amount],
       },
       {
         onSuccess: (hash) => {
@@ -137,6 +150,7 @@ export function useSwap(
   return {
     execute,
     approve,
+    allowance,
     needsApproval,
     isPending: isApproving || isSwapping || isConfirming,
     isApproving,

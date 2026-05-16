@@ -1222,6 +1222,8 @@ export interface WalletState {
   chainId: number | null;
   isCorrectNetwork: boolean;
   balances: TokenBalance[];
+  /** Lowercased ERC20 address -> formatted balance (string). Includes WBNB and every known vault token0. */
+  tokenBalances: Record<string, string>;
   totalValue: string;
   handleConnect: () => void;
   handleDisconnect: () => void;

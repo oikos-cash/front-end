@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSWR from "swr";
-import { parseEther, formatEther } from "viem";
+import { parseEther, formatEther, maxUint256 } from "viem";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -54,7 +54,8 @@ import {
  */
 export function useTradePanel() {
   const t = useTranslations("trade");
-  const { isConnected, address, balances, handleConnect } = useWallet();
+  const { isConnected, address, balances, tokenBalances, handleConnect } =
+    useWallet();
 
   // Check if backend has vaults
   const { data: vaults, isLoading: isLoadingVaults } = useSWR<VaultInfo[]>(
@@ -64,22 +65,6 @@ export function useTradePanel() {
   );
   const hasVault = (vaults?.length ?? 0) > 0;
   const vault = vaults?.[0] ?? null;
-
-  // Token addresses for swap
-  const tokenIn = vault ? WBNB_ADDRESS : undefined;
-  const tokenOut = vault?.token0 as Address | undefined;
-
-  // Swap execution hook
-  const {
-    execute: executeSwap,
-    approve: approveToken,
-    needsApproval,
-    isPending: isSwapPending,
-  } = useSwap(
-    address as Address | undefined,
-    tokenIn as Address | undefined,
-    QUOTER_V2_ADDRESS as Address,
-  );
 
   const [side, setSide] = useState<TradeSide>("buy");
   const [slippage, setSlippage] = useState<SlippageOption>("0.5");
@@ -99,6 +84,35 @@ export function useTradePanel() {
   const amount = form.watch("amount");
   const customSlippage = form.watch("customSlippage");
   const numericAmount = parseFloat(amount) || 0;
+
+  // Source token follows the trade side. The allowance / approval target the
+  // actual source ERC20 — selling OKS approves OKS, not WBNB.
+  const swapTokenIn = vault
+    ? side === "buy"
+      ? (WBNB_ADDRESS as Address)
+      : (vault.token0 as Address)
+    : undefined;
+  const swapTokenOut = vault
+    ? side === "buy"
+      ? (vault.token0 as Address)
+      : (WBNB_ADDRESS as Address)
+    : undefined;
+  const amountInWei = numericAmount > 0
+    ? parseEther(numericAmount.toString())
+    : undefined;
+
+  // Swap execution hook
+  const {
+    execute: executeSwap,
+    approve: approveToken,
+    needsApproval,
+    isPending: isSwapPending,
+  } = useSwap(
+    address as Address | undefined,
+    swapTokenIn,
+    QUOTER_V2_ADDRESS as Address,
+    amountInWei,
+  );
 
   const slippagePct =
     slippage === "custom"
@@ -152,46 +166,52 @@ export function useTradePanel() {
       }
     : { gwei: 0, bnb: 0, usd: 0 };
 
-  const bnbBalance = balances.find((b) => b.token === "BNB");
-  const balanceLabel = bnbBalance
-    ? `${bnbBalance.amount} BNB`
-    : "0.0000 BNB";
+  const tokenSymbol = vault?.tokenSymbol ?? "OKS";
+
+  // Source token follows the trade side: BNB on buy, the pair's token0 on sell.
+  const sourceBalance = (() => {
+    if (side === "buy") {
+      const bnb = balances.find((b) => b.token === "BNB");
+      return { amount: bnb?.amount ?? "0", symbol: "BNB" };
+    }
+    const raw = vault?.token0
+      ? tokenBalances[vault.token0.toLowerCase()] ?? "0"
+      : "0";
+    return { amount: raw, symbol: tokenSymbol };
+  })();
+  const sourceAmount = parseFloat(sourceBalance.amount) || 0;
+  const balanceLabel = `${sourceAmount.toFixed(4)} ${sourceBalance.symbol}`;
 
   function handleUseMax() {
-    if (bnbBalance) {
-      form.setValue("amount", bnbBalance.amount, { shouldValidate: true });
+    if (sourceAmount > 0) {
+      form.setValue("amount", sourceAmount.toString(), { shouldValidate: true });
     }
   }
 
   // Percentage shortcuts — compute fraction of wallet balance
   function handlePercentage(pct: number) {
-    if (bnbBalance) {
-      const value = ((parseFloat(bnbBalance.amount) * pct) / 100).toFixed(4);
+    if (sourceAmount > 0) {
+      const value = ((sourceAmount * pct) / 100).toFixed(4);
       form.setValue("amount", value, { shouldValidate: true });
     }
   }
 
   function onSubmit(data: TradeFormValues) {
-    if (!vault || !address || !quote) return;
+    if (!vault || !address || !quote || !swapTokenIn || !swapTokenOut) return;
+
+    const amountIn = parseEther(data.amount);
 
     if (needsApproval) {
-      approveToken();
+      approveToken(data.approveMax ? maxUint256 : amountIn);
       return;
     }
-
-    const swapTokenIn = side === "buy"
-      ? (WBNB_ADDRESS as Address)
-      : (vault.token0 as Address);
-    const swapTokenOut = side === "buy"
-      ? (vault.token0 as Address)
-      : (WBNB_ADDRESS as Address);
 
     executeSwap({
       routerAddress: QUOTER_V2_ADDRESS as Address,
       tokenIn: swapTokenIn,
       tokenOut: swapTokenOut,
       fee: DEFAULT_POOL_FEE,
-      amountIn: parseEther(data.amount),
+      amountIn,
       amountOutMinimum: calculateMinReceived(
         quote.amountOut,
         Math.round(slippagePct * 100),
@@ -199,8 +219,6 @@ export function useTradePanel() {
       recipient: address as Address,
     });
   }
-
-  const tokenSymbol = vault?.tokenSymbol ?? "OKS";
 
   // Field configs — contain JSX so they can't be defined in constants
   const amountFields: FieldItem[] = [
