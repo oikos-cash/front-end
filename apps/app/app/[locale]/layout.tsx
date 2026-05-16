@@ -15,11 +15,6 @@ import { getMessages, getTranslations } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "@/i18n/routing";
 
-// Wagmi SSR
-import { cookieToInitialState } from "wagmi";
-import { headers } from "next/headers";
-import { wagmiConfig } from "@/lib/wagmi";
-
 // Types
 import type { Metadata } from "next";
 
@@ -97,9 +92,6 @@ export default async function RootLayout({
   }
 
   const messages = await getMessages();
-  const headersList = await headers();
-  const cookie = headersList.get("cookie");
-  const initialState = cookieToInitialState(wagmiConfig, cookie);
 
   return (
     <html lang={locale} suppressHydrationWarning>
@@ -108,7 +100,7 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <Web3Provider initialState={initialState}>
+          <Web3Provider>
             <SWRProvider>
               <Header />
               <SideBar>

@@ -1,25 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { WagmiProvider, type State } from "wagmi";
-import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
+import { http, WagmiProvider } from "wagmi";
+import { bsc, bscTestnet } from "wagmi/chains";
+import { getDefaultConfig, RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { wagmiConfig } from "@/lib/wagmi";
+import { WALLETCONNECT_PROJECT_ID } from "@/types/constants";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
 export default function Web3Provider({
   children,
-  initialState,
 }: {
   children: React.ReactNode;
-  initialState?: State;
 }) {
   const [queryClient] = useState(() => new QueryClient());
+  const [wagmiConfig] = useState(() =>
+    getDefaultConfig({
+      appName: "Oikos",
+      projectId: WALLETCONNECT_PROJECT_ID,
+      chains: [bsc, bscTestnet],
+      transports: {
+        [bsc.id]: http(),
+        [bscTestnet.id]: http(),
+      },
+      ssr: true,
+    }),
+  );
 
   return (
-    <WagmiProvider config={wagmiConfig} initialState={initialState}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider theme={darkTheme()}>
           {children}
