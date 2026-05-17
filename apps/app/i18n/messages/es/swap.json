@@ -27,6 +27,7 @@
     "routingTitle": "Enrutamiento",
     "routingDescription": "Como se enruta tu swap entre los DEXs",
     "swapAction": "Intercambiar",
+    "unsupportedPair": "Par directo no soportado — elige WBNB en un lado",
     "flipTokens": "Invertir tokens",
     "recentSwaps": "Intercambios Recientes",
     "recentSwapsDesc": "Tus ultimas transacciones de intercambio",

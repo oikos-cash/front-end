@@ -9,7 +9,7 @@ import { parseEther, formatEther, maxUint256 } from "viem";
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
-import { useSwap } from "@/hooks/use-swap";
+import { useSwap, type SwapMode } from "@/hooks/use-swap";
 import type { Address } from "viem";
 
 // Types
@@ -84,19 +84,17 @@ export function useTradePanel() {
 
   const amount = form.watch("amount");
   const customSlippage = form.watch("customSlippage");
+  const useWbnb = form.watch("useWbnb");
   const numericAmount = parseFloat(amount) || 0;
 
-  // Source token follows the trade side. The allowance / approval target the
-  // actual source ERC20 — selling OKS approves OKS, not WBNB.
+  // Source token for allowance checks. Native BNB never needs approval, so
+  // pass undefined in that case (buy side without "Use WBNB").
   const swapTokenIn = vault
     ? side === "buy"
-      ? (WBNB_ADDRESS as Address)
+      ? useWbnb
+        ? (WBNB_ADDRESS as Address)
+        : undefined
       : (vault.token0 as Address)
-    : undefined;
-  const swapTokenOut = vault
-    ? side === "buy"
-      ? (vault.token0 as Address)
-      : (WBNB_ADDRESS as Address)
     : undefined;
   const amountInWei = numericAmount > 0
     ? parseEther(numericAmount.toString())
@@ -198,26 +196,34 @@ export function useTradePanel() {
   }
 
   function onSubmit(data: TradeFormValues) {
-    if (!vault || !address || !quote || !swapTokenIn || !swapTokenOut) return;
+    if (!vault || !address || !quote) return;
 
     const amountIn = parseEther(data.amount);
+    const slippageBps = Math.round(slippagePct * 100);
 
     if (needsApproval) {
       approveToken(data.approveMax ? maxUint256 : amountIn);
       return;
     }
 
+    const mode: SwapMode = data.useWbnb
+      ? side === "buy"
+        ? "buyTokensWETH"
+        : "sellTokens"
+      : side === "buy"
+        ? "buyTokens"
+        : "sellTokensETH";
+
     executeSwap({
+      mode,
       routerAddress: EXCHANGE_HELPER_ADDRESS,
-      tokenIn: swapTokenIn,
-      tokenOut: swapTokenOut,
-      fee: DEFAULT_POOL_FEE,
-      amountIn,
-      amountOutMinimum: calculateMinReceived(
-        quote.amountOut,
-        Math.round(slippagePct * 100),
-      ),
-      recipient: address as Address,
+      vaultAddress: vault.address as Address,
+      pool: vault.poolAddress as Address,
+      price: BigInt(vault.spotPriceX96 || "0"),
+      amount: amountIn,
+      minAmount: calculateMinReceived(quote.amountOut, slippageBps),
+      receiver: address as Address,
+      slippageBps,
     });
   }
 

@@ -20,7 +20,7 @@ import KeyValueCard from "@/components/molecules/card/key-value";
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
-import { useSwap } from "@/hooks/use-swap";
+import { useSwap, type SwapMode } from "@/hooks/use-swap";
 import type { Address } from "viem";
 
 // Types
@@ -300,10 +300,26 @@ export default function SwapForm({
     });
   }
 
+  // ExchangeHelper routes against a single vault: WBNB <-> vault token.
+  // Token-to-token (vault A -> vault B) would require two hops and is not
+  // supported by this UI yet.
+  const fromIsWbnb = fromTokenData?.symbol === "WBNB";
+  const toIsWbnb = toTokenData?.symbol === "WBNB";
+  const vaultSide = fromIsWbnb ? toTokenData : toIsWbnb ? fromTokenData : null;
+  const swapMode: SwapMode | null = fromIsWbnb
+    ? "buyTokensWETH"
+    : toIsWbnb
+      ? "sellTokens"
+      : null;
+  const isUnsupportedPair =
+    !!fromTokenData && !!toTokenData && swapMode === null;
+
   async function onSubmit() {
     if (!fromAddr || !toAddr || !address || !quote) return;
+    if (!swapMode || !vaultSide?.vaultAddress || !vaultSide?.poolAddress) return;
 
     const amountIn = parseEther(fromAmount.toString());
+    const slippageBps = Math.round(activeSlippage * 100);
 
     if (needsApproval) {
       approveToken(approveMax ? maxUint256 : amountIn);
@@ -311,16 +327,15 @@ export default function SwapForm({
     }
 
     executeSwap({
+      mode: swapMode,
       routerAddress: EXCHANGE_HELPER_ADDRESS,
-      tokenIn: fromAddr as Address,
-      tokenOut: toAddr as Address,
-      fee: DEFAULT_POOL_FEE,
-      amountIn,
-      amountOutMinimum: calculateMinReceived(
-        quote.amountOut,
-        Math.round(activeSlippage * 100),
-      ),
-      recipient: address as Address,
+      vaultAddress: vaultSide.vaultAddress as Address,
+      pool: vaultSide.poolAddress as Address,
+      price: BigInt(vaultSide.spotPriceX96 ?? "0"),
+      amount: amountIn,
+      minAmount: calculateMinReceived(quote.amountOut, slippageBps),
+      receiver: address as Address,
+      slippageBps,
     });
   }
 
@@ -599,10 +614,16 @@ export default function SwapForm({
       <Button
         type="submit"
         className="w-full"
-        disabled={!form.formState.isValid || isSwapPending}
+        disabled={
+          !form.formState.isValid || isSwapPending || isUnsupportedPair
+        }
         isLoading={isSwapPending}
       >
-        {needsApproval ? t("approveAction") : t("swapAction")}
+        {isUnsupportedPair
+          ? t("unsupportedPair")
+          : needsApproval
+            ? t("approveAction")
+            : t("swapAction")}
       </Button>
     </form>
   );

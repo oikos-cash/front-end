@@ -811,6 +811,9 @@ export interface SwapToken {
   poolAddress?: string;
   vaultAddress?: string;
   token0?: string;
+  /** Raw spotPriceX96 string from the vault API — used as the ExchangeHelper
+   *  reference price. Absent for the synthetic WBNB base entry. */
+  spotPriceX96?: string;
 }
 
 export interface SwapFormValues {

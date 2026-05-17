@@ -37,6 +37,7 @@ export async function fetchSwapTokens(): Promise<SwapToken[]> {
         poolAddress: vault.poolAddress,
         vaultAddress: vault.address,
         token0: vault.token0,
+        spotPriceX96: vault.spotPriceX96,
       };
     });
 

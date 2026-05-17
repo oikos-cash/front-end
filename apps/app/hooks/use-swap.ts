@@ -8,60 +8,37 @@ import {
 import { type Address, erc20Abi } from "viem";
 
 import { useAllowances } from "@/hooks/use-allowances";
+import { EXCHANGE_HELPER_ABI } from "@/lib/oikos-addresses";
 
-// Minimal Router ABI for exactInputSingle
-const ROUTER_ABI = [
-  {
-    inputs: [
-      {
-        components: [
-          { name: "tokenIn", type: "address" },
-          { name: "tokenOut", type: "address" },
-          { name: "fee", type: "uint24" },
-          { name: "recipient", type: "address" },
-          { name: "deadline", type: "uint256" },
-          { name: "amountIn", type: "uint256" },
-          { name: "amountOutMinimum", type: "uint256" },
-          { name: "sqrtPriceLimitX96", type: "uint160" },
-        ],
-        name: "params",
-        type: "tuple",
-      },
-    ],
-    name: "exactInputSingle",
-    outputs: [{ name: "amountOut", type: "uint256" }],
-    stateMutability: "payable",
-    type: "function",
-  },
-] as const;
+export type SwapMode =
+  | "buyTokens" // native BNB -> vault token (payable, no `amount` arg)
+  | "buyTokensWETH" // WBNB -> vault token
+  | "sellTokens" // vault token -> WBNB
+  | "sellTokensETH"; // vault token -> native BNB
 
-export interface SwapParams {
+export interface SwapExecuteParams {
+  mode: SwapMode;
+  /** ExchangeHelper address (or whichever chain-specific helper). */
   routerAddress: Address;
-  tokenIn: Address;
-  tokenOut: Address;
-  fee: number;
-  amountIn: bigint;
-  amountOutMinimum: bigint;
-  recipient: Address;
+  vaultAddress: Address;
+  pool: Address;
+  /** Reference price for slippage anchoring — pass vault.spotPriceX96. */
+  price: bigint;
+  /** Source amount in wei. For mode "buyTokens" this is forwarded as msg.value. */
+  amount: bigint;
+  minAmount: bigint;
+  receiver: Address;
+  /** Slippage in basis points (e.g. 50 = 0.5%). */
+  slippageBps: number;
+  isLimitOrder?: boolean;
+  referralCode?: `0x${string}`;
 }
 
 /**
- * Hook for executing swaps on Uniswap V3 / PancakeSwap V3 routers.
- * Handles allowance check → approve → swap flow.
+ * Approve + swap helper around the Oikos ExchangeHelper.
  *
- * Pass `amountIn` so `needsApproval` reflects the actual trade size — without
- * it the hook can't tell if the existing allowance is enough.
- *
- * @example
- * const { execute, approve, needsApproval, isPending } = useSwap(
- *   walletAddress,
- *   tokenInAddress,
- *   routerAddress,
- *   parseEther("1.5"),
- * );
- * approve(parseEther("1.5")); // exact amount
- * // or
- * approve(maxUint256);        // unlimited
+ * Pass `tokenIn = undefined` when the source is native BNB — no ERC20
+ * approval is needed and `needsApproval` will be false.
  */
 export function useSwap(
   ownerAddress: Address | null | undefined,
@@ -87,7 +64,6 @@ export function useSwap(
     return allowance < amountIn;
   }, [allowance, amountIn, tokenIn, spenderAddress]);
 
-  // Contract writes
   const {
     writeContract: writeApprove,
     isPending: isApproving,
@@ -120,30 +96,54 @@ export function useSwap(
     );
   }
 
-  async function execute(params: SwapParams) {
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200); // 20 min
+  async function execute(params: SwapExecuteParams) {
+    const referralCode = params.referralCode ?? "0x0000000000000000";
+    const isLimitOrder = params.isLimitOrder ?? false;
+    const slippageTolerance = BigInt(params.slippageBps);
 
+    if (params.mode === "buyTokens") {
+      // Native BNB source — amount travels as msg.value, no `amount` parameter.
+      writeSwap(
+        {
+          address: params.routerAddress,
+          abi: EXCHANGE_HELPER_ABI,
+          functionName: "buyTokens",
+          args: [
+            params.vaultAddress,
+            params.pool,
+            params.price,
+            params.minAmount,
+            params.receiver,
+            isLimitOrder,
+            slippageTolerance,
+            referralCode,
+          ],
+          value: params.amount,
+        },
+        { onSuccess: (hash) => setLastTxHash(hash) },
+      );
+      return;
+    }
+
+    // buyTokensWETH / sellTokens / sellTokensETH all share the same arg shape.
     writeSwap(
       {
         address: params.routerAddress,
-        abi: ROUTER_ABI,
-        functionName: "exactInputSingle",
+        abi: EXCHANGE_HELPER_ABI,
+        functionName: params.mode,
         args: [
-          {
-            tokenIn: params.tokenIn,
-            tokenOut: params.tokenOut,
-            fee: params.fee,
-            recipient: params.recipient,
-            deadline,
-            amountIn: params.amountIn,
-            amountOutMinimum: params.amountOutMinimum,
-            sqrtPriceLimitX96: BigInt(0),
-          },
+          params.vaultAddress,
+          params.pool,
+          params.price,
+          params.amount,
+          params.minAmount,
+          params.receiver,
+          isLimitOrder,
+          slippageTolerance,
+          referralCode,
         ],
       },
-      {
-        onSuccess: (hash) => setLastTxHash(hash),
-      },
+      { onSuccess: (hash) => setLastTxHash(hash) },
     );
   }
 

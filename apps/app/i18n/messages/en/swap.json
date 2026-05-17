@@ -27,6 +27,7 @@
     "routingTitle": "Routing",
     "routingDescription": "How your swap is routed across DEXs",
     "swapAction": "Swap",
+    "unsupportedPair": "Direct pair not supported — pick WBNB on one side",
     "flipTokens": "Flip tokens",
     "recentSwaps": "Recent Swaps",
     "recentSwapsDesc": "Your latest swap transactions",
