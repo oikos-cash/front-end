@@ -51,7 +51,7 @@ export default function BorrowFormPanel({
               {t("loanFees")}
             </span>
             <span className="text-lg font-medium text-primary">
-              {numericAmount > 0 ? formatStakeNumber(loanFees) : "0.00"} {token}
+              {numericAmount > 0 ? formatStakeNumber(loanFees) : "0.00"} WBNB
             </span>
           </div>
         </div>
@@ -60,6 +60,7 @@ export default function BorrowFormPanel({
         <div className="flex w-full justify-end gap-3">
           <Button
             type="submit"
+            form="borrow-form"
             disabled={!form.formState.isValid}
             isLoading={form.formState.isSubmitting}
           >
@@ -69,6 +70,7 @@ export default function BorrowFormPanel({
       }
     >
       <form
+        id="borrow-form"
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-4"
       >

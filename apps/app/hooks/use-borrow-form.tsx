@@ -34,7 +34,7 @@ import Avatar from "@/components/atoms/avatar";
  */
 export function useBorrowForm(vault: VaultInfo | null) {
   const t = useTranslations("borrow");
-  const { isConnected } = useWallet();
+  const { isConnected, tokenBalances } = useWallet();
 
   const token = vault?.tokenSymbol ?? "TOKEN";
   const imv = parseFloat(vault?.liquidityRatio ?? "0");
@@ -47,11 +47,17 @@ export function useBorrowForm(vault: VaultInfo | null) {
     vault?.token0,
   );
 
+  // Max borrowable WBNB = user's collateral-token balance × IMV.
+  const collateralBalance = vault?.token0
+    ? parseFloat(tokenBalances[vault.token0.toLowerCase()] ?? "0")
+    : 0;
+  const maxBorrowableWbnb = collateralBalance * imv;
+
   const borrowData = {
     tokenPair: `${token}/WBNB`,
     imv,
     dailyInterest,
-    userBalance: 0,
+    userBalance: maxBorrowableWbnb,
     protocolStatus: (isActive ? "active" : "paused") as "active" | "paused",
   };
 
@@ -101,7 +107,7 @@ export function useBorrowForm(vault: VaultInfo | null) {
     label: t(field.name),
     ariaLabel: t(field.name),
     ...(field.name === "borrowAmount" && {
-      endContent: <Avatar name={token} size="default" />,
+      endContent: <Avatar name="WBNB" size="default" />,
       description: (
         <button
           type="button"
@@ -110,7 +116,7 @@ export function useBorrowForm(vault: VaultInfo | null) {
         >
           {t("useMax", {
             amount: formatStakeNumber(borrowData.userBalance),
-            token,
+            token: "WBNB",
           })}
         </button>
       ),
