@@ -38,6 +38,7 @@
     "repayCollateralReturned": "Colateral Devuelto",
     "repayAction": "Pagar Prestamo",
     "rollDuration": "Nueva Duracion",
+    "collateralAmount": "Cantidad de Colateral",
     "rollFee": "Comision de Extension",
     "rollNewExpiry": "Nueva Expiracion",
     "rollAction": "Extender Prestamo",

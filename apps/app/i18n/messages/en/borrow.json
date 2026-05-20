@@ -38,6 +38,7 @@
     "repayCollateralReturned": "Collateral Returned",
     "repayAction": "Repay Loan",
     "rollDuration": "New Duration",
+    "collateralAmount": "Collateral Amount",
     "rollFee": "Extension Fee",
     "rollNewExpiry": "New Expiry",
     "rollAction": "Extend Loan",
