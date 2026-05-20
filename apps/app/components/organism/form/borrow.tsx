@@ -27,6 +27,10 @@ export default function BorrowFormPanel({
     loanFees,
     fields,
     onSubmit,
+    hasActiveLoan,
+    needsApproval,
+    approveCollateral,
+    isApproving,
   } = useBorrowForm(vault);
 
   if (!isConnected) return null;
@@ -57,15 +61,33 @@ export default function BorrowFormPanel({
         </div>
       }
       footer={
-        <div className="flex w-full justify-end gap-3">
-          <Button
-            type="submit"
-            form="borrow-form"
-            disabled={!form.formState.isValid}
-            isLoading={form.formState.isSubmitting}
-          >
-            {t("borrowAction")}
-          </Button>
+        <div className="flex w-full items-center justify-between gap-3">
+          {hasActiveLoan ? (
+            <span className="text-xs text-muted-foreground">
+              {t("activeLoanBlock")}
+            </span>
+          ) : (
+            <span />
+          )}
+          {needsApproval && !hasActiveLoan ? (
+            <Button
+              type="button"
+              onClick={approveCollateral}
+              disabled={!form.formState.isValid || isApproving}
+              isLoading={isApproving}
+            >
+              {t("approveCollateral", { token })}
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              form="borrow-form"
+              disabled={!form.formState.isValid || hasActiveLoan}
+              isLoading={form.formState.isSubmitting}
+            >
+              {t("borrowAction")}
+            </Button>
+          )}
         </div>
       }
     >

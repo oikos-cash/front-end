@@ -20,6 +20,8 @@
     "collateralRequired": "Collateral Required",
     "loanFees": "Loan Fees",
     "borrowAction": "Borrow",
+    "approveCollateral": "Approve {token}",
+    "activeLoanBlock": "You already have an active loan on this vault. Repay or roll it before opening a new one.",
     "positionTitle": "Active Loan",
     "positionDescription": "Your current loan position",
     "positionBorrowed": "Borrowed",

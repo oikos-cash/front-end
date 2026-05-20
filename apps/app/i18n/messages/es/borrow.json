@@ -20,6 +20,8 @@
     "collateralRequired": "Colateral Requerido",
     "loanFees": "Comisiones del Prestamo",
     "borrowAction": "Pedir Prestamo",
+    "approveCollateral": "Aprobar {token}",
+    "activeLoanBlock": "Ya tienes un prestamo activo en este vault. Paga o renueva antes de abrir uno nuevo.",
     "positionTitle": "Prestamo Activo",
     "positionDescription": "Tu posicion de prestamo actual",
     "positionBorrowed": "Prestado",
