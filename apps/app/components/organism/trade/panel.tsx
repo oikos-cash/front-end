@@ -37,6 +37,8 @@ export default function TradePanel() {
     approveField,
     amountFields,
     slippageField,
+    useWbnb,
+    setUseWbnb,
     numericAmount,
     handleConnect,
     handlePercentage,
@@ -121,6 +123,35 @@ export default function TradePanel() {
                 {t("sell")}
               </Button>
             </ButtonGroup>
+
+            {/* Pay-with toggle — replaces the orphan "Use WBNB" checkbox.
+              * Sits inline as a labelled segmented control so the user can
+              * see at a glance which token funds the swap. */}
+            {side === "buy" && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {t("payWith")}
+                </span>
+                <ButtonGroup>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant={!useWbnb ? "default" : "outline"}
+                    onClick={() => setUseWbnb(false)}
+                  >
+                    BNB
+                  </Button>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant={useWbnb ? "default" : "outline"}
+                    onClick={() => setUseWbnb(true)}
+                  >
+                    WBNB
+                  </Button>
+                </ButtonGroup>
+              </div>
+            )}
 
             <FieldRenderer fields={amountFields} control={form.control} t={t} />
 
