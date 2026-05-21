@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
+
 // Components
 import Badge from "@/components/atoms/badge";
 import Card from "@/components/atoms/card";
+import Dialog from "@/components/atoms/dialog";
 import Empty from "@/components/atoms/empty";
+import Input from "@/components/atoms/input";
 import Skeleton from "@/components/atoms/skeleton";
 import KeyValueCard from "@/components/molecules/card/key-value";
 import Button from "@/components/atoms/button";
@@ -21,6 +25,139 @@ import { Lock, Wallet, Settings, ServerOff } from "lucide-react";
 
 // Constants
 import { SLIPPAGE_OPTIONS } from "@/types/constants";
+
+// --- Gas Fee picker ------------------------------------------------------
+// Lightweight dialog that lets the user override the gas price for the next
+// trade. "Auto" follows the network price; the presets are multiples of it
+// (slow = 0.8×, normal = 1×, fast = 1.5×). Custom takes a raw Gwei value.
+
+type GasPreset = "auto" | "slow" | "normal" | "fast" | "custom";
+
+function GasFeeDialog({
+  open,
+  onOpenChange,
+  networkGwei,
+  overrideGwei,
+  onApply,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  networkGwei: number;
+  overrideGwei: number | null;
+  onApply: (gwei: number | null) => void;
+}) {
+  const presets: Array<{ key: GasPreset; label: string; gwei: number | null }> = [
+    { key: "auto", label: "Auto", gwei: null },
+    { key: "slow", label: "Slow", gwei: networkGwei > 0 ? networkGwei * 0.8 : 0 },
+    {
+      key: "normal",
+      label: "Normal",
+      gwei: networkGwei > 0 ? networkGwei : 0,
+    },
+    { key: "fast", label: "Fast", gwei: networkGwei > 0 ? networkGwei * 1.5 : 0 },
+  ];
+
+  // Active preset key — derived from the current override + network value.
+  const currentKey: GasPreset = (() => {
+    if (overrideGwei == null) return "auto";
+    const match = presets.find(
+      (p) => p.gwei != null && Math.abs(p.gwei - overrideGwei) < 1e-6,
+    );
+    return match?.key ?? "custom";
+  })();
+
+  const [selected, setSelected] = useState<GasPreset>(currentKey);
+  const [customGwei, setCustomGwei] = useState<string>(
+    currentKey === "custom" && overrideGwei != null ? overrideGwei.toString() : "",
+  );
+
+  // Reset internal state whenever the dialog opens.
+  function handleOpenChange(v: boolean) {
+    if (v) {
+      setSelected(currentKey);
+      setCustomGwei(
+        currentKey === "custom" && overrideGwei != null
+          ? overrideGwei.toString()
+          : "",
+      );
+    }
+    onOpenChange(v);
+  }
+
+  function handleApply() {
+    if (selected === "auto") return onApply(null);
+    if (selected === "custom") {
+      const v = parseFloat(customGwei);
+      if (!isFinite(v) || v <= 0) return;
+      return onApply(v);
+    }
+    const preset = presets.find((p) => p.key === selected);
+    if (preset && preset.gwei && preset.gwei > 0) onApply(preset.gwei);
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Gas settings"
+      description="Override the gas price for the next trade. Higher values may confirm faster on busy blocks."
+      content={
+        <div className="flex flex-col gap-4 py-2">
+          <div className="grid grid-cols-4 gap-1.5">
+            {presets.map((p) => (
+              <Button
+                key={p.key}
+                type="button"
+                size="sm"
+                variant={selected === p.key ? "default" : "outline"}
+                onClick={() => setSelected(p.key)}
+                className="flex h-auto flex-col items-center gap-0.5 px-2 py-2"
+              >
+                <span className="text-[11px] font-semibold uppercase tracking-[0.06em]">
+                  {p.label}
+                </span>
+                <span className="font-mono text-[10px] tabular-nums opacity-80">
+                  {p.gwei == null ? "—" : `${p.gwei.toFixed(2)} gwei`}
+                </span>
+              </Button>
+            ))}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
+              Custom (Gwei)
+            </span>
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder={networkGwei > 0 ? networkGwei.toFixed(2) : "0.05"}
+              value={customGwei}
+              onChange={(e) => {
+                setCustomGwei(e.target.value);
+                setSelected("custom");
+              }}
+            />
+          </div>
+        </div>
+      }
+      footer={
+        <div className="flex w-full items-center justify-end gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button type="button" size="sm" onClick={handleApply}>
+            Apply
+          </Button>
+        </div>
+      }
+    />
+  );
+}
 
 export default function TradePanel() {
   const te = useTranslations("error");
@@ -49,7 +186,12 @@ export default function TradePanel() {
     flowState,
     resetSwap,
     tokenSymbol,
+    networkGasGwei,
+    gasOverrideGwei,
+    setGasOverrideGwei,
   } = useTradePanel();
+
+  const [gasModalOpen, setGasModalOpen] = useState(false);
 
   const flowLabels = {
     title: t("flowStatusTitle"),
@@ -212,10 +354,19 @@ export default function TradePanel() {
                   {t("networkFee")}
                 </span>
                 <div className="flex flex-col items-end gap-0.5 font-mono tabular-nums">
-                  <span className="flex items-center gap-1 text-xs text-foreground">
+                  <button
+                    type="button"
+                    onClick={() => setGasModalOpen(true)}
+                    className="flex items-center gap-1 text-xs text-foreground transition-colors hover:text-primary"
+                  >
                     {networkFee.gwei.toFixed(2)} Gwei
+                    {networkFee.isOverride && (
+                      <span className="font-sans text-[9px] uppercase tracking-[0.06em] text-primary/80">
+                        custom
+                      </span>
+                    )}
                     <Settings className="size-3 text-muted-foreground/60" />
-                  </span>
+                  </button>
                   <span className="text-[10px] text-muted-foreground/70">
                     {networkFee.bnb.toFixed(6)} BNB ·{" "}
                     {networkFee.usd > 0 && networkFee.usd < 0.01
@@ -283,6 +434,17 @@ export default function TradePanel() {
           </div>
         </form>
       )}
+
+      <GasFeeDialog
+        open={gasModalOpen}
+        onOpenChange={setGasModalOpen}
+        networkGwei={networkGasGwei}
+        overrideGwei={gasOverrideGwei}
+        onApply={(g) => {
+          setGasOverrideGwei(g);
+          setGasModalOpen(false);
+        }}
+      />
     </Card>
   );
 }

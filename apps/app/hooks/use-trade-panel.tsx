@@ -61,8 +61,15 @@ export function useTradePanel() {
   const t = useTranslations("trade");
   const { isConnected, address, balances, tokenBalances, handleConnect } =
     useWallet();
-  const { data: gasPriceWei } = useGasPrice();
+  const { data: networkGasPriceWei } = useGasPrice();
   const { bnbPrice } = useBnbPrice();
+
+  // null = follow the network gas price; a positive number means the user has
+  // overridden gas price via the Network Fee modal, value in *gwei*.
+  const [gasOverrideGwei, setGasOverrideGwei] = useState<number | null>(null);
+  const effectiveGasPriceWei = gasOverrideGwei != null
+    ? BigInt(Math.round(gasOverrideGwei * 1e9))
+    : networkGasPriceWei;
 
   // Check if backend has vaults
   const { data: vaults, isLoading: isLoadingVaults } = useSWR<VaultInfo[]>(
@@ -191,15 +198,16 @@ export function useTradePanel() {
   // The previous code divided gasEstimate alone by 1e9/1e18, which always
   // rounded to 0.00 in the UI.
   const networkFee = (() => {
-    if (!quote || !gasPriceWei || gasPriceWei === 0n) {
-      return { gwei: 0, bnb: 0, usd: 0 };
+    if (!quote || !effectiveGasPriceWei || effectiveGasPriceWei === 0n) {
+      return { gwei: 0, bnb: 0, usd: 0, isOverride: gasOverrideGwei != null };
     }
-    const feeWei = quote.gasEstimate * gasPriceWei;
+    const feeWei = quote.gasEstimate * effectiveGasPriceWei;
     const bnb = Number(feeWei) / 1e18;
     return {
-      gwei: Number(gasPriceWei) / 1e9,
+      gwei: Number(effectiveGasPriceWei) / 1e9,
       bnb,
       usd: bnb * bnbPrice,
+      isOverride: gasOverrideGwei != null,
     };
   })();
 
@@ -275,6 +283,11 @@ export function useTradePanel() {
         minAmount: calculateMinReceived(quote.amountOut, slippageBps),
         receiver: address as Address,
         slippageBps,
+        // Only forward the gas price when the user has explicitly overridden
+        // it. Passing undefined lets wagmi fetch the network price itself.
+        ...(gasOverrideGwei != null && effectiveGasPriceWei
+          ? { gasPrice: effectiveGasPriceWei }
+          : {}),
       },
       data.approveMax ? maxUint256 : amountIn,
     );
@@ -364,6 +377,12 @@ export function useTradePanel() {
     setUseWbnb,
     numericAmount,
     networkFee,
+    networkGasGwei:
+      networkGasPriceWei && networkGasPriceWei > 0n
+        ? Number(networkGasPriceWei) / 1e9
+        : 0,
+    gasOverrideGwei,
+    setGasOverrideGwei,
     amountFields,
     slippageField,
     approveField,

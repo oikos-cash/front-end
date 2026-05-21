@@ -32,6 +32,8 @@ export interface SwapExecuteParams {
   slippageBps: number;
   isLimitOrder?: boolean;
   referralCode?: `0x${string}`;
+  /** Optional gas price override (wei/gas) — applied to both approve & swap. */
+  gasPrice?: bigint;
 }
 
 /**
@@ -125,6 +127,7 @@ export function useSwap(
           referralCode,
         ],
         value: params.amount,
+        ...(params.gasPrice ? { gasPrice: params.gasPrice } : {}),
       });
       return;
     }
@@ -145,6 +148,7 @@ export function useSwap(
         slippageTolerance,
         referralCode,
       ],
+      ...(params.gasPrice ? { gasPrice: params.gasPrice } : {}),
     });
   }
 
@@ -205,6 +209,7 @@ export function useSwap(
       abi: erc20Abi,
       functionName: "approve",
       args: [spenderAddress, approveAmount ?? params.amount],
+      ...(params.gasPrice ? { gasPrice: params.gasPrice } : {}),
     });
   }
 
