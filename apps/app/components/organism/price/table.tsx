@@ -38,14 +38,19 @@ interface OHLCCandle {
 
 async function fetch24hChange(poolAddress: string): Promise<number> {
   try {
-    const now = Date.now();
-    const from24h = now - 86_400_000;
-    const url = `${OHLC_API_URL}?interval=1h&pool=${poolAddress}&from=${from24h}&to=${now}`;
-    const data = await swrFetcher<{ ohlc: OHLCCandle[] }>(url);
-    const allCandles = data.ohlc;
-    if (!allCandles || allCandles.length < 2) return 0;
+    // Two backend behaviours we have to defend against:
+    // 1) The endpoint returns the candles array at the root — no
+    //    { ohlc: [...] } envelope. The previous shape produced 0% silently.
+    // 2) Passing &from=...&to=... causes the API to return gap-filled
+    //    candles where open == close on every row, so the computed change
+    //    is always 0. The same endpoint without those params returns the
+    //    real candles. Fetch the full series and filter client-side.
+    const url = `${OHLC_API_URL}?interval=1h&pool=${poolAddress}`;
+    const data = await swrFetcher<OHLCCandle[]>(url);
+    const allCandles = Array.isArray(data) ? data : [];
+    if (allCandles.length < 2) return 0;
 
-    // API may ignore from/to — filter client-side to last 24h only
+    const from24h = Date.now() - 86_400_000;
     const candles = allCandles.filter((c) => c.timestamp >= from24h);
     if (candles.length < 2) return 0;
 

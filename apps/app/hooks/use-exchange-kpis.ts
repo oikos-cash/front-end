@@ -30,10 +30,13 @@ interface OHLCStats {
 
 async function fetchOHLCStats(poolAddress: string): Promise<OHLCStats> {
   try {
-    const data = await swrFetcher<{ ohlc: OHLCCandle[] }>(
+    // The /api/price/ohlc endpoint returns the candles array at the root —
+    // there is no { ohlc: [...] } envelope. Treating it as enveloped before
+    // silently returned 0 for both change24h and volume30d.
+    const data = await swrFetcher<OHLCCandle[]>(
       `${OHLC_API_URL}?interval=1h&pool=${poolAddress}`,
     );
-    const candles = data.ohlc ?? [];
+    const candles = Array.isArray(data) ? data : [];
     const now = Date.now();
     const from24h = now - 86_400_000;
     const from30d = now - 30 * 86_400_000;
