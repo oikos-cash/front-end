@@ -1,17 +1,22 @@
 /**
- * Static fallback map for token icons. Used when an iconUrl isn't supplied
- * by the markets API — e.g. for the native protocol token OKS, which is
- * served from the local public folder.
+ * Local-first token icon map. We prefer assets shipped from /public over
+ * whatever iconUrl the markets API supplies, so brand presentation stays
+ * consistent and we don't depend on third-party CDNs (Trustwallet etc.)
+ * for the everyday tokens.
  */
 const LOCAL_TOKEN_ICONS: Record<string, string> = {
   OKS: "/logo_dark.svg",
+  BNB: "/bnb.png",
+  WBNB: "/bnb-logo.png",
 };
 
 export function getTokenIconUrl(
   symbol?: string | null,
   fallback?: string | null,
 ): string | undefined {
-  if (fallback) return fallback;
-  if (!symbol) return undefined;
-  return LOCAL_TOKEN_ICONS[symbol.toUpperCase()];
+  if (symbol) {
+    const local = LOCAL_TOKEN_ICONS[symbol.toUpperCase()];
+    if (local) return local;
+  }
+  return fallback ?? undefined;
 }
