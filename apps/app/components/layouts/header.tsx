@@ -48,7 +48,7 @@ export default function Header() {
             target="_blank"
             href="https://oikos.cash/"
             aria-label="Oikos Logo"
-            className="text-primary transition-opacity hover:opacity-80"
+            className="text-foreground transition-opacity hover:opacity-80"
           >
             <svg
               width="30"
