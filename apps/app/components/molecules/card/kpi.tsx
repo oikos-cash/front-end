@@ -22,15 +22,28 @@ export default function KpiCard({
 }: KpiCardProps) {
   const isNegative = change?.startsWith("-");
 
+  // KPI titles are short uppercase data-section labels (SPOT, MARKET CAP, IMV).
+  // Render them as a brand-accented micro-label rather than a regular card
+  // title so they pop as "what this number is" instead of body copy.
+  const styledTitle = (
+    <span className="flex items-center gap-2">
+      <span className="h-3 w-[2px] rounded-full bg-primary/70" aria-hidden />
+      <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+        {title}
+      </span>
+      {subtitle && (
+        <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/60">
+          {subtitle}
+        </span>
+      )}
+    </span>
+  );
+
   return (
-    <Card
-      action={actions}
-      description={description}
-      title={subtitle ? `${title} ${subtitle}` : title}
-    >
+    <Card action={actions} description={description} title={styledTitle}>
       <div>
         <div className="flex items-baseline gap-1.5">
-          <span className="font-mono text-lg font-semibold tabular-nums tracking-tight text-foreground">
+          <span className="font-mono text-xl font-semibold tabular-nums tracking-tight text-foreground">
             {value}
           </span>
           {change && (
