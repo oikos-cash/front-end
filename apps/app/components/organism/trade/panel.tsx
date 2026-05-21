@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 // Components
+import Avatar from "@/components/atoms/avatar";
 import Badge from "@/components/atoms/badge";
 import Card from "@/components/atoms/card";
 import Dialog from "@/components/atoms/dialog";
@@ -266,32 +267,44 @@ export default function TradePanel() {
               </Button>
             </ButtonGroup>
 
-            {/* Pay-with toggle — replaces the orphan "Use WBNB" checkbox.
-              * Sits inline as a labelled segmented control so the user can
-              * see at a glance which token funds the swap. */}
+            {/* Pay-with selector — full-width segmented control showing both
+              * source token options with their icons. Selected option uses the
+              * brand-tinted treatment; unselected uses the card chrome. */}
             {side === "buy" && (
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-medium text-muted-foreground">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
                   {t("payWith")}
                 </span>
-                <ButtonGroup>
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant={!useWbnb ? "default" : "outline"}
-                    onClick={() => setUseWbnb(false)}
-                  >
-                    BNB
-                  </Button>
-                  <Button
-                    type="button"
-                    size="xs"
-                    variant={useWbnb ? "default" : "outline"}
-                    onClick={() => setUseWbnb(true)}
-                  >
-                    WBNB
-                  </Button>
-                </ButtonGroup>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {([
+                    { id: "bnb", label: "BNB", selected: !useWbnb, onSelect: () => setUseWbnb(false) },
+                    { id: "wbnb", label: "WBNB", selected: useWbnb, onSelect: () => setUseWbnb(true) },
+                  ] as const).map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={opt.onSelect}
+                      aria-pressed={opt.selected}
+                      className={
+                        "group relative flex items-center gap-2 rounded-md border px-2.5 py-2 text-left transition-all " +
+                        (opt.selected
+                          ? "border-primary/50 bg-primary/10 text-foreground shadow-[0_0_0_1px_rgba(245,200,67,0.2),0_2px_10px_-4px_rgba(245,200,67,0.4)]"
+                          : "border-border/60 bg-card/40 text-muted-foreground hover:border-border-strong hover:bg-card/60 hover:text-foreground")
+                      }
+                    >
+                      <Avatar name={opt.label} size="sm" />
+                      <span className="text-sm font-medium leading-none">
+                        {opt.label}
+                      </span>
+                      {opt.selected && (
+                        <span
+                          aria-hidden
+                          className="ml-auto block size-1.5 rounded-full bg-primary shadow-[0_0_6px_rgba(245,200,67,0.7)]"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
