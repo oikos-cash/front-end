@@ -10,6 +10,7 @@
     "balance": "Balance",
     "useWbnb": "Use WBNB",
     "useWbnbDescription": "Swap using Wrapped BNB instead of native BNB",
+    "payWith": "Pay with",
     "useMax": "Use Max",
     "receiving": "Receiving",
     "priceImpact": "Price Impact",
