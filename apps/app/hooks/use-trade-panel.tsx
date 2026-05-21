@@ -9,7 +9,9 @@ import { toast } from "sonner";
 
 // Hooks
 import { useTranslations } from "next-intl";
+import { useGasPrice } from "wagmi";
 import { useWallet } from "@/stores/wallet";
+import { useBnbPrice } from "@/hooks/use-bnb-price";
 import { useSwap, type SwapMode } from "@/hooks/use-swap";
 import type { Address } from "viem";
 import type { TxFlowStep } from "@/hooks/types/tx-flow";
@@ -59,6 +61,8 @@ export function useTradePanel() {
   const t = useTranslations("trade");
   const { isConnected, address, balances, tokenBalances, handleConnect } =
     useWallet();
+  const { data: gasPriceWei } = useGasPrice();
+  const { bnbPrice } = useBnbPrice();
 
   // Check if backend has vaults
   const { data: vaults, isLoading: isLoadingVaults } = useSWR<VaultInfo[]>(
@@ -179,13 +183,25 @@ export function useTradePanel() {
         ),
       )
     : 0;
-  const networkFee = quote
-    ? {
-        gwei: Number(quote.gasEstimate) / 1e9,
-        bnb: Number(quote.gasEstimate) / 1e18,
-        usd: 0,
-      }
-    : { gwei: 0, bnb: 0, usd: 0 };
+  // gasEstimate from QuoterV2 is in gas *units* (≈150k), not wei. To turn it
+  // into a fee we need the current network gas price (wei per gas unit).
+  //   fee_wei = gasEstimate × gasPrice
+  //   fee_bnb = fee_wei / 1e18
+  //   fee_usd = fee_bnb × bnbPrice
+  // The previous code divided gasEstimate alone by 1e9/1e18, which always
+  // rounded to 0.00 in the UI.
+  const networkFee = (() => {
+    if (!quote || !gasPriceWei || gasPriceWei === 0n) {
+      return { gwei: 0, bnb: 0, usd: 0 };
+    }
+    const feeWei = quote.gasEstimate * gasPriceWei;
+    const bnb = Number(feeWei) / 1e18;
+    return {
+      gwei: Number(gasPriceWei) / 1e9,
+      bnb,
+      usd: bnb * bnbPrice,
+    };
+  })();
 
   const tokenSymbol = vault?.tokenSymbol ?? "OKS";
 

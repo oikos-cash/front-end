@@ -217,7 +217,10 @@ export default function TradePanel() {
                     <Settings className="size-3 text-muted-foreground/60" />
                   </span>
                   <span className="text-[10px] text-muted-foreground/70">
-                    {networkFee.bnb.toFixed(6)} BNB · ${networkFee.usd.toFixed(2)}
+                    {networkFee.bnb.toFixed(6)} BNB ·{" "}
+                    {networkFee.usd > 0 && networkFee.usd < 0.01
+                      ? "<$0.01"
+                      : `$${networkFee.usd.toFixed(2)}`}
                   </span>
                 </div>
               </div>
