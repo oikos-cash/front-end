@@ -14,6 +14,8 @@ const buttonVariants = cva(
           "bg-[linear-gradient(180deg,#f6cf5a_0%,#f0bf30_100%)] text-primary-foreground border border-[rgba(0,0,0,0.15)] shadow-[0_1px_0_rgba(255,255,255,0.25)_inset,0_-1px_0_rgba(0,0,0,0.15)_inset,0_2px_6px_-2px_rgba(245,200,67,0.45)] hover:brightness-[1.05] hover:shadow-[0_1px_0_rgba(255,255,255,0.3)_inset,0_-1px_0_rgba(0,0,0,0.15)_inset,0_0_0_1px_rgba(245,200,67,0.35),0_4px_18px_-4px_rgba(245,200,67,0.55)]",
         destructive:
           "bg-[linear-gradient(180deg,#ec6868_0%,#d83a3a_100%)] text-white border border-[rgba(0,0,0,0.15)] shadow-[0_1px_0_rgba(255,255,255,0.18)_inset,0_-1px_0_rgba(0,0,0,0.15)_inset,0_2px_6px_-2px_rgba(227,79,79,0.45)] hover:brightness-[1.05] focus-visible:ring-destructive/60",
+        success:
+          "bg-[linear-gradient(180deg,#1ad6a3_0%,#00b285_100%)] text-white border border-[rgba(0,0,0,0.15)] shadow-[0_1px_0_rgba(255,255,255,0.18)_inset,0_-1px_0_rgba(0,0,0,0.15)_inset,0_2px_6px_-2px_rgba(0,200,151,0.45)] hover:brightness-[1.05] focus-visible:ring-success/60",
         outline:
           "border border-border bg-card/40 text-foreground backdrop-blur-[2px] hover:bg-accent/60 hover:border-border-strong",
         secondary:

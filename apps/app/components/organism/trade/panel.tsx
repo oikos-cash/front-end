@@ -74,7 +74,7 @@ export default function TradePanel() {
       action={
         hasVault && isConnected ? (
           <Badge
-            variant={side === "buy" ? "default" : "destructive"}
+            variant={side === "buy" ? "success" : "destructive"}
             className="text-xs"
           >
             {side === "buy" ? t("buying") : t("selling")}
@@ -107,7 +107,7 @@ export default function TradePanel() {
               <Button
                 type="button"
                 size="sm"
-                variant={side === "buy" ? "default" : "outline"}
+                variant={side === "buy" ? "success" : "outline"}
                 className="flex-1"
                 onClick={() => setSide("buy")}
               >
@@ -244,7 +244,7 @@ export default function TradePanel() {
 
             <Button
               type="submit"
-              variant={side === "buy" ? "default" : "destructive"}
+              variant={side === "buy" ? "success" : "destructive"}
               disabled={!form.formState.isValid || isSwapPending}
               isLoading={isSwapPending}
               className="w-full"
