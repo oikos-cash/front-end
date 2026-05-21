@@ -19,6 +19,7 @@ export default function KpiCard({
   subtitle,
   secondary,
   description,
+  icon,
 }: KpiCardProps) {
   const isNegative = change?.startsWith("-");
 
@@ -45,7 +46,8 @@ export default function KpiCard({
   return (
     <Card action={actions} description={description} title={styledTitle}>
       <div>
-        <div className="flex items-baseline gap-1.5">
+        <div className="flex items-center gap-2.5">
+          {icon}
           <span className="font-mono text-xl font-semibold tabular-nums tracking-tight text-foreground">
             {value}
           </span>

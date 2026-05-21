@@ -6,6 +6,7 @@ import { useState } from "react";
 import Empty from "@/components/atoms/empty";
 import Button from "@/components/atoms/button";
 import KpiCard from "@/components/molecules/card/kpi";
+import TokenPair from "@/components/molecules/token-pair";
 import PageHeader from "@/components/molecules/page-header";
 import LoanHistory from "@/components/organism/loan/history";
 import BorrowFormPanel from "@/components/organism/form/borrow";
@@ -81,10 +82,21 @@ export default function BorrowTemplate({
   const spotPriceBnb = parseFloat(initialVault.spotPriceX96 || "0") / 1e18;
   const imvValue = spotPriceBnb * (liquidityRatio > 0 ? liquidityRatio * 0.44 : 0);
 
-  const kpis = [
+  const kpis: Array<{
+    key: string;
+    value: string;
+    icon?: React.ReactNode;
+  }> = [
     {
       key: "tokenPair",
       value: `${initialVault.tokenSymbol}/WBNB`,
+      icon: (
+        <TokenPair
+          base={initialVault.tokenSymbol}
+          quote="WBNB"
+          size="default"
+        />
+      ),
     },
     {
       key: "imv",
@@ -114,6 +126,7 @@ export default function BorrowTemplate({
             key={kpi.key}
             title={t(kpi.key)}
             value={kpi.value}
+            icon={kpi.icon}
             description={t(`${kpi.key}Desc`)}
           />
         ))}

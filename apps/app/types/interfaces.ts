@@ -319,6 +319,8 @@ export interface KpiCardProps {
   change?: string;
   secondary?: string;
   actions?: React.ReactNode;
+  /** Optional decoration rendered to the left of the value. */
+  icon?: React.ReactNode;
 }
 
 // =================================================
