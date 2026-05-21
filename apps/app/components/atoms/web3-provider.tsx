@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { injected } from "wagmi/connectors";
-import { bsc, bscTestnet } from "wagmi/chains";
+import { bsc } from "wagmi/chains";
 import {
   getDefaultConfig,
   RainbowKitProvider,
@@ -17,14 +17,13 @@ import "@rainbow-me/rainbowkit/styles.css";
 
 const transports = {
   [bsc.id]: http(),
-  [bscTestnet.id]: http(),
 };
 
 // Server / pre-hydration config: only wagmi-native connectors (SSR-safe).
 // Avoids RainbowKit defaults like Coinbase Wallet SDK, which touch indexedDB
 // at construction and throw unhandledRejection during server render.
 const ssrConfig = createConfig({
-  chains: [bsc, bscTestnet],
+  chains: [bsc],
   connectors: [injected()],
   transports,
   ssr: true,
@@ -41,7 +40,7 @@ export default function Web3Provider({
     return getDefaultConfig({
       appName: "Oikos",
       projectId: WALLETCONNECT_PROJECT_ID,
-      chains: [bsc, bscTestnet],
+      chains: [bsc],
       transports,
       ssr: true,
     });

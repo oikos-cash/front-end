@@ -32,12 +32,12 @@ export const WS_URL =
 export const WALLETCONNECT_PROJECT_ID =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 
-export const SUPPORTED_CHAIN_IDS = [56, 97] as const;
+export const SUPPORTED_CHAIN_IDS = [56] as const;
 
 // =================================================
 //                CONTRACT ADDRESSES
 // =================================================
-/** WBNB on BSC Mainnet */
+/** WBNB on BNB Chain */
 export const WBNB_ADDRESS =
   "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" as const;
 
@@ -66,7 +66,7 @@ export const ZERO_ADDRESS =
 // =================================================
 //               BNB PRICE CONFIG
 // =================================================
-/** PancakeSwap V3 WBNB/USDT pool on BSC Mainnet */
+/** PancakeSwap V3 WBNB/USDT pool on BNB Chain */
 export const BNB_USDT_POOL_ADDRESS =
   "0x7862d9b4be2156b15d54f41ee4ede2d5b0b455e4" as const;
 

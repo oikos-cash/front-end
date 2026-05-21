@@ -158,7 +158,7 @@ export default function Header() {
                       trigger: t("network"),
                       content: (
                         <span className="text-sm text-muted-foreground">
-                          BSC Mainnet
+                          BNB Chain
                         </span>
                       ),
                     },

@@ -16,10 +16,7 @@ import { useTranslations } from "next-intl";
 // Constants
 import { SUPPORTED_CHAIN_IDS } from "@/types/constants";
 
-const NETWORK_OPTIONS = [
-  { value: "56", label: "BSC Mainnet" },
-  { value: "97", label: "BSC Testnet" },
-];
+const NETWORK_OPTIONS = [{ value: "56", label: "BNB Chain" }];
 
 /**
  * Network selector dropdown + mismatch warning dialog.
@@ -66,31 +63,17 @@ export default function NetworkSelector() {
         open={isMismatch}
         onOpenChange={() => {}}
         title="Wrong Network"
-        description={`Your wallet is connected to chain ${chainId}. Please switch to BSC.`}
+        description={`Your wallet is connected to chain ${chainId}. Please switch to BNB Chain.`}
         content={
           <div className="flex flex-col gap-4">
             <Alert
               title="Network Mismatch"
-              description="This app requires BSC Mainnet or BSC Testnet to function properly."
+              description="This app runs on BNB Chain. Switch your wallet to continue."
               variant="destructive"
             />
-            <div className="flex gap-2">
-              <Button
-                className="flex-1"
-                onClick={() => handleSwitch(56)}
-                isLoading={isPending}
-              >
-                BSC Mainnet
-              </Button>
-              <Button
-                className="flex-1"
-                variant="outline"
-                onClick={() => handleSwitch(97)}
-                isLoading={isPending}
-              >
-                BSC Testnet
-              </Button>
-            </div>
+            <Button onClick={() => handleSwitch(56)} isLoading={isPending}>
+              Switch to BNB Chain
+            </Button>
           </div>
         }
       />

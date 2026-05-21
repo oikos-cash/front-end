@@ -7,7 +7,7 @@ import {
   type Address,
   type PublicClient,
 } from "viem";
-import { bsc, bscTestnet } from "viem/chains";
+import { bsc } from "viem/chains";
 
 import { SUPPORTED_CHAIN_IDS } from "@/types/constants";
 
@@ -23,9 +23,10 @@ const clients: Record<number, PublicClient> = {};
  */
 export function getPublicClient(chainId: number = bsc.id): PublicClient {
   if (!clients[chainId]) {
-    const chain = chainId === bscTestnet.id ? bscTestnet : bsc;
+    // BNB Chain is the only supported network; ignore the chainId argument
+    // beyond keying the singleton cache.
     clients[chainId] = createPublicClient({
-      chain,
+      chain: bsc,
       transport: http(),
       batch: { multicall: true },
     });

@@ -79,7 +79,7 @@ function sqrtPriceX96ToPrice(sqrtPriceX96: bigint): number {
 }
 
 async function fetchPriceOnChain(): Promise<number> {
-  const client = getPublicClient(56); // BSC Mainnet
+  const client = getPublicClient(56); // BNB Chain
   const result = await client.readContract({
     address: BNB_USDT_POOL_ADDRESS as Address,
     abi: POOL_ABI,
