@@ -9,6 +9,7 @@ import { useSpotPrice } from "@/hooks/use-spot-price";
 
 // Types
 import type { VaultInfo, LiquidityData } from "@/types/interfaces";
+import { formatCompactNumber } from "@/utils/number";
 
 /**
  * Manages liquidity page state with real data integration.
@@ -157,12 +158,18 @@ export function useLiquidity(initialVault: VaultInfo | null = null) {
     setRefreshKey((k) => k + 1);
   }
 
+  // Mirror the exchange page's KPI formatting:
+  //  • USD prices get a $ prefix and 4 decimals.
+  //  • Token-count values use compact K / M / B notation.
+  //  • Secondary lines surface the BNB-denominated counterpart in the
+  //    same `<value> <unit>` pattern as exchange KPIs.
+  const tokenSymbol = initialVault?.tokenSymbol ?? "OKS";
   const kpiCards = data
     ? [
         {
           key: "spotPrice",
-          value: data.spotPrice.toFixed(4),
-          secondary: `${data.spotBnb.toFixed(8)} BNB`,
+          value: `$${data.spotPrice.toFixed(4)}`,
+          secondary: `${data.spotBnb.toFixed(8)} ${tokenSymbol}/BNB`,
         },
         {
           key: "liquidityRatio",
@@ -172,12 +179,12 @@ export function useLiquidity(initialVault: VaultInfo | null = null) {
         },
         {
           key: "circulatingSupply",
-          value: data.circulatingSupply.toLocaleString(),
-          secondary: initialVault?.tokenSymbol ?? "OKS",
+          value: formatCompactNumber(data.circulatingSupply),
+          secondary: tokenSymbol,
         },
         {
           key: "imvPrice",
-          value: data.imvPrice.toFixed(4),
+          value: `$${data.imvPrice.toFixed(4)}`,
           secondary: t("floorProtection"),
         },
       ]
