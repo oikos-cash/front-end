@@ -142,7 +142,12 @@ export default function BorrowFormPanel({
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-4"
       >
-        <FieldRenderer t={t} control={form.control} fields={fields} />
+        {/* Borrow Amount + Duration share a row on sm+ — they're the two
+          * required inputs and reading them as paired controls scans
+          * faster than a vertical stack. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FieldRenderer t={t} control={form.control} fields={fields} />
+        </div>
         <TxFlowStatus state={flowState} labels={flowLabels} onDismiss={reset} />
       </form>
     </Card>
