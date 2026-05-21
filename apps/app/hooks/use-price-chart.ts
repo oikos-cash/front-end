@@ -156,6 +156,15 @@ export default function usePriceChart(poolAddress?: string) {
 
     chartRef.current = chart;
 
+    // OKS-side prices are denominated in BNB and sit in the 1e-4 range,
+    // so the default 2-decimal price scale renders every value as "0.00".
+    // Use 8 decimals with a minMove of 1e-8 instead.
+    const priceFormat = {
+      type: "price" as const,
+      precision: 8,
+      minMove: 0.00000001,
+    };
+
     if (chartType === "line") {
       priceSeriesRef.current = chart.addSeries(LineSeries, {
         color: colors.success,
@@ -163,12 +172,14 @@ export default function usePriceChart(poolAddress?: string) {
         lineType: LineType.WithSteps,
         crosshairMarkerRadius: 4,
         priceScaleId: "right",
+        priceFormat,
       });
     } else {
       priceSeriesRef.current = chart.addSeries(BarSeries, {
         upColor: colors.success,
         downColor: colors.destructive,
         priceScaleId: "right",
+        priceFormat,
       });
     }
 
