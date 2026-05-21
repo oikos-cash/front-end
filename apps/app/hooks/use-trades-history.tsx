@@ -66,7 +66,19 @@ export function useTradesHistory(
         price,
         bnbAmount,
         usdValue: parseFloat((bnbAmount * bnbPrice).toFixed(2)),
-        wallet: event.args.sender,
+        // The pool's sender/recipient are usually the ExchangeHelper router,
+        // not the human. The indexer decodes the real EOA but exposes it as
+        // the *recipient* (i.e. who ends up holding the swapped tokens),
+        // because for both buy and sell directions the helper routes the
+        // output back to the caller. Prefer actualRecipient first, fall
+        // through to actualSender (direct pool calls) and finally args.
+        wallet:
+          event.tradeInfo?.actualRecipient ??
+          event.actualRecipient ??
+          event.args.recipient ??
+          event.tradeInfo?.actualSender ??
+          event.actualSender ??
+          event.args.sender,
         txHash: event.transactionHash,
         timestamp: new Date(
           event.timestamp > 1e12 ? event.timestamp : event.timestamp * 1000,
@@ -112,7 +124,14 @@ export function useTradesHistory(
         price,
         bnbAmount,
         usdValue: parseFloat((bnbAmount * bnbPrice).toFixed(2)),
-        wallet: event.args.sender ?? event.actualSender ?? "",
+        wallet:
+          event.tradeInfo?.actualRecipient ??
+          event.actualRecipient ??
+          event.args.recipient ??
+          event.tradeInfo?.actualSender ??
+          event.actualSender ??
+          event.args.sender ??
+          "",
         txHash: event.transactionHash,
         timestamp: new Date(ts),
       };

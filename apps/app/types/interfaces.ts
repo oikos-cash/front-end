@@ -946,8 +946,23 @@ export interface WSBlockchainEvent {
   logIndex?: number;
   tokenSymbol?: string;
   poolName?: string;
+  /** Optional top-level fields kept for legacy payloads. */
   actualSender?: string;
   actualRecipient?: string;
+  isExchangeHelper?: boolean;
+  /** Decoded routing info from the indexer — the originating EOA lives
+   *  here as `tradeInfo.actualSender` for trades that hop through
+   *  ExchangeHelper. */
+  tradeInfo?: {
+    type?: "buy" | "sell";
+    amount0?: string;
+    amount1?: string;
+    sender?: string;
+    recipient?: string;
+    actualSender?: string;
+    actualRecipient?: string;
+    tokenSymbol?: string;
+  };
   args: {
     sender: string;
     recipient: string;
