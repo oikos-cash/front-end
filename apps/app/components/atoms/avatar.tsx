@@ -30,7 +30,9 @@ export default function Avatar({
         <AvatarImage
           src={resolvedSrc}
           alt={name}
-          className={cn(isOks && "scale-[1.55] object-contain")}
+          // object-contain so non-square logos (e.g. bnb.png at 3730×2770)
+          // aren't horizontally stretched into the circular avatar frame.
+          className={cn("object-contain", isOks && "scale-[1.55]")}
         />
       )}
       <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
