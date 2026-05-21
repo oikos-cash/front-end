@@ -45,18 +45,25 @@ export default function LaunchpadSidebar({
       : null;
 
   return (
-    <div className="flex gap-6 py-4">
-      <nav className="flex w-56 shrink-0 flex-col gap-4 lg:sticky lg:top-18 lg:self-start">
-        <ul className="flex flex-col">
+    // Stack the step nav on top of the form on narrow viewports — the page
+    // already sits between the global left + right sidebars, so a fixed 224px
+    // inner sidebar squeezed the form to nothing below xl. Switch to the row
+    // layout only at xl+ where there's enough horizontal room.
+    <div className="flex flex-col gap-4 py-4 xl:flex-row xl:gap-6">
+      <nav className="flex w-full shrink-0 flex-col gap-4 xl:sticky xl:top-18 xl:w-56 xl:self-start">
+        {/* Compact horizontal pill row on mobile / tablet; vertical list on
+          * desktop. Overflow scrolls horizontally so step labels are reachable
+          * without wrapping. */}
+        <ul className="-mx-1 flex gap-1 overflow-x-auto px-1 xl:mx-0 xl:flex-col xl:gap-0 xl:overflow-visible xl:px-0">
           {LAUNCHPAD_STEPS.map((step, index) => {
             const isActive = pathname.endsWith(step.path);
             const isCompleted = completedSteps.includes(index);
             const isPresaleStep = index === 2;
             return (
-              <li key={step.path}>
+              <li key={step.path} className="shrink-0">
                 <Link
                   href={step.path}
-                  className={`group flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors ${
+                  className={`group flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors ${
                     isActive
                       ? "bg-accent text-foreground"
                       : "text-muted-foreground hover:text-foreground"
@@ -119,7 +126,7 @@ export default function LaunchpadSidebar({
           )}
         </div>
       </nav>
-      <div className="flex-1">{children}</div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }
