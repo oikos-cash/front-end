@@ -62,14 +62,17 @@ export function useLoanHistory(vaultAddress?: string) {
 
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Fetch loan history from API
+  // Fetch loan history from API — scoped to the connected wallet so the
+  // table doesn't surface other users' positions.
   useEffect(() => {
-    if (!vaultAddress) {
+    if (!vaultAddress || !address) {
+      setItems([]);
       setIsLoading(false);
       return;
     }
 
     let cancelled = false;
+    const me = address.toLowerCase();
 
     async function load() {
       setIsLoading(true);
@@ -78,6 +81,16 @@ export function useLoanHistory(vaultAddress?: string) {
         if (!cancelled) {
           const mapped = loans
             .filter((e) => e.eventName !== "DefaultLoans")
+            .filter((e) => {
+              // The indexer carries the originator under both userAddress
+              // (top-level, normalised) and args.who. Match against either.
+              const evUser = (
+                e.userAddress ??
+                (e.args as { who?: string } | undefined)?.who ??
+                ""
+              ).toLowerCase();
+              return evUser === me;
+            })
             .map(toLoanHistoryItem);
           setItems(mapped);
         }
@@ -90,9 +103,10 @@ export function useLoanHistory(vaultAddress?: string) {
 
     load();
     return () => { cancelled = true; };
-  }, [vaultAddress]);
+  }, [vaultAddress, address]);
 
-  // WebSocket real-time updates
+  // WebSocket real-time updates — same vault + user predicate as the
+  // initial fetch so foreign positions can't sneak in via push.
   const onLoan = useCallback(
     (event: WSLoanEvent) => {
       const loan = event.data;
@@ -105,13 +119,22 @@ export function useLoanHistory(vaultAddress?: string) {
 
       if (loan.eventName === "DefaultLoans") return;
 
+      if (address) {
+        const evUser = (
+          loan.userAddress ??
+          (loan.args as { who?: string } | undefined)?.who ??
+          ""
+        ).toLowerCase();
+        if (evUser !== address.toLowerCase()) return;
+      }
+
       const item = toLoanHistoryItem(loan);
       setItems((prev) => {
         if (prev.some((i) => i.id === item.id)) return prev;
         return [item, ...prev];
       });
     },
-    [vaultAddress],
+    [vaultAddress, address],
   );
 
   useWebSocket({

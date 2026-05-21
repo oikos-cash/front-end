@@ -996,6 +996,8 @@ export interface LoanEvent {
   transactionHash: string;
   transactionIndex: number;
   logIndex: number;
+  /** Originator EOA, normalised lowercase. Mirrors args.who. */
+  userAddress?: string;
   args: {
     who?: string;
     borrowAmount?: string;
@@ -1003,7 +1005,7 @@ export interface LoanEvent {
     amount?: string;
   };
   timestamp: number;
-  storedAt: number;
+  storedAt?: number;
   vaultSymbol?: string;
   vaultName?: string;
 }
