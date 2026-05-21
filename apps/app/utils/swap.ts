@@ -41,16 +41,28 @@ export async function fetchSwapTokens(): Promise<SwapToken[]> {
       };
     });
 
-    // Always include WBNB as the base pair token
-    const hasWbnb = tokens.some(
-      (t) => t.symbol.toUpperCase() === "WBNB" || t.symbol.toUpperCase() === "BNB",
-    );
+    // Always include both native BNB and Wrapped BNB as base pair options.
+    // BNB has no contract address (token0 stays empty); the swap form
+    // recognises the symbol and switches the ExchangeHelper mode accordingly.
+    const hasWbnb = tokens.some((t) => t.symbol.toUpperCase() === "WBNB");
     if (!hasWbnb) {
       tokens.unshift({
         symbol: "WBNB",
         name: "Wrapped BNB",
-        iconUrl:
-          "https://assets-cdn.trustwallet.com/blockchains/binance/info/logo.png",
+        iconUrl: "",
+        balance: 0,
+        price: 1,
+        poolAddress: "",
+        vaultAddress: "",
+        token0: "",
+      });
+    }
+    const hasBnb = tokens.some((t) => t.symbol.toUpperCase() === "BNB");
+    if (!hasBnb) {
+      tokens.unshift({
+        symbol: "BNB",
+        name: "BNB",
+        iconUrl: "",
         balance: 0,
         price: 1,
         poolAddress: "",

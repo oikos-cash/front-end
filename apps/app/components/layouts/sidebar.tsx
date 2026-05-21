@@ -13,10 +13,13 @@ import { usePathname } from "next/navigation";
 import { SidebarProps } from "@/types/interfaces";
 
 export default function Sidebar({ children }: SidebarProps) {
-  // Trade panel only makes sense on the Exchange (home) page. The pathname
-  // is `/<locale>` (optionally with a trailing slash) there.
+  // Trade panel belongs to the Exchange surface. That's both the locale
+  // root (`/en`) and the per-token route (`/en/trade/<symbol>`), which the
+  // same Home template renders.
   const pathname = usePathname();
-  const isExchange = /^\/[^/]+\/?$/.test(pathname);
+  const isExchange =
+    /^\/[^/]+\/?$/.test(pathname) ||
+    /^\/[^/]+\/trade(\/|$)/.test(pathname);
 
   return (
     <div className="flex min-h-[calc(100vh-56px)] flex-col lg:flex-row">

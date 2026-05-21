@@ -116,13 +116,18 @@ export default function SwapForm({
   initialTokens: SwapToken[];
 }) {
   const t = useTranslations("swap");
-  const { address, tokenBalances } = useWallet();
+  const { address, tokenBalances, balances } = useWallet();
 
   // Merge live wallet balances into the SSR-built token list. SSR has no idea
   // who the user is so it hardcodes balance: 0 — without this, "Use max" would
-  // always fill 0.
+  // always fill 0. Native BNB has no token0 contract; pull its balance from
+  // the wallet store's native row.
   const tokens = useMemo<SwapToken[]>(() => {
+    const nativeBnb = balances.find((b) => b.token === "BNB");
     return initialTokens.map((tk) => {
+      if (tk.symbol === "BNB") {
+        return { ...tk, balance: parseFloat(nativeBnb?.amount ?? "0") || 0 };
+      }
       const addr =
         tk.token0 && tk.token0.length > 0
           ? tk.token0
@@ -134,7 +139,7 @@ export default function SwapForm({
       if (formatted == null) return tk;
       return { ...tk, balance: parseFloat(formatted) || 0 };
     });
-  }, [initialTokens, tokenBalances]);
+  }, [initialTokens, tokenBalances, balances]);
   const form = useForm<SwapFormValues>({
     resolver: zodResolver(swapSchema),
     defaultValues: { fromToken: "", toToken: "", fromAmount: "" },
@@ -195,11 +200,19 @@ export default function SwapForm({
     );
   }, [tokens, fromToken, toSearch]);
 
-  // Resolve token addresses for swap hook
-  const fromAddr = fromTokenData?.token0
-    || (fromTokenData?.symbol === "WBNB" ? WBNB_ADDRESS : undefined);
-  const toAddr = toTokenData?.token0
-    || (toTokenData?.symbol === "WBNB" ? WBNB_ADDRESS : undefined);
+  // Resolve token addresses. Native BNB has no contract — the quoter
+  // simulation still uses WBNB_ADDRESS (the pool is WBNB/<vault>), but the
+  // useSwap allowance check skips when tokenIn is undefined.
+  const fromIsNative = fromTokenData?.symbol === "BNB";
+  const toIsNative = toTokenData?.symbol === "BNB";
+  const fromAddr =
+    fromTokenData?.token0 ||
+    (fromTokenData?.symbol === "WBNB" || fromIsNative
+      ? WBNB_ADDRESS
+      : undefined);
+  const toAddr =
+    toTokenData?.token0 ||
+    (toTokenData?.symbol === "WBNB" || toIsNative ? WBNB_ADDRESS : undefined);
 
   const amountInWei = fromAmount > 0
     ? parseEther(fromAmount.toString())
@@ -213,7 +226,8 @@ export default function SwapForm({
     flowState,
   } = useSwap(
     address as Address | undefined,
-    fromAddr as Address | undefined,
+    // tokenIn = undefined for native BNB so no ERC20 approval is attempted.
+    (fromIsNative ? undefined : (fromAddr as Address | undefined)),
     EXCHANGE_HELPER_ADDRESS,
     amountInWei,
   );
@@ -323,17 +337,30 @@ export default function SwapForm({
     });
   }
 
-  // ExchangeHelper routes against a single vault: WBNB <-> vault token.
-  // Token-to-token (vault A -> vault B) would require two hops and is not
-  // supported by this UI yet.
+  // ExchangeHelper routes against a single vault. One leg has to be the
+  // base pair (BNB or WBNB), the other is the vault token. The mode
+  // changes whether the base leg is native BNB or wrapped:
+  //   BNB  → vault   = buyTokens       (msg.value)
+  //   WBNB → vault   = buyTokensWETH   (ERC20 approve + transferFrom)
+  //   vault → BNB    = sellTokensETH   (returns native BNB)
+  //   vault → WBNB   = sellTokens      (returns WBNB)
+  // BNB↔WBNB and vault↔vault aren't supported here — wrap/unwrap lives in
+  // the header modal and multi-hop routing isn't implemented yet.
   const fromIsWbnb = fromTokenData?.symbol === "WBNB";
   const toIsWbnb = toTokenData?.symbol === "WBNB";
-  const vaultSide = fromIsWbnb ? toTokenData : toIsWbnb ? fromTokenData : null;
-  const swapMode: SwapMode | null = fromIsWbnb
-    ? "buyTokensWETH"
-    : toIsWbnb
-      ? "sellTokens"
+  const fromIsBase = fromIsNative || fromIsWbnb;
+  const toIsBase = toIsNative || toIsWbnb;
+  const vaultSide = fromIsBase && !toIsBase
+    ? toTokenData
+    : !fromIsBase && toIsBase
+      ? fromTokenData
       : null;
+  const swapMode: SwapMode | null =
+    fromIsBase && !toIsBase
+      ? (fromIsNative ? "buyTokens" : "buyTokensWETH")
+      : !fromIsBase && toIsBase
+        ? (toIsNative ? "sellTokensETH" : "sellTokens")
+        : null;
   const isUnsupportedPair =
     !!fromTokenData && !!toTokenData && swapMode === null;
 
