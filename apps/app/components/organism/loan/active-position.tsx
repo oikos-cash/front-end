@@ -4,7 +4,6 @@ import { Controller } from "react-hook-form";
 
 // Components
 import Card from "@/components/atoms/card";
-import Badge from "@/components/atoms/badge";
 import Empty from "@/components/atoms/empty";
 import Button from "@/components/atoms/button";
 import FieldRenderer from "@/components/molecules/field-renderer";
@@ -162,20 +161,42 @@ export default function LoanActivePosition({
 
   const isHealthy = loanData.ltv >= 1.5;
   const isAtRisk = loanData.ltv > 0 && loanData.ltv <= 1.1;
+  const isCaution =
+    !loanData.isExpired && !isAtRisk && !isHealthy && loanData.ltv > 0;
   const statusLabel = loanData.isExpired
     ? t("positionExpired")
     : isAtRisk
       ? "At risk"
       : loanData.isSelfRepaying
         ? t("positionSelfRepaying")
-        : "Healthy";
-  const statusVariant: "destructive" | "success" | "outline" = loanData.isExpired
-    ? "destructive"
-    : isAtRisk
-      ? "destructive"
-      : isHealthy
-        ? "success"
-        : "outline";
+        : isCaution
+          ? "Caution"
+          : "Healthy";
+
+  // Explicit colour coding: red for expired / at risk, gold for caution
+  // (LTV between liquidation and self-repaying), green for healthy.
+  const statusTone:
+    | { dot: string; bg: string; text: string; ring: string }
+    = loanData.isExpired || isAtRisk
+      ? {
+          dot: "bg-destructive shadow-[0_0_6px_rgba(227,79,79,0.7)]",
+          bg: "bg-destructive/15",
+          text: "text-destructive",
+          ring: "border-destructive/40",
+        }
+      : isCaution
+        ? {
+            dot: "bg-warning shadow-[0_0_6px_rgba(245,200,67,0.7)]",
+            bg: "bg-warning/15",
+            text: "text-warning",
+            ring: "border-warning/40",
+          }
+        : {
+            dot: "bg-success shadow-[0_0_6px_rgba(0,200,151,0.7)]",
+            bg: "bg-success/15",
+            text: "text-success",
+            ring: "border-success/40",
+          };
 
   return (
     <Card
@@ -192,9 +213,17 @@ export default function LoanActivePosition({
       }
       description={t("positionDescription")}
       action={
-        <Badge variant={statusVariant} className="text-[10px] uppercase tracking-[0.08em]">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+            statusTone.bg,
+            statusTone.text,
+            statusTone.ring,
+          )}
+        >
+          <span aria-hidden className={cn("block size-1.5 rounded-full", statusTone.dot)} />
           {statusLabel}
-        </Badge>
+        </span>
       }
     >
       <div className="flex flex-col gap-5">

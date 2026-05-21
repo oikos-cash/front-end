@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseEther } from "viem";
 import type { Address } from "viem";
@@ -31,14 +31,28 @@ type Mode = "wrap" | "unwrap";
 export default function WrapUnwrapModal({
   open,
   onOpenChange,
+  defaultMode = "wrap",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Initial direction when the modal opens. Useful when triggering from a
+   *  context that already knows what the user wants to do (e.g. the wallet
+   *  sidebar's WBNB row dispatches with defaultMode="unwrap"). */
+  defaultMode?: Mode;
 }) {
   const t = useTranslations("common");
   const { balances } = useWallet();
-  const [mode, setMode] = useState<Mode>("wrap");
+  const [mode, setMode] = useState<Mode>(defaultMode);
   const [amount, setAmount] = useState("");
+
+  // Reset to the requested mode every time the modal opens so the caller's
+  // intent always wins over the previously-selected tab.
+  useEffect(() => {
+    if (open) {
+      setMode(defaultMode);
+      setAmount("");
+    }
+  }, [open, defaultMode]);
 
   const numericAmount = parseFloat(amount) || 0;
 

@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
+
 // Components
 import Card from "@/components/atoms/card";
 import Badge from "@/components/atoms/badge";
 import Empty from "@/components/atoms/empty";
 import Avatar from "@/components/atoms/avatar";
 import Button from "@/components/atoms/button";
+import WrapUnwrapModal from "@/components/organism/wrap-unwrap-modal";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -43,6 +46,13 @@ export default function WalletPanel() {
   const t = useTranslations("wallet");
   const { isConnected, isBalancesLoading, balances, totalValue, handleConnect } =
     useWallet();
+
+  const [wrapOpen, setWrapOpen] = useState(false);
+  const [wrapMode, setWrapMode] = useState<"wrap" | "unwrap">("wrap");
+  function openWrap(mode: "wrap" | "unwrap") {
+    setWrapMode(mode);
+    setWrapOpen(true);
+  }
 
   return (
     <Card
@@ -85,13 +95,31 @@ export default function WalletPanel() {
 
                 <div className="flex items-center justify-between">
                   {balance.token === "BNB" ? (
-                    <Badge variant="outline" className="text-xs">
-                      {t("wrap")}
-                    </Badge>
+                    <button
+                      type="button"
+                      onClick={() => openWrap("wrap")}
+                      className="text-xs"
+                    >
+                      <Badge
+                        variant="outline"
+                        className="cursor-pointer text-xs transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                      >
+                        {t("wrap")}
+                      </Badge>
+                    </button>
                   ) : balance.token === "WBNB" ? (
-                    <Badge variant="outline" className="text-xs">
-                      {t("unwrap")}
-                    </Badge>
+                    <button
+                      type="button"
+                      onClick={() => openWrap("unwrap")}
+                      className="text-xs"
+                    >
+                      <Badge
+                        variant="outline"
+                        className="cursor-pointer text-xs transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                      >
+                        {t("unwrap")}
+                      </Badge>
+                    </button>
                   ) : (
                     <span />
                   )}
@@ -115,6 +143,12 @@ export default function WalletPanel() {
           </Button>
         </Empty>
       )}
+
+      <WrapUnwrapModal
+        open={wrapOpen}
+        onOpenChange={setWrapOpen}
+        defaultMode={wrapMode}
+      />
     </Card>
   );
 }
