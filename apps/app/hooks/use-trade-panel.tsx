@@ -198,13 +198,20 @@ export function useTradePanel() {
   // The previous code divided gasEstimate alone by 1e9/1e18, which always
   // rounded to 0.00 in the UI.
   const networkFee = (() => {
+    // The displayed Gwei is known as soon as the wallet returns a gas price —
+    // we don't need a quote for that. The BNB / USD total still requires a
+    // gas estimate (from the quote) to multiply by.
+    const gwei =
+      effectiveGasPriceWei && effectiveGasPriceWei > 0n
+        ? Number(effectiveGasPriceWei) / 1e9
+        : 0;
     if (!quote || !effectiveGasPriceWei || effectiveGasPriceWei === 0n) {
-      return { gwei: 0, bnb: 0, usd: 0, isOverride: gasOverrideGwei != null };
+      return { gwei, bnb: 0, usd: 0, isOverride: gasOverrideGwei != null };
     }
     const feeWei = quote.gasEstimate * effectiveGasPriceWei;
     const bnb = Number(feeWei) / 1e18;
     return {
-      gwei: Number(effectiveGasPriceWei) / 1e9,
+      gwei,
       bnb,
       usd: bnb * bnbPrice,
       isOverride: gasOverrideGwei != null,

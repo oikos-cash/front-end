@@ -349,32 +349,71 @@ export default function TradePanel() {
                 />
               </div>
 
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
-                  {t("networkFee")}
-                </span>
-                <div className="flex flex-col items-end gap-0.5 font-mono tabular-nums">
+              {(() => {
+                // Resolve a short speed label from the active override.
+                // Matches the preset multipliers used in GasFeeDialog.
+                const mode = (() => {
+                  if (gasOverrideGwei == null) return "Auto";
+                  if (networkGasGwei <= 0) return "Custom";
+                  const ratio = gasOverrideGwei / networkGasGwei;
+                  if (Math.abs(ratio - 0.8) < 0.05) return "Slow";
+                  if (Math.abs(ratio - 1) < 0.05) return "Normal";
+                  if (Math.abs(ratio - 1.5) < 0.05) return "Fast";
+                  return "Custom";
+                })();
+                const isAuto = mode === "Auto";
+                return (
                   <button
                     type="button"
                     onClick={() => setGasModalOpen(true)}
-                    className="flex items-center gap-1 text-xs text-foreground transition-colors hover:text-primary"
+                    aria-label="Adjust network fee"
+                    className="group flex w-full items-center justify-between gap-2 rounded-md border border-border/60 bg-card/40 px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-card/60"
                   >
-                    {networkFee.gwei.toFixed(2)} Gwei
-                    {networkFee.isOverride && (
-                      <span className="font-sans text-[9px] uppercase tracking-[0.06em] text-primary/80">
-                        custom
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
+                        {t("networkFee")}
                       </span>
-                    )}
-                    <Settings className="size-3 text-muted-foreground/60" />
+                      <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
+                        {networkFee.bnb > 0 ? (
+                          <>
+                            {networkFee.bnb.toFixed(6)} BNB ·{" "}
+                            {networkFee.usd > 0 && networkFee.usd < 0.01
+                              ? "<$0.01"
+                              : `$${networkFee.usd.toFixed(2)}`}
+                          </>
+                        ) : (
+                          "Enter amount to estimate"
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={
+                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] " +
+                          (isAuto
+                            ? "border-border/60 bg-muted/40 text-muted-foreground"
+                            : "border-primary/40 bg-primary/15 text-primary")
+                        }
+                      >
+                        <span
+                          aria-hidden
+                          className={
+                            "block size-1.5 rounded-full " +
+                            (isAuto ? "bg-muted-foreground/60" : "bg-primary")
+                          }
+                        />
+                        {mode}
+                        <span className="font-mono tracking-tight text-foreground/90">
+                          {networkFee.gwei > 0
+                            ? `${networkFee.gwei.toFixed(2)}`
+                            : "—"}
+                        </span>
+                      </span>
+                      <Settings className="size-3.5 text-muted-foreground/70 transition-colors group-hover:text-primary" />
+                    </div>
                   </button>
-                  <span className="text-[10px] text-muted-foreground/70">
-                    {networkFee.bnb.toFixed(6)} BNB ·{" "}
-                    {networkFee.usd > 0 && networkFee.usd < 0.01
-                      ? "<$0.01"
-                      : `$${networkFee.usd.toFixed(2)}`}
-                  </span>
-                </div>
-              </div>
+                );
+              })()}
 
               <label
                 htmlFor="trade-approve-max"
