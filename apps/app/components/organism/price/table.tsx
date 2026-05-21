@@ -25,7 +25,6 @@ import { RefreshCw, ServerOff } from "lucide-react";
 
 // Utils
 import { swrFetcher } from "@/utils/fetcher";
-import { formatCompactNumber } from "@/utils/number";
 import { VAULT_API_URL, API_BASE_URL, OHLC_API_URL } from "@/types/constants";
 
 interface OHLCCandle {
@@ -126,13 +125,15 @@ export default function PriceTable() {
   const firstPool = tokens[0]?.poolAddress;
   const { livePrice } = useExchangeWS(firstPool);
 
+  // Sidebar variant: drop FDV (lives in the dedicated Markets table) and pack
+  // symbol/price/24h into three tight columns so nothing overflows the rail.
   const columns: ColumnDef<PriceTableToken>[] = useMemo(
     () => [
       {
         accessorKey: "symbol",
         header: t("token"),
         cell: ({ row }) => (
-          <span className="font-medium">
+          <span className="text-xs font-medium">
             {row.original.symbol ?? row.original.token}
           </span>
         ),
@@ -149,7 +150,11 @@ export default function PriceTable() {
               : priceUsd > 0
                 ? `$${priceUsd.toPrecision(4)}`
                 : "$0.00";
-          return <div className="text-right">{display}</div>;
+          return (
+            <div className="text-right font-mono text-xs tabular-nums">
+              {display}
+            </div>
+          );
         },
       },
       {
@@ -159,24 +164,10 @@ export default function PriceTable() {
           const change = row.getValue("change24h") as number;
           return (
             <div
-              className={`text-right ${change >= 0 ? "text-success" : "text-destructive"}`}
+              className={`text-right font-mono text-xs tabular-nums ${change >= 0 ? "text-success" : "text-destructive"}`}
             >
               {change >= 0 ? "+" : ""}
               {change.toFixed(2)}%
-            </div>
-          );
-        },
-      },
-      {
-        id: "fdv",
-        header: () => <div className="text-right">{t("fdv")}</div>,
-        cell: ({ row }) => {
-          const priceBnb = row.original.price as number;
-          const supply = row.original.totalSupply ?? 0;
-          const fdvUsd = priceBnb * bnbPrice * supply;
-          return (
-            <div className="text-right">
-              {fdvUsd > 0 ? `$${formatCompactNumber(fdvUsd)}` : "—"}
             </div>
           );
         },
