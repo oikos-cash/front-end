@@ -1,7 +1,7 @@
 {
   "priceTable": {
     "title": "Prices",
-    "description": "Live token prices and 24h performance",
+    "description": "Live token prices",
     "price": "Price",
     "change24h": "24h Change",
     "token": "Token",
