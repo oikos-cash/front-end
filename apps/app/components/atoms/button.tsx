@@ -26,8 +26,11 @@ export default function Button({
 
   return (
     <Primitive {...props} disabled={props.disabled || isLoading}>
-      {children}
-      {isLoading && <Loader2 className="size-4 animate-spin" />}
+      {isLoading ? (
+        <Loader2 className="size-4 animate-spin" aria-label="Loading" />
+      ) : (
+        children
+      )}
     </Primitive>
   );
 }
