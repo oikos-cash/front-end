@@ -84,9 +84,17 @@ export default function WalletPanel() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs">
-                    {t("wrap")}
-                  </Badge>
+                  {balance.token === "BNB" ? (
+                    <Badge variant="outline" className="text-xs">
+                      {t("wrap")}
+                    </Badge>
+                  ) : balance.token === "WBNB" ? (
+                    <Badge variant="outline" className="text-xs">
+                      {t("unwrap")}
+                    </Badge>
+                  ) : (
+                    <span />
+                  )}
                   <span className="text-xs text-muted-foreground">
                     ≈ {balance.usd}
                   </span>

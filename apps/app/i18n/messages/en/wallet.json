@@ -3,6 +3,7 @@
     "title": "Wallet",
     "description": "Your token balances and portfolio overview",
     "wrap": "Wrap",
+    "unwrap": "Unwrap",
     "totalValue": "Total Value",
     "connectTitle": "Connect Wallet to Trade",
     "connectDescription": "Connect your wallet to access trading features and manage your portfolio",
