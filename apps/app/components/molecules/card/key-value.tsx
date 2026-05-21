@@ -16,7 +16,7 @@ export default function KeyValueCard({ rows, className }: TradeInfoProps) {
       {rows.map((row) => (
         <div
           key={row.label}
-          className="flex items-center justify-between gap-3 px-3 py-2.5 transition-colors hover:bg-accent/30"
+          className="flex items-center justify-between gap-3 px-3 py-1.5 transition-colors hover:bg-accent/30"
         >
           <span className="text-[11px] uppercase tracking-[0.06em] text-muted-foreground/80">
             {row.label}
