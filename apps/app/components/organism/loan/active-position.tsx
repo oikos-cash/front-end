@@ -1,5 +1,7 @@
 "use client";
 
+import { Controller } from "react-hook-form";
+
 // Components
 import Card from "@/components/atoms/card";
 import Badge from "@/components/atoms/badge";
@@ -34,6 +36,61 @@ const TAB_PROMPTS: Record<string, string> = {
   roll: "Extend the loan's duration by paying the rollover fee.",
   addCollateral: "Add more collateral to lower the LTV and reduce risk.",
 };
+
+/**
+ * Compact one-row amount input — replaces the stacked
+ * label / full-height input / use-max link that FieldRenderer produces.
+ * The whole thing reads as a single tight control: micro-label + use-max
+ * link on the top row, the numeric input + token suffix on the bottom row.
+ */
+function CompactAmountField({
+  control,
+  name,
+  label,
+  token,
+  description,
+  placeholder = "0.00",
+}: {
+  // RHF's Control is invariant in TFieldValues; `any` matches the rest of
+  // the codebase's Controller usage in @/components/atoms/field.
+  control: unknown;
+  name: string;
+  label: string;
+  token: string;
+  description?: React.ReactNode;
+  placeholder?: string;
+}) {
+  return (
+    <Controller
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      control={control as any}
+      name={name}
+      render={({ field }) => (
+        <div className="flex flex-col gap-1.5 rounded-md border border-border/60 bg-card/40 px-3 py-2.5 transition-colors focus-within:border-primary/50 focus-within:bg-card/60">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
+              {label}
+            </span>
+            {description}
+          </div>
+          <div className="flex items-baseline justify-between gap-2">
+            <input
+              {...field}
+              type="number"
+              step="any"
+              min="0"
+              placeholder={placeholder}
+              className="w-full bg-transparent font-mono text-xl font-semibold tabular-nums tracking-tight text-foreground outline-none placeholder:text-muted-foreground/40"
+            />
+            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {token}
+            </span>
+          </div>
+        </div>
+      )}
+    />
+  );
+}
 
 /**
  * Small horizontal LTV gauge. Visually anchors the collateralization ratio
@@ -255,11 +312,29 @@ export default function LoanActivePosition({
                     </p>
                   )}
 
-                  <FieldRenderer
-                    t={t}
-                    control={tab.form.control}
-                    fields={tab.fields}
-                  />
+                  {tab.key === "repay" ? (
+                    <CompactAmountField
+                      control={tab.form.control}
+                      name={tab.fields[0].name}
+                      label={tab.fields[0].label}
+                      token={loanData.quoteToken}
+                      description={tab.fields[0].description}
+                    />
+                  ) : tab.key === "addCollateral" ? (
+                    <CompactAmountField
+                      control={tab.form.control}
+                      name={tab.fields[0].name}
+                      label={tab.fields[0].label}
+                      token={loanData.token}
+                      description={tab.fields[0].description}
+                    />
+                  ) : (
+                    <FieldRenderer
+                      t={t}
+                      control={tab.form.control}
+                      fields={tab.fields}
+                    />
+                  )}
 
                   {tab.showSummary && tab.summaryRows.length > 0 && (
                     <div className="flex flex-col gap-1.5 rounded-md border border-border/60 bg-card/40 px-3 py-2 text-xs">
