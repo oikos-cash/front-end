@@ -40,7 +40,8 @@ export default function Header() {
   const networkItems = [{ value: "bsc-mainnet", label: t("network") }];
 
   return (
-    <header className="sticky top-0 z-50 h-14 border-b border-border/60 bg-[#121117]/90 backdrop-blur supports-[backdrop-filter]:bg-[#121117]/75">
+    <header className="sticky top-0 z-50 h-14 border-b border-border/60 bg-[#121117]/80 backdrop-blur-xl supports-[backdrop-filter]:bg-[#121117]/60 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_24px_-12px_rgba(0,0,0,0.6)]">
+      <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(245,200,67,0.25),transparent)]" />
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-3">
           <Link
