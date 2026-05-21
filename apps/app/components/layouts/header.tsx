@@ -20,10 +20,15 @@ import { useBnbPrice } from "@/hooks/use-bnb-price";
 // Icons
 import { Menu, Wallet, X, ArrowLeftRight } from "lucide-react";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Header() {
   const [wrapOpen, setWrapOpen] = useState(false);
+  // The BNB price is fetched live, so its SSR snapshot (a cached fallback)
+  // disagrees with the freshly-fetched client value and trips a hydration
+  // warning. Hold the displayed value until after mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const t = useTranslations("header");
   const { bnbPrice } = useBnbPrice();
 
@@ -68,7 +73,10 @@ export default function Header() {
 
         <div className="hidden items-center gap-3 md:flex">
           <Badge variant="outline" className="font-mono tabular-nums text-[11px]">
-            BNB/USD <span className="ml-1.5 text-foreground">${bnbPrice.toFixed(4)}</span>
+            BNB/USD{" "}
+            <span className="ml-1.5 text-foreground" suppressHydrationWarning>
+              {mounted ? `$${bnbPrice.toFixed(4)}` : "—"}
+            </span>
           </Badge>
 
           <NetworkSelector />
@@ -131,7 +139,9 @@ export default function Header() {
               <div className="flex flex-col gap-3">
                 <div className="text-center w-full">
                   <Badge variant="outline" className="w-fit">
-                    BNB/USD ${bnbPrice.toFixed(4)}
+                    <span suppressHydrationWarning>
+                      BNB/USD {mounted ? `$${bnbPrice.toFixed(4)}` : "—"}
+                    </span>
                   </Badge>
                 </div>
                 <Accordion
