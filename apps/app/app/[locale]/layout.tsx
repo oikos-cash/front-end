@@ -48,13 +48,21 @@ export async function generateMetadata({
   const title = t("site.name");
   const description = t("site.description");
 
+  // Home tab shows a descriptive tagline; per-page tabs keep "{page} | Oikos"
+  // via the template (set by each route's own generateMetadata).
+  const tagline = t("site.tagline");
   return {
     metadataBase: new URL(SITE_URL),
     title: {
-      default: title,
+      default: `${title} — ${tagline}`,
       template: `%s | ${SITE_NAME}`,
     },
     description,
+    icons: {
+      icon: [{ url: "/favicon.png", type: "image/png" }],
+      shortcut: "/favicon.png",
+      apple: "/favicon.png",
+    },
     alternates: {
       languages: Object.fromEntries(
         routing.locales.map((l) => [l, `${SITE_URL}/${l}`]),
@@ -67,9 +75,11 @@ export async function generateMetadata({
         .filter((l) => l !== locale)
         .map((l) => SITE_LOCALE_MAP[l] ?? l),
       type: "website",
+      images: [{ url: "/favicon.png" }],
     },
     twitter: {
       card: "summary_large_image",
+      images: ["/favicon.png"],
     },
     robots: {
       index: true,

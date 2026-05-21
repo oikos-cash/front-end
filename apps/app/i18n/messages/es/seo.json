@@ -2,6 +2,7 @@
   "seo": {
     "site": {
       "name": "Oikos",
+      "tagline": "DeFi respaldado por floor en BNB Chain",
       "description": "Protocolo de finanzas descentralizadas para trading, liquidez, staking y lanzamiento de tokens en BNB Chain"
     },
     "home": {
