@@ -15,15 +15,14 @@ export default function Avatar({
 }: AvatarProps) {
   const resolvedSrc = getTokenIconUrl(name, src);
   // The OKS asset (logo_dark.svg) has wide padding around the glyph and a
-  // transparent background — scale it up and place it on a brand-tinted disc
+  // transparent background — scale it up and place it on a subtle dark disc
   // so it reads as a token icon rather than a faint hairline.
   const isOks = name?.toUpperCase() === "OKS";
   return (
     <AvatarPrimitive
       size={size}
       className={cn(
-        isOks &&
-          "bg-[radial-gradient(circle_at_30%_20%,#1f2433,#0e1118)] ring-1 ring-primary/30",
+        isOks && "bg-[radial-gradient(circle_at_30%_20%,#1f2433,#0e1118)]",
         className,
       )}
     >
