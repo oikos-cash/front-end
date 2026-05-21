@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { parseEther, formatEther, maxUint256 } from "viem";
+import { toast } from "sonner";
 
 // Components
 import Card from "@/components/atoms/card";
@@ -16,12 +17,14 @@ import Badge from "@/components/atoms/badge";
 import Checkbox from "@/components/atoms/checkbox";
 import Sheet from "@/components/atoms/sheet";
 import KeyValueCard from "@/components/molecules/card/key-value";
+import TxFlowStatus from "@/components/molecules/tx-flow-status";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
 import { useSwap, type SwapMode } from "@/hooks/use-swap";
 import type { Address } from "viem";
+import type { TxFlowStep } from "@/hooks/types/tx-flow";
 
 // Types
 import { swapSchema } from "@/types/schemes";
@@ -203,16 +206,36 @@ export default function SwapForm({
     : undefined;
 
   const {
-    execute: executeSwap,
-    approve: approveToken,
+    submit: submitSwap,
+    reset: resetSwap,
     needsApproval,
     isPending: isSwapPending,
+    flowState,
   } = useSwap(
     address as Address | undefined,
     fromAddr as Address | undefined,
     EXCHANGE_HELPER_ADDRESS,
     amountInWei,
   );
+
+  // Toasts on terminal events.
+  const toastedStepRef = useRef<TxFlowStep | null>(null);
+  useEffect(() => {
+    if (toastedStepRef.current === flowState.step) return;
+    toastedStepRef.current = flowState.step;
+    if (flowState.step === "success" && flowState.actionTxHash) {
+      const hash = flowState.actionTxHash;
+      toast.success(t("toastSwapSuccess"), {
+        action: {
+          label: t("viewTx"),
+          onClick: () => window.open(`https://bscscan.com/tx/${hash}`, "_blank"),
+        },
+      });
+      form.reset({ fromToken: "", toToken: "", fromAmount: "" });
+    } else if (flowState.step === "error" && flowState.errorMessage) {
+      toast.error(flowState.errorMessage);
+    }
+  }, [flowState, t, form]);
 
   // Quoter V2 simulation for real output & price impact
   const [quote, setQuote] = useState<TradeQuote | null>(null);
@@ -318,26 +341,43 @@ export default function SwapForm({
     if (!fromAddr || !toAddr || !address || !quote) return;
     if (!swapMode || !vaultSide?.vaultAddress || !vaultSide?.poolAddress) return;
 
+    // Reset prior terminal state so the new attempt starts clean.
+    if (flowState.step === "success" || flowState.step === "error") resetSwap();
+
     const amountIn = parseEther(fromAmount.toString());
     const slippageBps = Math.round(activeSlippage * 100);
 
-    if (needsApproval) {
-      approveToken(approveMax ? maxUint256 : amountIn);
-      return;
-    }
-
-    executeSwap({
-      mode: swapMode,
-      routerAddress: EXCHANGE_HELPER_ADDRESS,
-      vaultAddress: vaultSide.vaultAddress as Address,
-      pool: vaultSide.poolAddress as Address,
-      price: BigInt(vaultSide.spotPriceX96 ?? "0"),
-      amount: amountIn,
-      minAmount: calculateMinReceived(quote.amountOut, slippageBps),
-      receiver: address as Address,
-      slippageBps,
-    });
+    submitSwap(
+      {
+        mode: swapMode,
+        routerAddress: EXCHANGE_HELPER_ADDRESS,
+        vaultAddress: vaultSide.vaultAddress as Address,
+        pool: vaultSide.poolAddress as Address,
+        price: BigInt(vaultSide.spotPriceX96 ?? "0"),
+        amount: amountIn,
+        minAmount: calculateMinReceived(quote.amountOut, slippageBps),
+        receiver: address as Address,
+        slippageBps,
+      },
+      approveMax ? maxUint256 : amountIn,
+    );
   }
+
+  const flowLabels = {
+    title: t("flowStatusTitle"),
+    awaitingApproveSignature: t("awaitingApproveSignature", {
+      token: fromToken || "Token",
+    }),
+    approvingOnChain: t("approvingOnChain", { token: fromToken || "Token" }),
+    approveDone: t("approveStepDone", { token: fromToken || "Token" }),
+    approveStepFallback: t("approveStepDone", { token: fromToken || "Token" }),
+    awaitingActionSignature: t("awaitingSwapSignature"),
+    actionPending: t("swapPending"),
+    actionSubmitting: t("submittingSwap"),
+    actionDone: t("swapStepDone"),
+    actionStepFallback: t("swapAction"),
+    dismiss: t("dismiss"),
+  };
 
   return (
     <form
@@ -619,12 +659,28 @@ export default function SwapForm({
         }
         isLoading={isSwapPending}
       >
-        {isUnsupportedPair
-          ? t("unsupportedPair")
-          : needsApproval
-            ? t("approveAction")
-            : t("swapAction")}
+        {(() => {
+          if (isUnsupportedPair) return t("unsupportedPair");
+          switch (flowState.step) {
+            case "approve-wallet":
+              return t("awaitingApproveSignature", { token: fromToken || "Token" });
+            case "approve-pending":
+              return t("approvingOnChain", { token: fromToken || "Token" });
+            case "approve-confirmed":
+              return t("submittingSwap");
+            case "action-wallet":
+              return t("awaitingSwapSignature");
+            case "action-pending":
+              return t("swapPending");
+            default:
+              return needsApproval
+                ? t("approveAndSwap", { token: fromToken || "Token" })
+                : t("swapAction");
+          }
+        })()}
       </Button>
+
+      <TxFlowStatus state={flowState} labels={flowLabels} onDismiss={resetSwap} />
     </form>
   );
 }
