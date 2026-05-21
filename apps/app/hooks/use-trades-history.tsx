@@ -188,16 +188,16 @@ export function useTradesHistory(
         ),
       },
       {
-        accessorKey: "wallet",
-        header: t("wallet"),
+        accessorKey: "txHash",
+        header: t("txId"),
         cell: ({ row }) => (
           <a
             href={`https://bscscan.com/tx/${row.original.txHash}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            className="inline-flex items-center gap-1 font-mono text-xs text-primary hover:underline"
           >
-            {truncateAddress(row.getValue("wallet") as string)}
+            {truncateAddress(row.original.txHash)}
             <ArrowUpRight className="size-3 text-muted-foreground/50" />
           </a>
         ),

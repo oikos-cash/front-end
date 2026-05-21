@@ -10,6 +10,7 @@
     "details": "Detalles",
     "value": "Valor",
     "wallet": "Wallet",
+    "txId": "Tx",
     "time": "Tiempo",
     "loading": "Cargando trades...",
     "emptyTitle": "Sin trades aún",
