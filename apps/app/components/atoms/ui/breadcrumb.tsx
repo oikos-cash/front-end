@@ -66,17 +66,21 @@ function BreadcrumbSeparator({
   children,
   className,
   ...props
-}: React.ComponentProps<"li">) {
+}: React.ComponentProps<"span">) {
+  // Rendered as <span> rather than <li>: in our usage the separator sits
+  // inside a BreadcrumbItem (an <li>), and nesting <li> inside <li> is
+  // invalid HTML. The element is aria-hidden + role="presentation" so it
+  // does not need to participate in the list semantics.
   return (
-    <li
+    <span
       data-slot="breadcrumb-separator"
       role="presentation"
       aria-hidden="true"
-      className={cn("[&>svg]:size-3.5", className)}
+      className={cn("inline-flex [&>svg]:size-3.5", className)}
       {...props}
     >
       {children ?? <ChevronRight />}
-    </li>
+    </span>
   )
 }
 
