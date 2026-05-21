@@ -100,6 +100,7 @@ export default function TradePanel() {
       ) : (
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-3">
+            {/* Group 1 — sizing the trade (tightly grouped) */}
             <ButtonGroup className="self-center">
               <Button
                 type="button"
@@ -139,51 +140,56 @@ export default function TradePanel() {
 
             {numericAmount > 0 && <KeyValueCard rows={detailRows} />}
 
-            <div className="flex flex-col items-start gap-2">
-              <span className="text-xs font-medium">{t("maxSlippage")}</span>
-              <ButtonGroup>
-                {SLIPPAGE_OPTIONS.map((opt) => (
+            {/* Group 2 — settings (slippage / fee / approval). Sit in a
+              * dedicated section with explicit row gaps and a top divider
+              * so they read as a separate concern from the "amount" block. */}
+            <div className="mt-2 flex flex-col gap-5 border-t border-border/40 pt-4">
+              <div className="flex flex-col items-start gap-2">
+                <span className="text-xs font-medium">{t("maxSlippage")}</span>
+                <ButtonGroup>
+                  {SLIPPAGE_OPTIONS.map((opt) => (
+                    <Button
+                      key={opt}
+                      type="button"
+                      size="xs"
+                      variant={slippage === opt ? "default" : "outline"}
+                      onClick={() => setSlippage(opt)}
+                    >
+                      {opt}%
+                    </Button>
+                  ))}
                   <Button
-                    key={opt}
                     type="button"
                     size="xs"
-                    variant={slippage === opt ? "default" : "outline"}
-                    onClick={() => setSlippage(opt)}
+                    variant={slippage === "custom" ? "default" : "outline"}
+                    onClick={() => setSlippage("custom")}
                   >
-                    {opt}%
+                    {t("custom")}
                   </Button>
-                ))}
-                <Button
-                  type="button"
-                  size="xs"
-                  variant={slippage === "custom" ? "default" : "outline"}
-                  onClick={() => setSlippage("custom")}
-                >
-                  {t("custom")}
-                </Button>
-              </ButtonGroup>
-              <FieldRenderer
-                fields={slippageField}
-                control={form.control}
-                t={t}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium">{t("networkFee")}</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    {networkFee.gwei.toFixed(2)} Gwei
-                  </span>
-                  <Settings className="size-3 text-muted-foreground" />
-                </div>
+                </ButtonGroup>
+                <FieldRenderer
+                  fields={slippageField}
+                  control={form.control}
+                  t={t}
+                />
               </div>
-              <span className="text-xs text-muted-foreground">
-                {networkFee.bnb.toFixed(6)} BNB (~${networkFee.usd.toFixed(2)})
-              </span>
-            </div>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium">{t("networkFee")}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      {networkFee.gwei.toFixed(2)} Gwei
+                    </span>
+                    <Settings className="size-3 text-muted-foreground" />
+                  </div>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {networkFee.bnb.toFixed(6)} BNB (~${networkFee.usd.toFixed(2)})
+                </span>
+              </div>
 
-            <FieldRenderer fields={approveField} control={form.control} t={t} />
+              <FieldRenderer fields={approveField} control={form.control} t={t} />
+            </div>
 
             <Button
               type="submit"
