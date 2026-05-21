@@ -563,10 +563,8 @@ export function calculateNewLtv(
   imv: number,
 ): number {
   const totalCollateral = collateralAmount + extraCollateral;
-  if (totalCollateral <= 0 || imv <= 0) return 0;
-  return parseFloat(
-    ((borrowedAmount / (totalCollateral * imv)) * 100).toFixed(2),
-  );
+  if (borrowedAmount <= 0 || totalCollateral <= 0 || imv <= 0) return 0;
+  return parseFloat(((totalCollateral * imv) / borrowedAmount).toFixed(2));
 }
 
 /**

@@ -3,14 +3,17 @@
 import { useState, useMemo, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { formatUnits } from "viem";
+import type { Address } from "viem";
+import { useReadContract } from "wagmi";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
 import { useLending } from "@/hooks/use-lending";
 
-// Services
-import { fetchLoansByUser } from "@/services/loan";
+// Contracts
+import { MODEL_HELPER_ABI, MODEL_HELPER_ADDRESS } from "@/lib/oikos-addresses";
 
 // Types
 import type {
@@ -19,7 +22,6 @@ import type {
   RepayFormValues,
   AddCollateralFormValues,
   VaultInfo,
-  LoanEvent,
 } from "@/types/interfaces";
 import { repaySchema, rollSchema, addCollateralSchema } from "@/types/schemes";
 
@@ -35,138 +37,79 @@ import {
 import { LOAN_TAB_FIELDS, ROLL_DURATION_OPTIONS } from "@/types/constants";
 
 /**
- * Derive active loan state from a user's latest Borrow event for a specific vault.
- * The API returns loan events; the most recent Borrow that hasn't been fully repaid
- * represents the active position.
- */
-function deriveActiveLoan(
-  loans: LoanEvent[],
-  vaultAddress: string,
-  vault: VaultInfo | null,
-) {
-  const vaultLoans = loans
-    .filter((l) => l.vaultAddress.toLowerCase() === vaultAddress.toLowerCase())
-    .sort((a, b) => b.timestamp - a.timestamp);
-
-  const lastBorrow = vaultLoans.find((l) => l.eventName === "Borrow");
-
-  if (!lastBorrow) return null;
-
-  const borrowAmount = parseFloat(lastBorrow.args.borrowAmount ?? "0") / 1e18;
-  const durationSec = parseInt(lastBorrow.args.duration ?? "0");
-  const expiresAt = lastBorrow.timestamp + durationSec;
-  const now = Math.floor(Date.now() / 1000);
-  const daysLeft = Math.max(0, Math.floor((expiresAt - now) / 86400));
-  const isExpired = now > expiresAt;
-
-  const imv = parseFloat(vault?.liquidityRatio ?? "0");
-  const dailyInterest = parseFloat(vault?.totalInterest ?? "0") / 1e18;
-  const collateralAmount = imv > 0 ? borrowAmount / imv : 0;
-  const ltv =
-    collateralAmount > 0
-      ? (borrowAmount / (collateralAmount * imv)) * 100
-      : 0;
-
-  const daysSinceBorrow = Math.floor((now - lastBorrow.timestamp) / 86400);
-  const totalInterestAccrued = borrowAmount * dailyInterest * daysSinceBorrow;
-
-  return {
-    borrowedAmount: borrowAmount,
-    collateralAmount,
-    ltv,
-    daysLeft,
-    isExpired,
-    totalInterestAccrued,
-    imv,
-    dailyInterest,
-    expiresAt,
-    hasActiveLoan: !isExpired,
-    isSelfRepaying: ltv > 1.5,
-  };
-}
-
-/**
- * Manages the entire loan active position state:
- * - Fetches active loan data from the API
- * - 3 independent forms (repay, roll, addCollateral) with their own schemas
- * - Derived values that recalculate as users type
+ * Manages the entire loan active position state. Position truth comes from
+ * on-chain `getActiveLoan` (via useLending); the indexer API only carries event
+ * history, which can miss the original Borrow (predates indexer / lost) or skip
+ * rollover-driven expiry updates.
  */
 export function useLoanPosition(vault: VaultInfo | null) {
   const t = useTranslations("borrow");
-  const { isConnected, address } = useWallet();
+  const { isConnected } = useWallet();
   const [activeTab, setActiveTab] = useState<LoanActionTab>("repay");
-  const [isLoadingLoan, setIsLoadingLoan] = useState(false);
 
   const token = vault?.tokenSymbol ?? "TOKEN";
   const vaultAddress = vault?.address ?? "";
 
   const {
-    borrow: lendingBorrow,
     payback: lendingPayback,
     roll: lendingRoll,
     addCollateral: lendingAddCollateral,
     loanData: onChainLoan,
     refetch: refetchLoan,
-    isRepaying: isRepayingTx,
-    isRolling: isRollingTx,
-    isAddingCollateral: isAddingCollateralTx,
     repaySuccess,
     rollSuccess,
     addCollateralSuccess,
   } = useLending(vaultAddress || undefined, vault?.token0);
 
-  // Fetch active loan from API
-  const [activeLoan, setActiveLoan] = useState<ReturnType<
-    typeof deriveActiveLoan
-  > | null>(null);
+  const dailyInterest = parseFloat(vault?.totalInterest ?? "0") / 1e18;
 
-  useEffect(() => {
-    if (!isConnected || !address || !vaultAddress) {
-      setActiveLoan(null);
-      return;
-    }
+  // Real IMV from ModelHelper (vault.liquidityRatio is a different metric).
+  const { data: imvWei } = useReadContract({
+    address: MODEL_HELPER_ADDRESS,
+    abi: MODEL_HELPER_ABI,
+    functionName: "getIntrinsicMinimumValue",
+    args: vault?.address ? [vault.address as Address] : undefined,
+    query: { enabled: !!vault?.address },
+  });
+  const imv = useMemo(() => {
+    if (typeof imvWei !== "bigint" || imvWei === BigInt(0)) return 0;
+    return Number(formatUnits(imvWei, 18));
+  }, [imvWei]);
 
-    let cancelled = false;
+  const loanData = useMemo(() => {
+    const borrowedAmount = onChainLoan
+      ? Number(formatUnits(onChainLoan.borrowAmount, 18))
+      : 0;
+    const collateralAmount = onChainLoan
+      ? Number(formatUnits(onChainLoan.collateralAmount, 18))
+      : 0;
+    const expiresAt = onChainLoan ? Number(onChainLoan.expires) : 0;
+    const now = Math.floor(Date.now() / 1000);
+    const daysLeft = Math.max(0, Math.floor((expiresAt - now) / 86400));
+    const isExpired = expiresAt > 0 && now > expiresAt;
+    // LTV here is the collateralization ratio: (collateral * IMV) / borrow.
+    // > 1 = overcollateralized, <= 1 = at/below liquidation threshold,
+    // > 1.5 = self-repaying (excess collateral covers interest accrual).
+    const ltv =
+      borrowedAmount > 0 && imv > 0
+        ? (collateralAmount * imv) / borrowedAmount
+        : 0;
+    return {
+      borrowedAmount,
+      collateralAmount,
+      ltv,
+      daysLeft,
+      isExpired,
+      quoteToken: "WBNB",
+      token,
+      hasActiveLoan: !!onChainLoan?.hasActiveLoan,
+      isSelfRepaying: ltv > 1.5,
+      imv,
+      dailyInterest,
+    };
+  }, [onChainLoan, imv, dailyInterest, token]);
 
-    async function load() {
-      setIsLoadingLoan(true);
-      try {
-        const loans = await fetchLoansByUser(address!);
-        if (!cancelled) {
-          const derived = deriveActiveLoan(loans, vaultAddress, vault);
-          setActiveLoan(derived);
-        }
-      } catch (err) {
-        console.error("[useLoanPosition] fetch error:", err);
-      } finally {
-        if (!cancelled) setIsLoadingLoan(false);
-      }
-    }
-
-    load();
-    return () => { cancelled = true; };
-  }, [isConnected, address, vaultAddress, vault]);
-
-  const loanData = {
-    borrowedAmount: activeLoan?.borrowedAmount ?? 0,
-    collateralAmount: activeLoan?.collateralAmount ?? 0,
-    ltv: activeLoan?.ltv ?? 0,
-    daysLeft: activeLoan?.daysLeft ?? 0,
-    isExpired: activeLoan?.isExpired ?? false,
-    totalInterestAccrued: activeLoan?.totalInterestAccrued ?? 0,
-    quoteToken: "WBNB",
-    token,
-    hasActiveLoan: activeLoan?.hasActiveLoan ?? false,
-    isSelfRepaying: activeLoan?.isSelfRepaying ?? false,
-    imv: activeLoan?.imv ?? 0,
-    dailyInterest: activeLoan?.dailyInterest ?? 0,
-  };
-
-  const borrowData = {
-    imv: parseFloat(vault?.liquidityRatio ?? "0"),
-    dailyInterest: parseFloat(vault?.totalInterest ?? "0") / 1e18,
-    userBalance: 0,
-  };
+  const userBalance = 0;
 
   // Each tab has its own form to avoid field name collisions and allow independent validation
   const repayForm = useForm<RepayFormValues>({
@@ -271,10 +214,10 @@ export function useLoanPosition(vault: VaultInfo | null) {
     },
     {
       label: t("positionLtv"),
-      value: `${loanData.ltv.toFixed(1)}%`,
-      variant: (loanData.ltv > 80 ? "destructive" : "default") as
-        | "default"
-        | "destructive",
+      value: loanData.ltv > 0 ? loanData.ltv.toFixed(2) : "--",
+      variant: (loanData.hasActiveLoan && loanData.ltv > 0 && loanData.ltv <= 1.1
+        ? "destructive"
+        : "default") as "default" | "destructive",
     },
     {
       label: t("positionDaysLeft"),
@@ -284,10 +227,6 @@ export function useLoanPosition(vault: VaultInfo | null) {
       variant: (loanData.isExpired ? "destructive" : "default") as
         | "default"
         | "destructive",
-    },
-    {
-      label: t("positionInterest"),
-      value: `${formatStakeNumber(loanData.totalInterestAccrued)} ${loanData.quoteToken}`,
     },
   ];
 
@@ -368,8 +307,8 @@ export function useLoanPosition(vault: VaultInfo | null) {
       summaryRows: [
         {
           label: t("addCollateralNewLtv"),
-          value: `${newLtv.toFixed(1)}%`,
-          variant: newLtv < loanData.ltv ? "success" : "default",
+          value: newLtv > 0 ? newLtv.toFixed(2) : "--",
+          variant: newLtv > loanData.ltv ? "success" : "default",
         },
       ],
       fieldOverrides: {
@@ -380,14 +319,14 @@ export function useLoanPosition(vault: VaultInfo | null) {
               onClick={() =>
                 collateralForm.setValue(
                   "collateralAmount",
-                  borrowData.userBalance.toString(),
+                  userBalance.toString(),
                   { shouldValidate: true },
                 )
               }
               className="text-xs text-primary hover:underline"
             >
               {t("addCollateralUseMax", {
-                amount: formatStakeNumber(borrowData.userBalance),
+                amount: formatStakeNumber(userBalance),
                 token: loanData.token,
               })}
             </button>
@@ -431,7 +370,6 @@ export function useLoanPosition(vault: VaultInfo | null) {
     activeTab,
     setActiveTab,
     isConnected,
-    isLoadingLoan,
     loanData,
     infoRows,
     tabForms,
