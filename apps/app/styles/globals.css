@@ -50,61 +50,75 @@
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* Palette derived from app.oikos.cash but tightened: deeper bg, lavender-blue
- * body text, dark navy surface, brand yellow as primary accent, soft border
- * tone. Dark-only — :root and .dark resolve to the same tokens so any
- * downstream component that gates on `.dark` still works. */
+/* Palette derived from app.oikos.cash but tightened. Surface tiers:
+ *   L0 background  #0a0a0c  — page canvas (slight cool cast vs pure black)
+ *   L1 chrome      #121117  — header bar & sidebar rails
+ *   L2 card        #12161e  — primary surfaces
+ *   L3 secondary   #1a1f2a  — hover / nested rows / button surfaces
+ *   L4 hi-elev     #232a38  — focused or pressed states
+ *
+ * Foreground is intentionally NOT pure white — a slight lavender tint
+ * (#e6e8f5) reads cooler and pairs better with the navy surfaces while
+ * staying high-contrast. Body copy steps down to --muted-foreground.
+ * Dark-only — :root and .dark resolve to the same tokens. */
 :root,
 .dark {
   --radius: 0.5rem;
 
   /* Surfaces */
-  --background: #0a0a0a;
-  --foreground: #f5f5f5;
+  --background: #0a0a0c;
+  --foreground: #e6e8f5;
   --card: #12161e;
-  --card-foreground: #f5f5f5;
-  --popover: #12161e;
-  --popover-foreground: #f5f5f5;
+  --card-foreground: #e6e8f5;
+  --popover: #14181f;
+  --popover-foreground: #e6e8f5;
 
   /* Brand — Oikos yellow (matches the brand mark on the live site). */
   --primary: #f5c843;
-  --primary-foreground: #12161e;
+  --primary-foreground: #1a1300;
 
   /* Secondary / muted surfaces — a step above the card */
   --secondary: #1a1f2a;
-  --secondary-foreground: #f5f5f5;
-  --muted: #1a1f2a;
+  --secondary-foreground: #e6e8f5;
+  --muted: #161b25;
   --muted-foreground: #9ca0d2;
   --accent: #1a1f2a;
-  --accent-foreground: #f5f5f5;
+  --accent-foreground: #e6e8f5;
 
   /* Semantic */
   --destructive: #e34f4f;
-  --success: #007a4d;
+  --success: #00c897;
   --warning: #f5c843;
-  --info: #4c6fff;
+  --info: #6b8bff;
 
-  /* Borders / inputs / rings */
-  --border: rgba(255, 255, 255, 0.08);
+  /* Borders / inputs / rings — multi-tone for depth */
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
   --input: rgba(255, 255, 255, 0.10);
-  --ring: rgba(245, 200, 67, 0.40);
+  --ring: rgba(245, 200, 67, 0.45);
+
+  /* Surface gradients (re-used by atoms) */
+  --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+  --gradient-header: linear-gradient(180deg, rgba(245, 200, 67, 0.06) 0%, transparent 100%);
+  --gradient-primary: linear-gradient(180deg, #f6cf5a 0%, #f0bf30 100%);
+  --gradient-glow-primary: radial-gradient(ellipse 60% 100% at 50% 0%, rgba(245, 200, 67, 0.18), transparent 70%);
 
   /* Charts — keep a tuned set against the dark bg */
   --chart-1: #f5c843;
-  --chart-2: #4c6fff;
+  --chart-2: #6b8bff;
   --chart-3: #00c897;
   --chart-4: #e34f4f;
   --chart-5: #9ca0d2;
 
   /* Sidebar mirrors the main palette but uses the header tone */
   --sidebar: #121117;
-  --sidebar-foreground: #f5f5f5;
+  --sidebar-foreground: #e6e8f5;
   --sidebar-primary: #f5c843;
-  --sidebar-primary-foreground: #12161e;
+  --sidebar-primary-foreground: #1a1300;
   --sidebar-accent: #1a1f2a;
-  --sidebar-accent-foreground: #f5f5f5;
-  --sidebar-border: rgba(255, 255, 255, 0.06);
-  --sidebar-ring: rgba(245, 200, 67, 0.40);
+  --sidebar-accent-foreground: #e6e8f5;
+  --sidebar-border: rgba(255, 255, 255, 0.05);
+  --sidebar-ring: rgba(245, 200, 67, 0.45);
 }
 
 @layer base {
@@ -120,6 +134,13 @@
     font-feature-settings: "ss01", "cv11", "calt";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Ambient backdrop: two soft glows (warm yellow at top-left, cool blue
+     * at right) layered over the canvas. They never move, they just sit
+     * under everything to give the dark surfaces something to react to. */
+    background-image:
+      radial-gradient(ellipse 60% 35% at 12% -5%, rgba(245, 200, 67, 0.06), transparent 70%),
+      radial-gradient(ellipse 55% 40% at 88% -10%, rgba(107, 139, 255, 0.05), transparent 70%);
+    background-attachment: fixed;
   }
   /* Use the mono font for tabular numerals, addresses, and tx hashes.
    * Apply via `font-mono` utility (which now resolves to JetBrains Mono). */
