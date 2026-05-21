@@ -9,6 +9,7 @@ import Drawer from "@/components/atoms/drawer";
 import Accordion from "@/components/atoms/accordion";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Skeleton from "@/components/atoms/skeleton";
+import LocaleSwitcher from "@/components/molecules/locale-switcher";
 import NetworkSelector from "@/components/organism/network-selector";
 import WrapUnwrapModal from "@/components/organism/wrap-unwrap-modal";
 
@@ -76,6 +77,8 @@ export default function Header() {
             <ArrowLeftRight className="size-4" />
           </Button>
           <WrapUnwrapModal open={wrapOpen} onOpenChange={setWrapOpen} />
+
+          <LocaleSwitcher />
 
           <Select
             className="w-37.5"
