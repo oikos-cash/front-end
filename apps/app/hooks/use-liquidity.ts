@@ -74,13 +74,17 @@ export function useLiquidity(initialVault: VaultInfo | null = null) {
             : "#86efac";
       const amt0 = Number(pos.amount0) / 1e18;
       const amt1 = Number(pos.amount1) / 1e18;
-      // Use total value (amount0 + amount1) as height indicator
-      const totalValue = amt0 + amt1;
+      // Height = position's total value in BNB. Adding amt0 + amt1 directly
+      // mixes scales (OKS in the millions, WBNB in fractions) and squashes
+      // every bar except the floor. Convert token0 to BNB via the spot
+      // price (BNB-per-OKS, not the USD-converted spotPrice) so the three
+      // zones compare on a single axis.
+      const valueBnb = amt0 * currentSpot + amt1;
       return {
         name: zone.charAt(0).toUpperCase() + zone.slice(1),
         from: tickToPrice(pos.lowerTick),
         to: tickToPrice(pos.upperTick),
-        height: totalValue > 0 ? totalValue : 0,
+        height: valueBnb > 0 ? valueBnb : 0,
         fill,
         amount0: amt0,
         amount1: amt1,
