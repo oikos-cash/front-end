@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useSWR from "swr";
 import { parseEther, formatEther, maxUint256 } from "viem";
+import { toast } from "sonner";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
 import { useSwap, type SwapMode } from "@/hooks/use-swap";
 import type { Address } from "viem";
+import type { TxFlowStep } from "@/hooks/types/tx-flow";
 
 // Types
 import type {
@@ -100,18 +102,38 @@ export function useTradePanel() {
     ? parseEther(numericAmount.toString())
     : undefined;
 
-  // Swap execution hook
+  // Swap execution hook (chained approve→execute via submit())
   const {
-    execute: executeSwap,
-    approve: approveToken,
+    submit: submitSwap,
+    reset: resetSwap,
     needsApproval,
     isPending: isSwapPending,
+    flowState,
   } = useSwap(
     address as Address | undefined,
     swapTokenIn,
     EXCHANGE_HELPER_ADDRESS,
     amountInWei,
   );
+
+  // Emit toasts on terminal events.
+  const toastedStepRef = useRef<TxFlowStep | null>(null);
+  useEffect(() => {
+    if (toastedStepRef.current === flowState.step) return;
+    toastedStepRef.current = flowState.step;
+    if (flowState.step === "success" && flowState.actionTxHash) {
+      const hash = flowState.actionTxHash;
+      toast.success(t("toastTradeSuccess"), {
+        action: {
+          label: t("viewTx"),
+          onClick: () => window.open(`https://bscscan.com/tx/${hash}`, "_blank"),
+        },
+      });
+      form.reset({ amount: "", customSlippage: "", useWbnb: false, approveMax: false });
+    } else if (flowState.step === "error" && flowState.errorMessage) {
+      toast.error(flowState.errorMessage);
+    }
+  }, [flowState, t, form]);
 
   const slippagePct =
     slippage === "custom"
@@ -198,13 +220,11 @@ export function useTradePanel() {
   function onSubmit(data: TradeFormValues) {
     if (!vault || !address || !quote) return;
 
+    // Reset prior terminal state so the new attempt starts clean.
+    if (flowState.step === "success" || flowState.step === "error") resetSwap();
+
     const amountIn = parseEther(data.amount);
     const slippageBps = Math.round(slippagePct * 100);
-
-    if (needsApproval) {
-      approveToken(data.approveMax ? maxUint256 : amountIn);
-      return;
-    }
 
     const mode: SwapMode = data.useWbnb
       ? side === "buy"
@@ -214,17 +234,20 @@ export function useTradePanel() {
         ? "buyTokens"
         : "sellTokensETH";
 
-    executeSwap({
-      mode,
-      routerAddress: EXCHANGE_HELPER_ADDRESS,
-      vaultAddress: vault.address as Address,
-      pool: vault.poolAddress as Address,
-      price: BigInt(vault.spotPriceX96 || "0"),
-      amount: amountIn,
-      minAmount: calculateMinReceived(quote.amountOut, slippageBps),
-      receiver: address as Address,
-      slippageBps,
-    });
+    submitSwap(
+      {
+        mode,
+        routerAddress: EXCHANGE_HELPER_ADDRESS,
+        vaultAddress: vault.address as Address,
+        pool: vault.poolAddress as Address,
+        price: BigInt(vault.spotPriceX96 || "0"),
+        amount: amountIn,
+        minAmount: calculateMinReceived(quote.amountOut, slippageBps),
+        receiver: address as Address,
+        slippageBps,
+      },
+      data.approveMax ? maxUint256 : amountIn,
+    );
   }
 
   // Field configs — contain JSX so they can't be defined in constants
@@ -319,5 +342,8 @@ export function useTradePanel() {
     onSubmit,
     needsApproval,
     isSwapPending,
+    flowState,
+    resetSwap,
+    tokenSymbol,
   };
 }

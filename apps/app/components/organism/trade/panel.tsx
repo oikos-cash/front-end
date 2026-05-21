@@ -9,6 +9,7 @@ import KeyValueCard from "@/components/molecules/card/key-value";
 import Button from "@/components/atoms/button";
 import ButtonGroup from "@/components/atoms/button-group";
 import FieldRenderer from "@/components/molecules/field-renderer";
+import TxFlowStatus from "@/components/molecules/tx-flow-status";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -43,7 +44,26 @@ export default function TradePanel() {
     isLoadingVaults,
     needsApproval,
     isSwapPending,
+    flowState,
+    resetSwap,
+    tokenSymbol,
   } = useTradePanel();
+
+  const flowLabels = {
+    title: t("flowStatusTitle"),
+    awaitingApproveSignature: t("awaitingApproveSignature", { token: tokenSymbol }),
+    approvingOnChain: t("approvingOnChain", { token: tokenSymbol }),
+    approveDone: t("approveStepDone", { token: tokenSymbol }),
+    approveStepFallback: t("approveStepDone", { token: tokenSymbol }),
+    awaitingActionSignature: t("awaitingTradeSignature", {
+      action: side === "buy" ? t("buyAction") : t("sellAction"),
+    }),
+    actionPending: t("tradePending"),
+    actionSubmitting: t("submittingTrade"),
+    actionDone: t("tradeStepDone"),
+    actionStepFallback: side === "buy" ? t("buyAction") : t("sellAction"),
+    dismiss: t("dismiss"),
+  };
 
   return (
     <Card
@@ -172,12 +192,34 @@ export default function TradePanel() {
               isLoading={isSwapPending}
               className="w-full"
             >
-              {needsApproval
-                ? t("approve")
-                : side === "buy"
-                  ? t("buyOks")
-                  : t("sellOks")}
+              {(() => {
+                switch (flowState.step) {
+                  case "approve-wallet":
+                    return t("awaitingApproveSignature", { token: tokenSymbol });
+                  case "approve-pending":
+                    return t("approvingOnChain", { token: tokenSymbol });
+                  case "approve-confirmed":
+                    return t("submittingTrade");
+                  case "action-wallet":
+                    return t("awaitingTradeSignature", {
+                      action: side === "buy" ? t("buyAction") : t("sellAction"),
+                    });
+                  case "action-pending":
+                    return t("tradePending");
+                  default:
+                    return needsApproval
+                      ? t("approveAndTrade", {
+                          token: tokenSymbol,
+                          action: side === "buy" ? t("buyAction") : t("sellAction"),
+                        })
+                      : side === "buy"
+                        ? t("buyOks")
+                        : t("sellOks");
+                }
+              })()}
             </Button>
+
+            <TxFlowStatus state={flowState} labels={flowLabels} onDismiss={resetSwap} />
           </div>
         </form>
       )}
