@@ -5,6 +5,9 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 import Card from "@/components/atoms/card";
 import Badge from "@/components/atoms/badge";
 
+// Utils
+import { cn } from "@/utils/object";
+
 // Types
 import { KpiCardProps } from "@/types/interfaces";
 
@@ -27,11 +30,16 @@ export default function KpiCard({
     >
       <div>
         <div className="flex items-baseline gap-1.5">
-          <span className="text-lg font-semibold">{value}</span>
+          <span className="font-mono text-lg font-semibold tabular-nums tracking-tight text-foreground">
+            {value}
+          </span>
           {change && (
             <Badge
               variant="outline"
-              className={isNegative ? "text-destructive" : "text-success"}
+              className={cn(
+                "font-mono",
+                isNegative ? "text-destructive" : "text-success",
+              )}
             >
               {change}
             </Badge>
