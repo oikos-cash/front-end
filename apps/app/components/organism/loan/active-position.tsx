@@ -5,7 +5,6 @@ import Card from "@/components/atoms/card";
 import Badge from "@/components/atoms/badge";
 import Empty from "@/components/atoms/empty";
 import Button from "@/components/atoms/button";
-import ButtonGroup from "@/components/atoms/button-group";
 import FieldRenderer from "@/components/molecules/field-renderer";
 
 // Hooks
@@ -19,7 +18,22 @@ import { formatStakeNumber } from "@/utils/number";
 import type { LoanActivePositionProps } from "@/types/interfaces";
 
 // Icons
-import { FileX } from "lucide-react";
+import { FileX, ArrowDownToLine, RefreshCw, PlusCircle } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+// Mapping from tab key to its icon + short prompt. Kept beside the component
+// because both depend on the i18n namespace ("borrow") and the tab keys
+// produced by useLoanPosition.
+const TAB_ICONS: Record<string, LucideIcon> = {
+  repay: ArrowDownToLine,
+  roll: RefreshCw,
+  addCollateral: PlusCircle,
+};
+const TAB_PROMPTS: Record<string, string> = {
+  repay: "Pay back part or all of your loan to free up collateral.",
+  roll: "Extend the loan's duration by paying the rollover fee.",
+  addCollateral: "Add more collateral to lower the LTV and reduce risk.",
+};
 
 /**
  * Small horizontal LTV gauge. Visually anchors the collateralization ratio
@@ -186,22 +200,44 @@ export default function LoanActivePosition({
         </div>
 
         {/* Manage section */}
-        <div className="flex flex-col gap-3 border-t border-border/40 pt-4">
+        <div className="flex flex-col gap-4 border-t border-border/40 pt-4">
           <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
             {t("positionActions")}
           </span>
-          <ButtonGroup>
-            {tabForms.map((tab) => (
-              <Button
-                key={tab.key}
-                size="sm"
-                variant={activeTab === tab.key ? "default" : "outline"}
-                onClick={() => setActiveTab(tab.key)}
-              >
-                {tab.label}
-              </Button>
-            ))}
-          </ButtonGroup>
+
+          {/* Action selector — three full-width cards (icon + label),
+            * mirroring the Pay-with pattern. Selected gets primary-tinted
+            * background, border + soft brand glow. */}
+          <div className="grid grid-cols-3 gap-1.5">
+            {tabForms.map((tab) => {
+              const Icon = TAB_ICONS[tab.key] ?? ArrowDownToLine;
+              const selected = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  aria-pressed={selected}
+                  className={cn(
+                    "group flex flex-col items-center gap-1 rounded-md border px-2 py-2.5 text-center transition-all",
+                    selected
+                      ? "border-primary/50 bg-primary/10 text-foreground shadow-[0_0_0_1px_rgba(245,200,67,0.18),0_2px_10px_-4px_rgba(245,200,67,0.4)]"
+                      : "border-border/60 bg-card/40 text-muted-foreground hover:border-border-strong hover:bg-card/60 hover:text-foreground",
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "size-4 transition-colors",
+                      selected ? "text-primary" : "text-muted-foreground/80",
+                    )}
+                  />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.06em]">
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
           {tabForms.map(
             (tab) =>
@@ -209,8 +245,16 @@ export default function LoanActivePosition({
                 <form
                   key={tab.key}
                   onSubmit={tab.form.handleSubmit(tab.onSubmit)}
-                  className="flex flex-col gap-4"
+                  className="flex flex-col gap-3"
                 >
+                  {/* Contextual prompt so the active surface explains what
+                    * the user is about to do. */}
+                  {TAB_PROMPTS[tab.key] && (
+                    <p className="text-[11px] leading-relaxed text-muted-foreground/80">
+                      {TAB_PROMPTS[tab.key]}
+                    </p>
+                  )}
+
                   <FieldRenderer
                     t={t}
                     control={tab.form.control}
