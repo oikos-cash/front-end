@@ -192,6 +192,10 @@ export default function usePriceChart(poolAddress?: string) {
 
     chart.priceScale("volume").applyOptions({
       scaleMargins: { top: 0.8, bottom: 0 },
+      // The volume series renders along the bottom band of the chart; its
+      // own price-axis label (e.g. "0.02") was showing up as a second badge
+      // beside the price scale and read as a stray number. Hide it.
+      visible: false,
     });
 
     // If we already have bars from WS, render them
