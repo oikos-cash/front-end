@@ -46,7 +46,9 @@ export function useStudioTokenDetail() {
         token: tokenSymbol,
         amount,
         wallet: event.args.sender ?? "",
-        timestamp: new Date(event.timestamp * 1000),
+        timestamp: new Date(
+          event.timestamp > 1e12 ? event.timestamp : event.timestamp * 1000,
+        ),
       };
 
       setActivity((prev) => {

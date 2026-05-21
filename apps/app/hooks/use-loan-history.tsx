@@ -46,7 +46,9 @@ function toLoanHistoryItem(event: LoanEvent): LoanHistoryItem {
     fees: 0,
     token: event.vaultSymbol ?? "TOKEN",
     txHash: event.transactionHash,
-    timestamp: new Date(event.timestamp * 1000),
+    timestamp: new Date(
+      event.timestamp > 1e12 ? event.timestamp : event.timestamp * 1000,
+    ),
   };
 }
 

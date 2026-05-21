@@ -77,7 +77,9 @@ export function useSwapHistory() {
       toToken: isBuy ? "TOKEN" : "WBNB",
       fromAmount: isBuy ? amount1 : amount0,
       toAmount: isBuy ? amount0 : amount1,
-      timestamp: new Date(event.timestamp * 1000),
+      timestamp: new Date(
+        event.timestamp > 1e12 ? event.timestamp : event.timestamp * 1000,
+      ),
     };
 
     setItems((prev) => {
