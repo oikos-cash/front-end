@@ -74,17 +74,39 @@ export function useLiquidity(initialVault: VaultInfo | null = null) {
             : "#86efac";
       const amt0 = Number(pos.amount0) / 1e18;
       const amt1 = Number(pos.amount1) / 1e18;
-      // Height = position's total value in BNB. Adding amt0 + amt1 directly
-      // mixes scales (OKS in the millions, WBNB in fractions) and squashes
-      // every bar except the floor. Convert token0 to BNB via the spot
-      // price (BNB-per-OKS, not the USD-converted spotPrice) so the three
-      // zones compare on a single axis.
-      const valueBnb = amt0 * currentSpot + amt1;
+      // Use Uniswap V3 liquidity (L) for the bar height — that's the
+      // concentrated-depth measure the reference renders. Total $ value
+      // looks wrong because the wide Discovery range dwarfs the tight
+      // Floor's value even though the Floor has way more depth-per-tick.
+      //
+      //   P ≤ Pa (all token0): L = amt0 · √Pa · √Pb / (√Pb − √Pa)
+      //   P ≥ Pb (all token1): L = amt1 / (√Pb − √Pa)
+      //   in range:            L = amt1 / (√P − √Pa)
+      const lowerPrice = tickToPrice(pos.lowerTick);
+      const upperPrice = tickToPrice(pos.upperTick);
+      const sqrtA = Math.sqrt(lowerPrice);
+      const sqrtB = Math.sqrt(upperPrice);
+      const sqrtP = Math.sqrt(currentSpot);
+      let liquidity = 0;
+      if (sqrtB > sqrtA) {
+        if (sqrtP <= sqrtA) {
+          liquidity = (amt0 * sqrtA * sqrtB) / (sqrtB - sqrtA);
+        } else if (sqrtP >= sqrtB) {
+          liquidity = amt1 / (sqrtB - sqrtA);
+        } else {
+          // Inside the range — both formulas yield the same L when amounts
+          // are correct; take the larger to dodge floating-point drift near
+          // a boundary.
+          const fromAmt0 = (amt0 * sqrtP * sqrtB) / (sqrtB - sqrtP);
+          const fromAmt1 = amt1 / (sqrtP - sqrtA);
+          liquidity = Math.max(fromAmt0, fromAmt1);
+        }
+      }
       return {
         name: zone.charAt(0).toUpperCase() + zone.slice(1),
-        from: tickToPrice(pos.lowerTick),
-        to: tickToPrice(pos.upperTick),
-        height: valueBnb > 0 ? valueBnb : 0,
+        from: lowerPrice,
+        to: upperPrice,
+        height: liquidity > 0 && isFinite(liquidity) ? liquidity : 0,
         fill,
         amount0: amt0,
         amount1: amt1,
