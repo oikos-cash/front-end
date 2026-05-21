@@ -114,7 +114,7 @@ export default function PriceTable() {
   const te = useTranslations("error");
   const { bnbPrice } = useBnbPrice();
 
-  const { data, error, isLoading, mutate } = useSWR(
+  const { data, error, isLoading, isValidating, mutate } = useSWR(
     "price-table-tokens",
     fetchPriceTable,
     {
@@ -192,8 +192,11 @@ export default function PriceTable() {
             size="icon"
             className="size-7"
             onClick={() => mutate()}
+            disabled={isValidating}
           >
-            <RefreshCw className="size-3.5" />
+            <RefreshCw
+              className={`size-3.5 ${isValidating ? "animate-spin" : ""}`}
+            />
           </Button>
         </Tooltip>
       }

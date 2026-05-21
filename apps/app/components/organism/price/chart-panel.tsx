@@ -10,6 +10,7 @@ import ButtonGroup from "@/components/atoms/button-group";
 import PriceChartRenderer from "@/components/organism/chart/price";
 
 // Hooks
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import usePriceChart from "@/hooks/use-price-chart";
 
@@ -41,6 +42,15 @@ export default function PriceChart({ poolAddress }: PriceChartProps) {
     tooltipRef,
     handleRefresh,
   } = usePriceChart(poolAddress);
+
+  // handleRefresh is synchronous — give the icon a brief spin so the click
+  // still registers visually.
+  const [refreshing, setRefreshing] = useState(false);
+  function onRefreshClick() {
+    setRefreshing(true);
+    handleRefresh();
+    setTimeout(() => setRefreshing(false), 600);
+  }
 
   return (
     <Card
@@ -97,8 +107,15 @@ export default function PriceChart({ poolAddress }: PriceChartProps) {
               <div className="flex-1" />
 
               <Tooltip content={t("refresh")}>
-                <Button variant="ghost" size="icon-xs" onClick={handleRefresh}>
-                  <RefreshCw className="size-3.5" />
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={onRefreshClick}
+                  disabled={refreshing}
+                >
+                  <RefreshCw
+                    className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
+                  />
                 </Button>
               </Tooltip>
             </>
