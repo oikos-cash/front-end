@@ -22,17 +22,20 @@ export default function KpiCard({
 }: KpiCardProps) {
   const isNegative = change?.startsWith("-");
 
-  // KPI titles are short uppercase data-section labels (SPOT, MARKET CAP, IMV).
-  // Render them as a brand-accented micro-label rather than a regular card
-  // title so they pop as "what this number is" instead of body copy.
+  // KPI titles read as data-section labels. Treat them as a small glowing
+  // status chip: a primary-yellow LED dot followed by the title in confident
+  // uppercase tracked semibold, sitting on the card's tinted header strip.
   const styledTitle = (
-    <span className="flex items-center gap-2">
-      <span className="h-3 w-[2px] rounded-full bg-primary/70" aria-hidden />
-      <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+    <span className="inline-flex items-center gap-2">
+      <span
+        className="block size-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(245,200,67,0.6)]"
+        aria-hidden
+      />
+      <span className="bg-[linear-gradient(180deg,#ffffff,rgba(255,255,255,0.7))] bg-clip-text text-xs font-semibold uppercase tracking-[0.12em] text-transparent">
         {title}
       </span>
       {subtitle && (
-        <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/60">
+        <span className="rounded-sm bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-primary/90">
           {subtitle}
         </span>
       )}
