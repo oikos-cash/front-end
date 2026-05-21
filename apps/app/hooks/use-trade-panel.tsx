@@ -219,16 +219,30 @@ export function useTradePanel() {
   const sourceAmount = parseFloat(sourceBalance.amount) || 0;
   const balanceLabel = `${sourceAmount.toFixed(4)} ${sourceBalance.symbol}`;
 
+  // When paying with native BNB, the user also needs BNB left over to cover
+  // gas. Reserve the estimated network fee with a 1.5× buffer so a small
+  // gas-price spike between Use Max and submit doesn't make the swap fail.
+  // Falls back to a sensible minimum (0.0005 BNB ≈ a few txs at BSC prices)
+  // before a quote arrives.
+  const isNativeBnb = side === "buy" && !useWbnb;
+  const gasReserveBnb = isNativeBnb
+    ? Math.max(networkFee.bnb * 1.5, 0.0005)
+    : 0;
+  const spendableAmount = Math.max(sourceAmount - gasReserveBnb, 0);
+
   function handleUseMax() {
-    if (sourceAmount > 0) {
-      form.setValue("amount", sourceAmount.toString(), { shouldValidate: true });
+    if (spendableAmount > 0) {
+      form.setValue("amount", spendableAmount.toString(), {
+        shouldValidate: true,
+      });
     }
   }
 
-  // Percentage shortcuts — compute fraction of wallet balance
+  // Percentage shortcuts — compute fraction of the spendable balance (i.e.
+  // after the gas reserve), so 100% still leaves room for gas.
   function handlePercentage(pct: number) {
-    if (sourceAmount > 0) {
-      const value = ((sourceAmount * pct) / 100).toFixed(4);
+    if (spendableAmount > 0) {
+      const value = ((spendableAmount * pct) / 100).toFixed(4);
       form.setValue("amount", value, { shouldValidate: true });
     }
   }
