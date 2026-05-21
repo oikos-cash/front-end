@@ -104,10 +104,12 @@ export default function LiquidityBars({
           scale={xScale}
           numTicks={6}
           tickFormat={(v) => (v as number).toFixed(4)}
-          stroke="hsl(var(--muted-foreground))"
-          tickStroke="hsl(var(--muted-foreground))"
+          // The theme tokens store raw colours (e.g. #9ca0d2), not HSL
+          // channels — wrapping with hsl(...) silently produced black.
+          stroke="var(--muted-foreground)"
+          tickStroke="var(--muted-foreground)"
           tickLabelProps={{
-            fill: "hsl(var(--muted-foreground))",
+            fill: "var(--muted-foreground)",
             fontSize: 11,
             textAnchor: "middle",
             fontFamily: "var(--font-mono, monospace)",
