@@ -253,12 +253,6 @@ export function useTradePanel() {
   // Field configs — contain JSX so they can't be defined in constants
   const amountFields: FieldItem[] = [
     {
-      type: "checkbox",
-      name: "useWbnb",
-      label: t("useWbnb"),
-      description: t("useWbnbDescription"),
-    },
-    {
       type: "number",
       name: "amount",
       label: t("amount"),
@@ -279,6 +273,10 @@ export function useTradePanel() {
       ),
     },
   ];
+
+  function setUseWbnb(value: boolean) {
+    form.setValue("useWbnb", value, { shouldDirty: true, shouldValidate: true });
+  }
 
   const slippageField: FieldItem[] =
     slippage === "custom"
@@ -332,6 +330,8 @@ export function useTradePanel() {
     setSide,
     slippage,
     setSlippage,
+    useWbnb,
+    setUseWbnb,
     numericAmount,
     networkFee,
     amountFields,

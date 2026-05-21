@@ -8,6 +8,7 @@ import Skeleton from "@/components/atoms/skeleton";
 import KeyValueCard from "@/components/molecules/card/key-value";
 import Button from "@/components/atoms/button";
 import ButtonGroup from "@/components/atoms/button-group";
+import { Checkbox } from "@/components/atoms/ui/checkbox";
 import FieldRenderer from "@/components/molecules/field-renderer";
 import TxFlowStatus from "@/components/molecules/tx-flow-status";
 
@@ -34,9 +35,10 @@ export default function TradePanel() {
     detailRows,
     isConnected,
     setSlippage,
-    approveField,
     amountFields,
     slippageField,
+    useWbnb,
+    setUseWbnb,
     numericAmount,
     handleConnect,
     handlePercentage,
@@ -100,7 +102,8 @@ export default function TradePanel() {
       ) : (
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-3">
-            <ButtonGroup className="self-center">
+            {/* Group 1 — sizing the trade (tightly grouped) */}
+            <ButtonGroup className="w-full">
               <Button
                 type="button"
                 size="sm"
@@ -121,6 +124,35 @@ export default function TradePanel() {
               </Button>
             </ButtonGroup>
 
+            {/* Pay-with toggle — replaces the orphan "Use WBNB" checkbox.
+              * Sits inline as a labelled segmented control so the user can
+              * see at a glance which token funds the swap. */}
+            {side === "buy" && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {t("payWith")}
+                </span>
+                <ButtonGroup>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant={!useWbnb ? "default" : "outline"}
+                    onClick={() => setUseWbnb(false)}
+                  >
+                    BNB
+                  </Button>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant={useWbnb ? "default" : "outline"}
+                    onClick={() => setUseWbnb(true)}
+                  >
+                    WBNB
+                  </Button>
+                </ButtonGroup>
+              </div>
+            )}
+
             <FieldRenderer fields={amountFields} control={form.control} t={t} />
 
             <ButtonGroup className="self-start">
@@ -139,51 +171,76 @@ export default function TradePanel() {
 
             {numericAmount > 0 && <KeyValueCard rows={detailRows} />}
 
-            <div className="flex flex-col items-start gap-2">
-              <span className="text-xs font-medium">{t("maxSlippage")}</span>
-              <ButtonGroup>
-                {SLIPPAGE_OPTIONS.map((opt) => (
+            {/* Group 2 — settings (slippage / fee / approval). Sit in a
+              * dedicated section with explicit row gaps and a top divider
+              * so they read as a separate concern from the "amount" block. */}
+            <div className="mt-2 flex flex-col gap-4 border-t border-border/40 pt-4">
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
+                  {t("maxSlippage")}
+                </span>
+                <ButtonGroup>
+                  {SLIPPAGE_OPTIONS.map((opt) => (
+                    <Button
+                      key={opt}
+                      type="button"
+                      size="xs"
+                      variant={slippage === opt ? "default" : "outline"}
+                      onClick={() => setSlippage(opt)}
+                    >
+                      {opt}%
+                    </Button>
+                  ))}
                   <Button
-                    key={opt}
                     type="button"
                     size="xs"
-                    variant={slippage === opt ? "default" : "outline"}
-                    onClick={() => setSlippage(opt)}
+                    variant={slippage === "custom" ? "default" : "outline"}
+                    onClick={() => setSlippage("custom")}
                   >
-                    {opt}%
+                    {t("custom")}
                   </Button>
-                ))}
-                <Button
-                  type="button"
-                  size="xs"
-                  variant={slippage === "custom" ? "default" : "outline"}
-                  onClick={() => setSlippage("custom")}
-                >
-                  {t("custom")}
-                </Button>
-              </ButtonGroup>
-              <FieldRenderer
-                fields={slippageField}
-                control={form.control}
-                t={t}
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium">{t("networkFee")}</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">
+                </ButtonGroup>
+                <FieldRenderer
+                  fields={slippageField}
+                  control={form.control}
+                  t={t}
+                />
+              </div>
+
+              <div className="flex items-start justify-between gap-2">
+                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
+                  {t("networkFee")}
+                </span>
+                <div className="flex flex-col items-end gap-0.5 font-mono tabular-nums">
+                  <span className="flex items-center gap-1 text-xs text-foreground">
                     {networkFee.gwei.toFixed(2)} Gwei
+                    <Settings className="size-3 text-muted-foreground/60" />
                   </span>
-                  <Settings className="size-3 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground/70">
+                    {networkFee.bnb.toFixed(6)} BNB · ${networkFee.usd.toFixed(2)}
+                  </span>
                 </div>
               </div>
-              <span className="text-xs text-muted-foreground">
-                {networkFee.bnb.toFixed(6)} BNB (~${networkFee.usd.toFixed(2)})
-              </span>
-            </div>
 
-            <FieldRenderer fields={approveField} control={form.control} t={t} />
+              <label
+                htmlFor="trade-approve-max"
+                className="flex cursor-pointer items-center justify-between gap-2 select-none"
+              >
+                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
+                  {t("approveMax")}
+                </span>
+                <Checkbox
+                  id="trade-approve-max"
+                  checked={form.watch("approveMax")}
+                  onCheckedChange={(v) =>
+                    form.setValue("approveMax", !!v, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                />
+              </label>
+            </div>
 
             <Button
               type="submit"

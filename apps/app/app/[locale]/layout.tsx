@@ -21,16 +21,20 @@ import type { Metadata } from "next";
 // Constants
 import { SITE_URL, SITE_NAME, SITE_LOCALE_MAP } from "@/types/constants";
 
-// Fonts
-import { Geist, Geist_Mono } from "next/font/google";
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Fonts — Inter + JetBrains Mono as free substitutes for the GT Standard family
+// used on app.oikos.cash. Inter covers UI/body; JetBrains Mono is used for
+// numerals, addresses, and any tabular data.
+import { Inter, JetBrains_Mono } from "next/font/google";
+const sans = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const mono = JetBrains_Mono({
+  variable: "--font-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export async function generateMetadata({
@@ -94,9 +98,9 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} className="dark" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${sans.variable} ${mono.variable} antialiased`}
         suppressHydrationWarning
       >
         <NextIntlClientProvider locale={locale} messages={messages}>

@@ -40,17 +40,19 @@ export default function Header() {
   const networkItems = [{ value: "bsc-mainnet", label: t("network") }];
 
   return (
-    <header className="sticky top-0 z-50 h-15 border-b border-border bg-background">
+    <header className="sticky top-0 z-50 h-14 border-b border-border/60 bg-[#121117]/80 backdrop-blur-xl supports-[backdrop-filter]:bg-[#121117]/60 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_8px_24px_-12px_rgba(0,0,0,0.6)]">
+      <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(245,200,67,0.25),transparent)]" />
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-3">
           <Link
             target="_blank"
             href="https://oikos.cash/"
             aria-label="Oikos Logo"
+            className="text-foreground transition-opacity hover:opacity-80"
           >
             <svg
-              width="34"
-              height="28"
+              width="30"
+              height="24"
               viewBox="54 62 92 76"
               fill="currentColor"
               xmlns="http://www.w3.org/2000/svg"
@@ -60,12 +62,12 @@ export default function Header() {
               <path d="M136.6,63.5c2.5,0,5,0,7.5,0c0,24.3,0,48.5,0,72.8c-2.5,0-4.9,0-7.5,0C136.6,112.1,136.6,87.9,136.6,63.5z" />
             </svg>
           </Link>
-          <Badge variant="default">{t("beta")}</Badge>
+          <Badge variant="default" className="font-mono text-[10px] uppercase tracking-wider">{t("beta")}</Badge>
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Badge variant="outline">
-            BNB/USD ${bnbPrice.toFixed(4)}
+          <Badge variant="outline" className="font-mono tabular-nums text-[11px]">
+            BNB/USD <span className="ml-1.5 text-foreground">${bnbPrice.toFixed(4)}</span>
           </Badge>
 
           <NetworkSelector />

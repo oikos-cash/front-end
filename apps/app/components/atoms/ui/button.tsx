@@ -5,20 +5,22 @@ import { Slot } from "radix-ui";
 import { cn } from "@/utils/object";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium tracking-tight transition-[background,color,box-shadow,transform,filter] duration-150 active:translate-y-px disabled:pointer-events-none disabled:opacity-40 disabled:saturate-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0 aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        // Primary: vertical brand gradient + inner bevel + outer glow on hover.
+        default:
+          "bg-[linear-gradient(180deg,#f6cf5a_0%,#f0bf30_100%)] text-primary-foreground border border-[rgba(0,0,0,0.15)] shadow-[0_1px_0_rgba(255,255,255,0.25)_inset,0_-1px_0_rgba(0,0,0,0.15)_inset,0_2px_6px_-2px_rgba(245,200,67,0.45)] hover:brightness-[1.05] hover:shadow-[0_1px_0_rgba(255,255,255,0.3)_inset,0_-1px_0_rgba(0,0,0,0.15)_inset,0_0_0_1px_rgba(245,200,67,0.35),0_4px_18px_-4px_rgba(245,200,67,0.55)]",
         destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
+          "bg-[linear-gradient(180deg,#ec6868_0%,#d83a3a_100%)] text-white border border-[rgba(0,0,0,0.15)] shadow-[0_1px_0_rgba(255,255,255,0.18)_inset,0_-1px_0_rgba(0,0,0,0.15)_inset,0_2px_6px_-2px_rgba(227,79,79,0.45)] hover:brightness-[1.05] focus-visible:ring-destructive/60",
         outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+          "border border-border bg-card/40 text-foreground backdrop-blur-[2px] hover:bg-accent/60 hover:border-border-strong",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground border border-border/40 hover:bg-secondary/70",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+          "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+        link: "text-primary underline-offset-4 hover:underline hover:text-primary/90",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
