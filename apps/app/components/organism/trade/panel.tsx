@@ -101,7 +101,7 @@ export default function TradePanel() {
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-3">
             {/* Group 1 — sizing the trade (tightly grouped) */}
-            <ButtonGroup className="self-center">
+            <ButtonGroup className="w-full">
               <Button
                 type="button"
                 size="sm"
