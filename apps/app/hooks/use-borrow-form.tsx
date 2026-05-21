@@ -1,10 +1,15 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { parseUnits, type Address, erc20Abi } from "viem";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { formatUnits, parseUnits, type Address, erc20Abi } from "viem";
+import {
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import { toast } from "sonner";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -17,37 +22,57 @@ import { borrowSchema } from "@/types/schemes";
 import type { BorrowFormValues, FieldItem, VaultInfo } from "@/types/interfaces";
 
 // Utils
-import {
-  formatStakeNumber,
-  calculateLoanFees,
-  calculateCollateralRequired,
-} from "@/utils/number";
+import { formatStakeNumber, calculateLoanFees } from "@/utils/number";
 
 // Constants
 import { BORROW_FIELDS, BORROW_DURATION_OPTIONS } from "@/types/constants";
+import { MODEL_HELPER_ABI, MODEL_HELPER_ADDRESS } from "@/lib/oikos-addresses";
 
 // Components — needed for JSX descriptions in field config
 import Avatar from "@/components/atoms/avatar";
 
+import type { TxFlowState, TxFlowStep } from "@/hooks/types/tx-flow";
+
 /**
  * Manages the borrow form state:
- * - Collateral and fee calculations from real vault data
- * - Field config with JSX descriptions (use-max button, token avatar)
- * - Submit handler (will be replaced with contract call)
+ * - On-chain IMV read from ModelHelper for correct collateral sizing
+ * - Chained approve + borrow flow with step-by-step status surface
+ * - Toasts on terminal events
  */
 export function useBorrowForm(vault: VaultInfo | null) {
   const t = useTranslations("borrow");
   const { isConnected, address, tokenBalances } = useWallet();
 
   const token = vault?.tokenSymbol ?? "TOKEN";
-  const imv = parseFloat(vault?.liquidityRatio ?? "0");
   const dailyInterest = parseFloat(vault?.totalInterest ?? "0") / 1e18;
   const liquidityRatio = parseFloat(vault?.liquidityRatio ?? "0");
   const isActive = liquidityRatio > 0;
 
+  // Read the real IMV from ModelHelper — this is the contract's source of
+  // truth for collateral = borrowAmount / IMV. vault.liquidityRatio is a
+  // different metric and using it here produces an ~10000x-off approval.
+  const { data: imvWei } = useReadContract({
+    address: MODEL_HELPER_ADDRESS,
+    abi: MODEL_HELPER_ABI,
+    functionName: "getIntrinsicMinimumValue",
+    args: vault?.address ? [vault.address as Address] : undefined,
+    query: { enabled: !!vault?.address },
+  });
+
+  const imv = useMemo(() => {
+    if (typeof imvWei !== "bigint" || imvWei === BigInt(0)) return 0;
+    return Number(formatUnits(imvWei, 18));
+  }, [imvWei]);
+
   const {
     borrow: lendingBorrow,
     isBorrowing,
+    isBorrowSubmitting,
+    borrowTxHash,
+    borrowSuccess,
+    borrowError,
+    borrowReverted,
+    resetBorrow,
     loanData: onChainLoan,
   } = useLending(vault?.address, vault?.token0);
 
@@ -57,7 +82,7 @@ export function useBorrowForm(vault: VaultInfo | null) {
   const collateralBalance = vault?.token0
     ? parseFloat(tokenBalances[vault.token0.toLowerCase()] ?? "0")
     : 0;
-  const maxBorrowableWbnb = collateralBalance * imv;
+  const maxBorrowableWbnb = imv > 0 ? collateralBalance * imv : 0;
 
   const borrowData = {
     tokenPair: `${token}/WBNB`,
@@ -78,11 +103,11 @@ export function useBorrowForm(vault: VaultInfo | null) {
   const numericAmount = parseFloat(borrowAmountValue) || 0;
   const numericDuration = parseInt(durationValue) || 0;
 
-  // Derived values — recalculate on every keystroke to show real-time feedback
-  const collateralRequired = useMemo(
-    () => calculateCollateralRequired(numericAmount, borrowData.imv),
-    [numericAmount, borrowData.imv],
-  );
+  // Derived collateral = borrowAmount / IMV (matches LendingVault._getTotalCollateral).
+  const collateralRequired = useMemo(() => {
+    if (numericAmount <= 0 || imv <= 0) return 0;
+    return numericAmount / imv;
+  }, [numericAmount, imv]);
 
   const loanFees = useMemo(
     () =>
@@ -94,15 +119,17 @@ export function useBorrowForm(vault: VaultInfo | null) {
     [numericAmount, numericDuration, borrowData.dailyInterest],
   );
 
-  // ---------- Collateral approval (token0 → vault) ----------
-  // LendingVault.borrowFromFloor calls token0.transferFrom(user, vault, collateralAmount)
-  // so the user must approve the vault to spend collateral before borrow.
-  // Approve a 0.5% buffer over our client-side collateral estimate to cover
+  // ---------- Allowance & approval (token0 → vault) ----------
+  // Approve a 0.5% buffer over the client-side collateral estimate to cover
   // any rounding diff against the contract's _getTotalCollateral.
   const collateralAmountWei = useMemo<bigint>(() => {
     if (collateralRequired <= 0) return BigInt(0);
     const padded = collateralRequired * 1.005;
-    return parseUnits(padded.toFixed(18), 18);
+    try {
+      return parseUnits(padded.toFixed(18), 18);
+    } catch {
+      return BigInt(0);
+    }
   }, [collateralRequired]);
 
   const allowancePairs = useMemo(
@@ -129,25 +156,125 @@ export function useBorrowForm(vault: VaultInfo | null) {
     return collateralAllowance < collateralAmountWei;
   }, [vault?.token0, vault?.address, collateralAllowance, collateralAmountWei]);
 
-  const { writeContract: writeApprove, data: approveTxHash, isPending: isApprovePending } =
-    useWriteContract();
-  const { isLoading: isApproveConfirming, isSuccess: approveSuccess } =
-    useWaitForTransactionReceipt({ hash: approveTxHash });
+  const {
+    writeContract: writeApprove,
+    data: approveTxHash,
+    isPending: isApproveSubmitting,
+    error: approveWriteError,
+    reset: resetApprove,
+  } = useWriteContract();
+  const {
+    isLoading: isApproveConfirming,
+    isSuccess: approveSuccess,
+    error: approveReceiptError,
+  } = useWaitForTransactionReceipt({ hash: approveTxHash });
 
-  // Refresh allowance once an approval transaction lands.
+  const approveError = approveWriteError ?? approveReceiptError ?? null;
+
+  // Pending-after-approval state. When the user submits while allowance is
+  // insufficient, we snapshot the borrow params and fire approve; once the
+  // approval tx confirms we auto-fire borrow with the snapshot.
+  const [pendingBorrow, setPendingBorrow] = useState<{
+    amount: string;
+    durationSeconds: number;
+  } | null>(null);
+  const lendingBorrowRef = useRef(lendingBorrow);
+  lendingBorrowRef.current = lendingBorrow;
+  const refetchAllowanceRef = useRef(refetchAllowance);
+  refetchAllowanceRef.current = refetchAllowance;
+
+  // When the approval lands, refresh allowance and chain into borrow.
   useEffect(() => {
-    if (approveSuccess) refetchAllowance();
-  }, [approveSuccess, refetchAllowance]);
+    if (!approveSuccess) return;
+    refetchAllowanceRef.current();
+    if (pendingBorrow) {
+      lendingBorrowRef.current(
+        pendingBorrow.amount,
+        pendingBorrow.durationSeconds,
+      );
+      setPendingBorrow(null);
+    }
+  }, [approveSuccess, pendingBorrow]);
 
-  function approveCollateral() {
-    if (!vault?.token0 || !vault?.address) return;
-    if (collateralAmountWei === BigInt(0)) return;
-    writeApprove({
-      address: vault.token0 as Address,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [vault.address as Address, collateralAmountWei],
-    });
+  // If the approve write itself fails, drop the pending borrow.
+  useEffect(() => {
+    if (approveError && pendingBorrow) {
+      setPendingBorrow(null);
+    }
+  }, [approveError, pendingBorrow]);
+
+  // ---------- Step-state machine for UI ----------
+  const step: TxFlowStep = useMemo(() => {
+    if (borrowError || borrowReverted) return "error";
+    if (approveError) return "error";
+    if (borrowSuccess) return "success";
+    if (isBorrowing) return "action-pending";
+    if (isBorrowSubmitting) return "action-wallet";
+    if (isApproveConfirming) return "approve-pending";
+    if (isApproveSubmitting) return "approve-wallet";
+    if (pendingBorrow && approveSuccess) return "approve-confirmed";
+    return "idle";
+  }, [
+    approveError,
+    approveSuccess,
+    borrowError,
+    borrowReverted,
+    borrowSuccess,
+    isApproveConfirming,
+    isApproveSubmitting,
+    isBorrowSubmitting,
+    isBorrowing,
+    pendingBorrow,
+  ]);
+
+  function formatError(err: unknown): string {
+    if (!err) return "";
+    const msg = err instanceof Error ? err.message : String(err);
+    const m = msg.match(/reason="([^"]+)"|reverted with(?: reason)?:?\s*([^\n]+)/i);
+    if (m) return (m[1] || m[2] || "").trim();
+    return msg.split("\n")[0].slice(0, 200);
+  }
+
+  const errorMessage = useMemo(() => {
+    if (borrowError) return formatError(borrowError);
+    if (borrowReverted) return t("borrowReverted");
+    if (approveError) return formatError(approveError);
+    return "";
+  }, [approveError, borrowError, borrowReverted, t]);
+
+  const flowState: TxFlowState = useMemo(
+    () => ({
+      step,
+      approveTxHash,
+      actionTxHash: borrowTxHash,
+      errorMessage: errorMessage || undefined,
+    }),
+    [step, approveTxHash, borrowTxHash, errorMessage],
+  );
+
+  // ---------- Side effects: toasts ----------
+  const toastedStepRef = useRef<TxFlowStep | null>(null);
+  useEffect(() => {
+    if (toastedStepRef.current === step) return;
+    toastedStepRef.current = step;
+    if (step === "success" && borrowTxHash) {
+      toast.success(t("toastBorrowSuccess"), {
+        action: {
+          label: t("viewTx"),
+          onClick: () => window.open(`https://bscscan.com/tx/${borrowTxHash}`, "_blank"),
+        },
+      });
+      form.reset();
+    } else if (step === "error" && errorMessage) {
+      toast.error(errorMessage);
+    }
+  }, [step, borrowTxHash, errorMessage, t, form]);
+
+  // Reset borrow tx state after success/error so the form is re-armable.
+  function reset() {
+    resetApprove();
+    resetBorrow();
+    setPendingBorrow(null);
   }
 
   function handleUseMax() {
@@ -156,11 +283,26 @@ export function useBorrowForm(vault: VaultInfo | null) {
     });
   }
 
-  // Submit — calls real borrow contract via useLending
+  // Submit — approve (if needed) then borrow.
   async function onSubmit(data: BorrowFormValues) {
     const durationSeconds = parseInt(data.duration) * 86400;
+    // Reset prior terminal state so the new attempt starts clean.
+    if (step === "success" || step === "error") reset();
+
+    if (needsApproval) {
+      if (!vault?.token0 || !vault?.address) return;
+      if (collateralAmountWei === BigInt(0)) return;
+      setPendingBorrow({ amount: data.borrowAmount, durationSeconds });
+      writeApprove({
+        address: vault.token0 as Address,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [vault.address as Address, collateralAmountWei],
+      });
+      return;
+    }
+
     lendingBorrow(data.borrowAmount, durationSeconds);
-    form.reset();
   }
 
   // Field config with JSX elements
@@ -189,7 +331,7 @@ export function useBorrowForm(vault: VaultInfo | null) {
     }),
   })) as FieldItem[];
 
-  const isApproving = isApprovePending || isApproveConfirming;
+  const isPending = step !== "idle" && step !== "success" && step !== "error";
 
   return {
     t,
@@ -198,12 +340,13 @@ export function useBorrowForm(vault: VaultInfo | null) {
     fields,
     loanFees,
     onSubmit,
+    reset,
     isConnected,
     hasActiveLoan,
     numericAmount,
     collateralRequired,
     needsApproval,
-    approveCollateral,
-    isApproving,
+    isPending,
+    flowState,
   };
 }

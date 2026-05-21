@@ -42,10 +42,23 @@ export function useLending(vaultAddress?: string, tokenAddress?: string) {
     : null;
 
   // Write: borrow
-  const { writeContract: borrowWrite, data: borrowTxHash } = useWriteContract();
-  const { isLoading: isBorrowing, isSuccess: borrowSuccess } = useWaitForTransactionReceipt({
-    hash: borrowTxHash,
-  });
+  const {
+    writeContract: borrowWrite,
+    data: borrowTxHash,
+    isPending: isBorrowSubmitting,
+    error: borrowWriteError,
+    reset: resetBorrow,
+  } = useWriteContract();
+  const {
+    isLoading: isBorrowing,
+    isSuccess: borrowSuccess,
+    error: borrowReceiptError,
+    data: borrowReceipt,
+  } = useWaitForTransactionReceipt({ hash: borrowTxHash });
+
+  const borrowError = borrowWriteError ?? borrowReceiptError ?? null;
+  const borrowReverted =
+    !!borrowReceipt && borrowReceipt.status === "reverted";
 
   function borrow(amount: string, durationSeconds: number) {
     if (!vault) return;
@@ -114,14 +127,20 @@ export function useLending(vaultAddress?: string, tokenAddress?: string) {
     roll,
     addCollateral,
     refetch: refetchLoan,
+    resetBorrow,
     // Loading
     isBorrowing,
     isRepaying,
     isRolling,
     isAddingCollateral,
+    isBorrowSubmitting,
     borrowSuccess,
     repaySuccess,
     rollSuccess,
     addCollateralSuccess,
+    // Tx surfaces
+    borrowTxHash,
+    borrowError,
+    borrowReverted,
   };
 }

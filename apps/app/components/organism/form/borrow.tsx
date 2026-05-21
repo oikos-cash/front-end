@@ -4,6 +4,7 @@
 import Card from "@/components/atoms/card";
 import Button from "@/components/atoms/button";
 import FieldRenderer from "@/components/molecules/field-renderer";
+import TxFlowStatus from "@/components/molecules/tx-flow-status";
 
 // Hooks
 import { useBorrowForm } from "@/hooks/use-borrow-form";
@@ -27,13 +28,49 @@ export default function BorrowFormPanel({
     loanFees,
     fields,
     onSubmit,
+    reset,
     hasActiveLoan,
     needsApproval,
-    approveCollateral,
-    isApproving,
+    isPending,
+    flowState,
   } = useBorrowForm(vault);
 
   if (!isConnected) return null;
+
+  const submitLabel = (() => {
+    switch (flowState.step) {
+      case "approve-wallet":
+        return t("awaitingApproveSignature", { token });
+      case "approve-pending":
+        return t("approvingOnChain", { token });
+      case "approve-confirmed":
+        return t("submittingBorrow");
+      case "action-wallet":
+        return t("awaitingBorrowSignature");
+      case "action-pending":
+        return t("borrowingOnChain");
+      case "success":
+        return t("borrowAction");
+      case "error":
+        return needsApproval ? t("approveAndBorrow", { token }) : t("borrowAction");
+      default:
+        return needsApproval ? t("approveAndBorrow", { token }) : t("borrowAction");
+    }
+  })();
+
+  const flowLabels = {
+    title: t("flowStatusTitle"),
+    awaitingApproveSignature: t("awaitingApproveSignature", { token }),
+    approvingOnChain: t("approvingOnChain", { token }),
+    approveDone: t("approveStepDone", { token }),
+    approveStepFallback: t("approveStepDone", { token }),
+    awaitingActionSignature: t("awaitingBorrowSignature"),
+    actionPending: t("borrowingOnChain"),
+    actionSubmitting: t("submittingBorrow"),
+    actionDone: t("borrowStepDone"),
+    actionStepFallback: t("borrowStepPending"),
+    dismiss: t("dismiss"),
+  };
 
   return (
     <Card
@@ -69,25 +106,14 @@ export default function BorrowFormPanel({
           ) : (
             <span />
           )}
-          {needsApproval && !hasActiveLoan ? (
-            <Button
-              type="button"
-              onClick={approveCollateral}
-              disabled={!form.formState.isValid || isApproving}
-              isLoading={isApproving}
-            >
-              {t("approveCollateral", { token })}
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              form="borrow-form"
-              disabled={!form.formState.isValid || hasActiveLoan}
-              isLoading={form.formState.isSubmitting}
-            >
-              {t("borrowAction")}
-            </Button>
-          )}
+          <Button
+            type="submit"
+            form="borrow-form"
+            disabled={!form.formState.isValid || hasActiveLoan || isPending}
+            isLoading={isPending}
+          >
+            {submitLabel}
+          </Button>
         </div>
       }
     >
@@ -97,6 +123,7 @@ export default function BorrowFormPanel({
         className="flex flex-col gap-4"
       >
         <FieldRenderer t={t} control={form.control} fields={fields} />
+        <TxFlowStatus state={flowState} labels={flowLabels} onDismiss={reset} />
       </form>
     </Card>
   );
