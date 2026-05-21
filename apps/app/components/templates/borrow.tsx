@@ -135,7 +135,15 @@ export default function BorrowTemplate({
       <LoanActivePosition vault={initialVault} />
 
       <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => setHedgeOpen(true)}>
+        {/* Hedge flow is not yet ready for users — kept around for the next
+          * iteration. Re-enable by removing `disabled` and the disabled tooltip. */}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled
+          title="Hedging is coming soon"
+          onClick={() => setHedgeOpen(true)}
+        >
           <Shield className="size-3.5" />
           {t("hedgeButton") ?? "Hedge Loan"}
         </Button>
