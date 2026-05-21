@@ -5,6 +5,7 @@ export interface ButtonAtomProps extends React.ComponentProps<"button"> {
   variant?:
     | "default"
     | "destructive"
+    | "success"
     | "outline"
     | "secondary"
     | "ghost"
@@ -65,6 +66,7 @@ export interface BadgeProps {
     | "default"
     | "secondary"
     | "destructive"
+    | "success"
     | "outline"
     | "ghost"
     | "link";

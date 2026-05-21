@@ -202,10 +202,10 @@ export function useTradePanel() {
     // we don't need a quote for that. The BNB / USD total still requires a
     // gas estimate (from the quote) to multiply by.
     const gwei =
-      effectiveGasPriceWei && effectiveGasPriceWei > 0n
+      effectiveGasPriceWei && effectiveGasPriceWei > BigInt(0)
         ? Number(effectiveGasPriceWei) / 1e9
         : 0;
-    if (!quote || !effectiveGasPriceWei || effectiveGasPriceWei === 0n) {
+    if (!quote || !effectiveGasPriceWei || effectiveGasPriceWei === BigInt(0)) {
       return { gwei, bnb: 0, usd: 0, isOverride: gasOverrideGwei != null };
     }
     const feeWei = quote.gasEstimate * effectiveGasPriceWei;
@@ -385,7 +385,7 @@ export function useTradePanel() {
     numericAmount,
     networkFee,
     networkGasGwei:
-      networkGasPriceWei && networkGasPriceWei > 0n
+      networkGasPriceWei && networkGasPriceWei > BigInt(0)
         ? Number(networkGasPriceWei) / 1e9
         : 0,
     gasOverrideGwei,
