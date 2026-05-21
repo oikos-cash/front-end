@@ -22,11 +22,12 @@ import { borrowSchema } from "@/types/schemes";
 import type { BorrowFormValues, FieldItem, VaultInfo } from "@/types/interfaces";
 
 // Utils
-import { formatStakeNumber, calculateLoanFees } from "@/utils/number";
+import { formatStakeNumber } from "@/utils/number";
 
 // Constants
 import { BORROW_FIELDS, BORROW_DURATION_OPTIONS } from "@/types/constants";
 import { MODEL_HELPER_ABI, MODEL_HELPER_ADDRESS } from "@/lib/oikos-addresses";
+import { LENDING_VAULT_ABI } from "@/lib/abis";
 
 // Components — needed for JSX descriptions in field config
 import Avatar from "@/components/atoms/avatar";
@@ -109,15 +110,28 @@ export function useBorrowForm(vault: VaultInfo | null) {
     return numericAmount / imv;
   }, [numericAmount, imv]);
 
-  const loanFees = useMemo(
-    () =>
-      calculateLoanFees(
-        numericAmount,
-        numericDuration,
-        borrowData.dailyInterest,
-      ),
-    [numericAmount, numericDuration, borrowData.dailyInterest],
-  );
+  // vault.totalInterest is a cumulative-interest counter, not a daily rate,
+  // so the client-side `amount × rate × days` math produced wildly wrong
+  // numbers. Let the LendingVault tell us instead — it has a view function
+  // calculateLoanFees(amount, durationSeconds) that's the on-chain source
+  // of truth.
+  const numericDurationSeconds = numericDuration * 86400;
+  const { data: loanFeesWei } = useReadContract({
+    address: vault?.address as Address | undefined,
+    abi: LENDING_VAULT_ABI,
+    functionName: "calculateLoanFees",
+    args:
+      numericAmount > 0 && numericDurationSeconds > 0
+        ? [parseUnits(numericAmount.toString(), 18), BigInt(numericDurationSeconds)]
+        : undefined,
+    query: {
+      enabled: !!vault?.address && numericAmount > 0 && numericDurationSeconds > 0,
+    },
+  });
+  const loanFees = useMemo(() => {
+    if (typeof loanFeesWei !== "bigint" || loanFeesWei === BigInt(0)) return 0;
+    return Number(formatUnits(loanFeesWei, 18));
+  }, [loanFeesWei]);
 
   // ---------- Allowance & approval (token0 → vault) ----------
   // Approve a 0.5% buffer over the client-side collateral estimate to cover

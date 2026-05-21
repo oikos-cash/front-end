@@ -36,6 +36,7 @@
     "viewTx": "View tx",
     "dismiss": "Dismiss",
     "activeLoanBlock": "You already have an active loan on this vault. Repay or roll it before opening a new one.",
+    "activeLoanBlockDesc": "Repay or roll your existing position from the Active Loan card below before opening another.",
     "positionTitle": "Active Loan",
     "positionDescription": "Your current loan position",
     "positionBorrowed": "Borrowed",

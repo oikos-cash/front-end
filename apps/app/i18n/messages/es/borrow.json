@@ -36,6 +36,7 @@
     "viewTx": "Ver tx",
     "dismiss": "Cerrar",
     "activeLoanBlock": "Ya tienes un prestamo activo en este vault. Paga o renueva antes de abrir uno nuevo.",
+    "activeLoanBlockDesc": "Paga o renueva tu posicion actual desde la tarjeta Prestamo Activo antes de abrir otra.",
     "positionTitle": "Prestamo Activo",
     "positionDescription": "Tu posicion de prestamo actual",
     "positionBorrowed": "Prestado",

@@ -3,8 +3,12 @@
 // Components
 import Card from "@/components/atoms/card";
 import Button from "@/components/atoms/button";
+import Empty from "@/components/atoms/empty";
 import FieldRenderer from "@/components/molecules/field-renderer";
 import TxFlowStatus from "@/components/molecules/tx-flow-status";
+
+// Icons
+import { Lock } from "lucide-react";
 
 // Hooks
 import { useBorrowForm } from "@/hooks/use-borrow-form";
@@ -36,6 +40,22 @@ export default function BorrowFormPanel({
   } = useBorrowForm(vault);
 
   if (!isConnected) return null;
+
+  // When the user already has an open position on this vault the contract
+  // rejects a new borrow (ActiveLoan revert). Hide the borrow controls and
+  // show a plain notice instead — the Active Loan card below is the place
+  // to repay or roll the existing position.
+  if (hasActiveLoan) {
+    return (
+      <Card title={t("title")} description={t("description")}>
+        <Empty
+          title={t("activeLoanBlock")}
+          description={t("activeLoanBlockDesc")}
+          icon={<Lock className="size-6 text-muted-foreground" />}
+        />
+      </Card>
+    );
+  }
 
   const submitLabel = (() => {
     switch (flowState.step) {
