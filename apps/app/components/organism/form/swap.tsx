@@ -272,6 +272,10 @@ export default function SwapForm({
 
     let cancelled = false;
 
+    // Don't ask simulateTrade for priceImpact — vault.spotPriceX96 is a
+    // wei-denominated BNB price (≈10^14), not a real Uniswap V3
+    // sqrtPriceX96. Mixing the two produces nonsense (~e+69%). Price impact
+    // is computed below from executed rate vs spot rate.
     simulateTrade({
       quoterAddress: QUOTER_V2_ADDRESS,
       tokenIn: tokenIn as `0x${string}`,
@@ -305,7 +309,24 @@ export default function SwapForm({
     return `1 ${fromToken} ≈ ${formatCompactNumber(rate)} ${toToken}`;
   }, [fromToken, toToken, fromTokenData, toTokenData, estimatedOutput, fromAmount]);
 
-  const priceImpact = quote?.priceImpact ?? 0;
+  // Price impact from executed rate vs spot rate. Whichever leg is the vault
+  // token carries the spotPriceX96 (wei-denominated BNB-per-token); the
+  // other leg is the base pair (BNB/WBNB at 1:1 to BNB).
+  const priceImpact = (() => {
+    if (!quote || fromAmount <= 0 || estimatedOutput <= 0) return 0;
+    const vaultSource = fromTokenData?.spotPriceX96 || toTokenData?.spotPriceX96;
+    if (!vaultSource) return 0;
+    const priceBnb = Number(BigInt(vaultSource)) / 1e18;
+    if (priceBnb <= 0) return 0;
+    // expected output if there were zero slippage and zero fees
+    const fromIsBaseLeg =
+      fromTokenData?.symbol === "WBNB" || fromTokenData?.symbol === "BNB";
+    const expected = fromIsBaseLeg
+      ? fromAmount / priceBnb
+      : fromAmount * priceBnb;
+    if (expected <= 0) return 0;
+    return Math.abs(1 - estimatedOutput / expected) * 100;
+  })();
 
   const minReceived = quote
     ? Number(

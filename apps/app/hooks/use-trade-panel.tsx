@@ -162,6 +162,11 @@ export function useTradePanel() {
     const tokenIn = side === "buy" ? WBNB_ADDRESS : vault.token0;
     const tokenOut = side === "buy" ? vault.token0 : WBNB_ADDRESS;
 
+    // Don't ask simulateTrade for priceImpact — it expects a real
+    // sqrtPriceX96, but vault.spotPriceX96 is a wei-denominated BNB price
+    // (≈10^14 scale), not a Uniswap V3 sqrt-price (≈10^28). Mixing them
+    // produced ~e+69% nonsense. The caller computes impact below from
+    // the executed rate vs the spot rate.
     simulateTrade({
       quoterAddress: QUOTER_V2_ADDRESS,
       tokenIn: tokenIn as `0x${string}`,
@@ -182,7 +187,23 @@ export function useTradePanel() {
   }, [vault, numericAmount, side]);
 
   const receiving = quote ? Number(formatEther(quote.amountOut)) : 0;
-  const priceImpact = quote?.priceImpact ?? 0;
+  // Compute price impact ourselves: compare the executed rate against the
+  // vault's spot rate. vault.spotPriceX96 is stored as a wei-denominated
+  // BNB-per-token value (1 token = priceBnb BNB), so:
+  //   buy  (BNB → token):  expectedOut = amountIn / priceBnb
+  //   sell (token → BNB):  expectedOut = amountIn * priceBnb
+  //   impact = |1 - actualOut / expectedOut| × 100
+  const priceImpact = (() => {
+    if (!quote || numericAmount <= 0) return 0;
+    const priceBnb = vault?.spotPriceX96
+      ? Number(BigInt(vault.spotPriceX96)) / 1e18
+      : 0;
+    if (priceBnb <= 0) return 0;
+    const expected =
+      side === "buy" ? numericAmount / priceBnb : numericAmount * priceBnb;
+    if (expected <= 0) return 0;
+    return Math.abs(1 - receiving / expected) * 100;
+  })();
   const minReceived = quote
     ? Number(
         formatEther(
