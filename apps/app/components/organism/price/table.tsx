@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { ColumnDef } from "@tanstack/react-table";
 
 // Components
+import Avatar from "@/components/atoms/avatar";
 import Card from "@/components/atoms/card";
 import Table from "@/components/atoms/table";
 import Button from "@/components/atoms/button";
@@ -137,11 +138,19 @@ export default function PriceTable() {
       {
         accessorKey: "symbol",
         header: t("token"),
-        cell: ({ row }) => (
-          <span className="text-xs font-medium">
-            {row.original.symbol ?? row.original.token}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const sym = row.original.symbol ?? row.original.token;
+          return (
+            <span className="inline-flex items-center gap-1.5">
+              <Avatar
+                name={sym}
+                src={row.original.iconUrl}
+                size="sm"
+              />
+              <span className="text-xs font-medium">{sym}</span>
+            </span>
+          );
+        },
       },
       {
         accessorKey: "price",
