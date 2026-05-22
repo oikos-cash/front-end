@@ -75,6 +75,14 @@ export function useBorrowForm(vault: VaultInfo | null) {
     borrowReverted,
     resetBorrow,
     loanData: onChainLoan,
+    hasExistingLoan,
+    refetchHasExistingLoan,
+    migrateLoan,
+    isMigrating,
+    isMigrateSubmitting,
+    migrateSuccess,
+    migrateError,
+    resetMigrate,
   } = useLending(vault?.address, vault?.token0);
 
   const hasActiveLoan = !!onChainLoan?.hasActiveLoan;
@@ -291,6 +299,29 @@ export function useBorrowForm(vault: VaultInfo | null) {
     setPendingBorrow(null);
   }
 
+  // After a successful loan migration, refresh hasExistingLoan so the
+  // migrate prompt yields back to the regular borrow form, and surface a
+  // toast / failure notice for visibility.
+  const toastedMigrateRef = useRef<"success" | "error" | null>(null);
+  useEffect(() => {
+    if (migrateSuccess && toastedMigrateRef.current !== "success") {
+      toastedMigrateRef.current = "success";
+      refetchHasExistingLoan();
+      toast.success("Loan migrated successfully");
+    } else if (migrateError && toastedMigrateRef.current !== "error") {
+      toastedMigrateRef.current = "error";
+      toast.error(formatError(migrateError));
+    }
+  }, [migrateSuccess, migrateError, refetchHasExistingLoan]);
+
+  function handleMigrate(oldVault?: Address) {
+    if (migrateError || migrateSuccess) {
+      resetMigrate();
+      toastedMigrateRef.current = null;
+    }
+    migrateLoan(oldVault);
+  }
+
   function handleUseMax() {
     form.setValue("borrowAmount", borrowData.userBalance.toString(), {
       shouldValidate: true,
@@ -362,5 +393,9 @@ export function useBorrowForm(vault: VaultInfo | null) {
     needsApproval,
     isPending,
     flowState,
+    // Legacy-loan migration
+    hasExistingLoan,
+    migrate: handleMigrate,
+    isMigrating: isMigrating || isMigrateSubmitting,
   };
 }

@@ -6,6 +6,7 @@ import type { Address } from "viem";
 
 import { useWallet } from "@/stores/wallet";
 import { EXT_VAULT_ABI, LENDING_VAULT_ABI, ERC20_ABI } from "@/lib/abis";
+import { OLD_LENDING_VAULTS } from "@/types/constants";
 
 /**
  * Hook for interacting with the ExtVault lending contract.
@@ -118,6 +119,46 @@ export function useLending(vaultAddress?: string, tokenAddress?: string) {
     });
   }
 
+  // ── Legacy-loan migration ────────────────────────────────────────────
+  // The new vault exposes hasExistingLoan() (reads from msg.sender) and
+  // migrateLoan(oldVault) to pull a user's position out of the previous
+  // lending system. We read against the user's account so wagmi sets the
+  // eth_call from address correctly.
+  const {
+    data: hasExistingLoan,
+    refetch: refetchHasExistingLoan,
+  } = useReadContract({
+    address: vault,
+    abi: LENDING_VAULT_ABI,
+    functionName: "hasExistingLoan",
+    account: user,
+    query: { enabled: !!vault && !!user },
+  });
+
+  const {
+    writeContract: migrateWrite,
+    data: migrateTxHash,
+    isPending: isMigrateSubmitting,
+    error: migrateWriteError,
+    reset: resetMigrate,
+  } = useWriteContract();
+  const {
+    isLoading: isMigrating,
+    isSuccess: migrateSuccess,
+    error: migrateReceiptError,
+  } = useWaitForTransactionReceipt({ hash: migrateTxHash });
+  const migrateError = migrateWriteError ?? migrateReceiptError ?? null;
+
+  function migrateLoan(oldVault: Address = OLD_LENDING_VAULTS[0] as Address) {
+    if (!vault) return;
+    migrateWrite({
+      address: vault,
+      abi: LENDING_VAULT_ABI,
+      functionName: "migrateLoan",
+      args: [oldVault],
+    });
+  }
+
   return {
     // State
     loanData,
@@ -142,5 +183,15 @@ export function useLending(vaultAddress?: string, tokenAddress?: string) {
     borrowTxHash,
     borrowError,
     borrowReverted,
+    // Legacy-loan migration
+    hasExistingLoan: hasExistingLoan === true,
+    refetchHasExistingLoan,
+    migrateLoan,
+    isMigrating,
+    isMigrateSubmitting,
+    migrateSuccess,
+    migrateTxHash,
+    migrateError,
+    resetMigrate,
   };
 }

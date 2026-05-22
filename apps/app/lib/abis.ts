@@ -145,6 +145,23 @@ export const LENDING_VAULT_ABI = [
     stateMutability: "view",
     type: "function",
   },
+  // Legacy-loan migration surface. hasExistingLoan reads via msg.sender —
+  // callers must pass `account` to useReadContract so wagmi sets the eth_call
+  // from address. migrateLoan takes the OLD vault to migrate from.
+  {
+    inputs: [],
+    name: "hasExistingLoan",
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "oldVault", type: "address" }],
+    name: "migrateLoan",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
 ] as const;
 
 export const PRESALE_ABI = [

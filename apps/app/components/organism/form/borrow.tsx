@@ -8,7 +8,7 @@ import FieldRenderer from "@/components/molecules/field-renderer";
 import TxFlowStatus from "@/components/molecules/tx-flow-status";
 
 // Icons
-import { Lock } from "lucide-react";
+import { Lock, ArrowRightLeft } from "lucide-react";
 
 // Hooks
 import { useBorrowForm } from "@/hooks/use-borrow-form";
@@ -37,9 +37,33 @@ export default function BorrowFormPanel({
     needsApproval,
     isPending,
     flowState,
+    hasExistingLoan,
+    migrate,
+    isMigrating,
   } = useBorrowForm(vault);
 
   if (!isConnected) return null;
+
+  // The user has a loan in the previous lending system — the new vault
+  // exposes migrateLoan(oldVault) to pull it across. Until they migrate,
+  // any new borrow on this vault would be rejected at the contract level,
+  // so show the migration prompt instead of the regular form.
+  if (hasExistingLoan) {
+    return (
+      <Card title={t("title")} description={t("description")}>
+        <Empty
+          title={t("migrateTitle")}
+          description={t("migrateDescription")}
+          icon={<ArrowRightLeft className="size-6 text-primary" />}
+        >
+          <Button onClick={() => migrate()} isLoading={isMigrating}>
+            <ArrowRightLeft className="size-3.5" />
+            {t("migrateAction")}
+          </Button>
+        </Empty>
+      </Card>
+    );
+  }
 
   // When the user already has an open position on this vault the contract
   // rejects a new borrow (ActiveLoan revert). Hide the borrow controls and
