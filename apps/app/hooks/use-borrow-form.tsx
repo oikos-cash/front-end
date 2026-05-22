@@ -299,16 +299,23 @@ export function useBorrowForm(vault: VaultInfo | null) {
     setPendingBorrow(null);
   }
 
-  // After a successful loan migration, refresh hasExistingLoan so the
-  // migrate prompt yields back to the regular borrow form, and surface a
-  // toast / failure notice for visibility.
+  // After a successful loan migration, refresh hasExistingLoan and the
+  // on-chain loan position, surface a toast, then reload the page after a
+  // short grace period so every downstream hook (active loan, history,
+  // wallet balances) refetches from a clean slate. Mirrors the behaviour
+  // of the legacy frontend.
   const toastedMigrateRef = useRef<"success" | "error" | null>(null);
   useEffect(() => {
     if (migrateSuccess && toastedMigrateRef.current !== "success") {
       toastedMigrateRef.current = "success";
       refetchHasExistingLoan();
       toast.success("Loan migrated successfully");
-    } else if (migrateError && toastedMigrateRef.current !== "error") {
+      const id = setTimeout(() => {
+        if (typeof window !== "undefined") window.location.reload();
+      }, 3000);
+      return () => clearTimeout(id);
+    }
+    if (migrateError && toastedMigrateRef.current !== "error") {
       toastedMigrateRef.current = "error";
       toast.error(formatError(migrateError));
     }
