@@ -19,6 +19,7 @@ import { useAllowances } from "@/hooks/use-allowances";
 
 // Contracts
 import { MODEL_HELPER_ABI, MODEL_HELPER_ADDRESS } from "@/lib/oikos-addresses";
+import { LENDING_VAULT_ABI } from "@/lib/abis";
 import { WBNB_ADDRESS } from "@/types/constants";
 
 // Types
@@ -34,7 +35,6 @@ import { repaySchema, rollSchema, addCollateralSchema } from "@/types/schemes";
 // Utils
 import {
   calculateNewLtv,
-  calculateRollFee,
   formatStakeNumber,
   calculateCollateralReturned,
 } from "@/utils/number";
@@ -239,15 +239,42 @@ export function useLoanPosition(vault: VaultInfo | null) {
     ],
   );
 
-  const rollFee = useMemo(
-    () =>
-      calculateRollFee(
-        loanData.borrowedAmount,
-        loanData.dailyInterest,
-        rollDays,
-      ),
-    [loanData.borrowedAmount, loanData.dailyInterest, rollDays],
-  );
+  // WBNB amount the user gets back from a Roll. The legacy frontend formula
+  // is (collateral × IMV − borrow) / 4 — the excess collateral value beyond
+  // the current loan, divided by 4 (protocol-prescribed haircut).
+  const rollLoanAmount = useMemo(() => {
+    const extra =
+      loanData.collateralAmount * loanData.imv - loanData.borrowedAmount;
+    return extra > 0 ? extra / 4 : 0;
+  }, [loanData.collateralAmount, loanData.imv, loanData.borrowedAmount]);
+
+  // Roll fee from the LendingVault.calculateLoanFees view applied to the
+  // computed rollLoanAmount + the chosen new duration. This is the on-chain
+  // truth — the old `borrowedAmount × dailyInterest × days` heuristic was
+  // wrong because `vault.totalInterest` is a cumulative counter, not a rate.
+  const rollDurationSeconds = rollDays > 0 ? Math.round(rollDays * 86400) : 0;
+  const { data: rollFeeWei } = useReadContract({
+    address: vault?.address as Address | undefined,
+    abi: LENDING_VAULT_ABI,
+    functionName: "calculateLoanFees",
+    args:
+      rollLoanAmount > 0 && rollDurationSeconds > 0
+        ? [
+            parseUnits(rollLoanAmount.toFixed(18), 18),
+            BigInt(rollDurationSeconds),
+          ]
+        : undefined,
+    query: {
+      enabled:
+        !!vault?.address &&
+        rollLoanAmount > 0 &&
+        rollDurationSeconds > 0,
+    },
+  });
+  const rollFee = useMemo(() => {
+    if (typeof rollFeeWei !== "bigint" || rollFeeWei === BigInt(0)) return 0;
+    return Number(formatUnits(rollFeeWei, 18));
+  }, [rollFeeWei]);
 
   const rollNewExpiry = useMemo(() => {
     if (!rollDays) return "--";
@@ -406,13 +433,17 @@ export function useLoanPosition(vault: VaultInfo | null) {
       showSummary: rollDays > 0,
       summaryRows: [
         {
+          label: t("rollAmount"),
+          value: `${formatStakeNumber(rollLoanAmount)} ${loanData.quoteToken}`,
+          variant: "success",
+        },
+        {
           label: t("rollFee"),
           value: `${formatStakeNumber(rollFee)} ${loanData.quoteToken}`,
         },
         {
           label: t("rollNewExpiry"),
           value: rollNewExpiry,
-          variant: "success",
         },
       ],
       fieldOverrides: {
