@@ -194,6 +194,8 @@
     "deployNotice": "Once deployed, your token will be live on the blockchain. This action is irreversible. Make sure all details are correct before proceeding.",
     "deploymentFee": "Deployment fee: 1 BNB",
     "deployButton": "Deploy Token",
+    "toastDeploySubmitted": "Deployment submitted — waiting for confirmation…",
+    "toastDeploySuccess": "Token deployed",
 
     "name": "Name",
     "symbol": "Symbol",

@@ -194,6 +194,8 @@
     "deployNotice": "Una vez desplegado, tu token estara activo en la blockchain. Esta accion es irreversible. Asegurate de que todos los detalles sean correctos antes de continuar.",
     "deploymentFee": "Tarifa de despliegue: 1 BNB",
     "deployButton": "Desplegar Token",
+    "toastDeploySubmitted": "Despliegue enviado — esperando confirmacion…",
+    "toastDeploySuccess": "Token desplegado",
 
     "name": "Nombre",
     "symbol": "Simbolo",
