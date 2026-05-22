@@ -1,19 +1,25 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { formatUnits } from "viem";
+import { formatUnits, parseUnits, erc20Abi } from "viem";
 import type { Address } from "viem";
-import { useReadContract } from "wagmi";
+import {
+  useReadContract,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+} from "wagmi";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
 import { useLending } from "@/hooks/use-lending";
+import { useAllowances } from "@/hooks/use-allowances";
 
 // Contracts
 import { MODEL_HELPER_ABI, MODEL_HELPER_ADDRESS } from "@/lib/oikos-addresses";
+import { WBNB_ADDRESS } from "@/types/constants";
 
 // Types
 import type {
@@ -44,7 +50,7 @@ import { LOAN_TAB_FIELDS, ROLL_DURATION_OPTIONS } from "@/types/constants";
  */
 export function useLoanPosition(vault: VaultInfo | null) {
   const t = useTranslations("borrow");
-  const { isConnected } = useWallet();
+  const { isConnected, address } = useWallet();
   const [activeTab, setActiveTab] = useState<LoanActionTab>("repay");
 
   const token = vault?.tokenSymbol ?? "TOKEN";
@@ -110,6 +116,76 @@ export function useLoanPosition(vault: VaultInfo | null) {
   }, [onChainLoan, imv, dailyInterest, token]);
 
   const userBalance = 0;
+
+  // ── Chained approve → action for Repay (WBNB) and Add Collateral (OKS) ──
+  //
+  // Both LendingVault entry points consume an ERC20 via transferFrom inside
+  // the contract, so the user has to approve the vault as spender first.
+  // We expose a single approval write here; the pending-action snapshot
+  // decides which downstream call fires when the receipt lands.
+  const allowancePairs = useMemo(
+    () =>
+      address && vault?.address
+        ? [
+            { token: WBNB_ADDRESS, spender: vault.address as Address },
+            ...(vault.token0
+              ? [{ token: vault.token0 as Address, spender: vault.address as Address }]
+              : []),
+          ]
+        : [],
+    [address, vault?.address, vault?.token0],
+  );
+  const { allowances, refetch: refetchAllowance } = useAllowances(
+    address as Address | null | undefined,
+    allowancePairs,
+  );
+  const wbnbAllowance = allowances[0]?.allowance ?? BigInt(0);
+  const tokenAllowance = allowances[1]?.allowance ?? BigInt(0);
+
+  const {
+    writeContract: writeApprove,
+    data: approveTxHash,
+    error: approveError,
+    reset: resetApprove,
+  } = useWriteContract();
+  const { isSuccess: approveSuccess } = useWaitForTransactionReceipt({
+    hash: approveTxHash,
+  });
+
+  // Snapshot of the action the user submitted while allowance was short;
+  // gets replayed once the approval receipt confirms.
+  const [pendingAction, setPendingAction] = useState<
+    | { kind: "repay"; amount: string }
+    | { kind: "addCollateral"; amount: string }
+    | null
+  >(null);
+
+  // Keep refs so the success effect always sees the latest closures without
+  // re-running on every payback/addCollateral identity change.
+  const lendingPaybackRef = useRef(lendingPayback);
+  lendingPaybackRef.current = lendingPayback;
+  const lendingAddCollateralRef = useRef(lendingAddCollateral);
+  lendingAddCollateralRef.current = lendingAddCollateral;
+  const refetchAllowanceRef = useRef(refetchAllowance);
+  refetchAllowanceRef.current = refetchAllowance;
+
+  useEffect(() => {
+    if (!approveSuccess) return;
+    refetchAllowanceRef.current();
+    if (pendingAction) {
+      if (pendingAction.kind === "repay") {
+        lendingPaybackRef.current(pendingAction.amount);
+      } else {
+        lendingAddCollateralRef.current(pendingAction.amount);
+      }
+      setPendingAction(null);
+    }
+  }, [approveSuccess, pendingAction]);
+
+  // Drop the queued action if the approval write itself fails.
+  useEffect(() => {
+    if (approveError && pendingAction) setPendingAction(null);
+  }, [approveError, pendingAction]);
 
   // Each tab has its own form to avoid field name collisions and allow independent validation
   const repayForm = useForm<RepayFormValues>({
@@ -179,9 +255,31 @@ export function useLoanPosition(vault: VaultInfo | null) {
     return newDate.toLocaleDateString();
   }, [rollDays]);
 
-  // Submit handlers — call real contract methods via useLending
+  // Submit handlers — chain approve → action when allowance is insufficient.
+  // The vault pulls WBNB (repay) and token0 (addCollateral) via
+  // transferFrom, so the user has to approve the vault as spender first.
   async function onRepay(data: RepayFormValues) {
-    lendingPayback(data.repayAmount);
+    if (!vault?.address) return;
+    let amountWei: bigint;
+    try {
+      amountWei = parseUnits(data.repayAmount, 18);
+    } catch {
+      return;
+    }
+    if (amountWei === BigInt(0)) return;
+    // Reset prior approve terminal state so the new attempt starts clean.
+    if (approveError || approveSuccess) resetApprove();
+    if (wbnbAllowance < amountWei) {
+      setPendingAction({ kind: "repay", amount: data.repayAmount });
+      writeApprove({
+        address: WBNB_ADDRESS,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [vault.address as Address, amountWei],
+      });
+    } else {
+      lendingPayback(data.repayAmount);
+    }
     repayForm.reset();
   }
 
@@ -191,14 +289,37 @@ export function useLoanPosition(vault: VaultInfo | null) {
   }
 
   async function onAddCollateral(data: AddCollateralFormValues) {
-    lendingAddCollateral(data.collateralAmount);
+    if (!vault?.address || !vault?.token0) return;
+    let amountWei: bigint;
+    try {
+      amountWei = parseUnits(data.collateralAmount, 18);
+    } catch {
+      return;
+    }
+    if (amountWei === BigInt(0)) return;
+    if (approveError || approveSuccess) resetApprove();
+    if (tokenAllowance < amountWei) {
+      setPendingAction({
+        kind: "addCollateral",
+        amount: data.collateralAmount,
+      });
+      writeApprove({
+        address: vault.token0 as Address,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [vault.address as Address, amountWei],
+      });
+    } else {
+      lendingAddCollateral(data.collateralAmount);
+    }
     collateralForm.reset();
   }
 
-  // Refetch loan data after successful transactions
+  // Refetch loan data + allowance after successful transactions.
   useEffect(() => {
     if (repaySuccess || rollSuccess || addCollateralSuccess) {
       refetchLoan();
+      refetchAllowanceRef.current();
     }
   }, [repaySuccess, rollSuccess, addCollateralSuccess, refetchLoan]);
 
