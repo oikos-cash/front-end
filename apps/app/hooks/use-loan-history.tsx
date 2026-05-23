@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
+import { useReadContract, useReadContracts } from "wagmi";
+import type { Address } from "viem";
 
 // Components
 import Badge from "@/components/atoms/badge";
@@ -22,9 +24,14 @@ import { ArrowUpRight } from "lucide-react";
 import { timeAgo } from "@/utils/date";
 import { truncateAddress } from "@/utils/string";
 import { formatStakeNumber } from "@/utils/number";
+import {
+  applyRollReconstruction,
+  planRollReconstruction,
+} from "@/utils/loan-history-reconstruction";
 
 // Constants
 import { LOAN_HISTORY_FILTERS } from "@/types/constants";
+import { LENDING_VAULT_ABI } from "@/lib/abis";
 
 /**
  * Map a raw LoanEvent from the API to a LoanHistoryItem for the table.
@@ -56,7 +63,9 @@ export function useLoanHistory(vaultAddress?: string) {
   const t = useTranslations("borrow");
   const { address } = useWallet();
 
-  const [items, setItems] = useState<LoanHistoryItem[]>([]);
+  // Store raw LoanEvent[] (not mapped LoanHistoryItem[]) so we can run the
+  // legacy-Roll reconstruction pass before the table renders.
+  const [rawEvents, setRawEvents] = useState<LoanEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
 
@@ -66,7 +75,7 @@ export function useLoanHistory(vaultAddress?: string) {
   // table doesn't surface other users' positions.
   useEffect(() => {
     if (!vaultAddress || !address) {
-      setItems([]);
+      setRawEvents([]);
       setIsLoading(false);
       return;
     }
@@ -79,7 +88,7 @@ export function useLoanHistory(vaultAddress?: string) {
       try {
         const loans = await fetchLoansByVault(vaultAddress!);
         if (!cancelled) {
-          const mapped = loans
+          const filtered = loans
             .filter((e) => e.eventName !== "DefaultLoans")
             .filter((e) => {
               // The indexer carries the originator under both userAddress
@@ -90,9 +99,8 @@ export function useLoanHistory(vaultAddress?: string) {
                 ""
               ).toLowerCase();
               return evUser === me;
-            })
-            .map(toLoanHistoryItem);
-          setItems(mapped);
+            });
+          setRawEvents(filtered);
         }
       } catch (err) {
         console.error("[useLoanHistory] fetch error:", err);
@@ -105,8 +113,66 @@ export function useLoanHistory(vaultAddress?: string) {
     return () => { cancelled = true; };
   }, [vaultAddress, address]);
 
+  // ─── Roll-amount reconstruction ─────────────────────────────────────
+  // Legacy vaults emitted RollLoan(address) with no payload, so
+  // args.amount comes back undefined for those rows. Anchor the
+  // reconstruction to the on-chain truth from getActiveLoan, then ask
+  // the LendingVault what calculateLoanFees would have charged at each
+  // missing roll point and scale to reconcile.
+
+  const { data: activeLoan } = useReadContract({
+    address: vaultAddress as Address | undefined,
+    abi: LENDING_VAULT_ABI,
+    functionName: "getActiveLoan",
+    args: address ? [address as Address] : undefined,
+    query: { enabled: !!vaultAddress && !!address },
+  });
+  const currentBorrowedWei = activeLoan
+    ? (activeLoan as readonly bigint[])[0] ?? 0n
+    : 0n;
+  const currentExpiresSec = activeLoan
+    ? (activeLoan as readonly bigint[])[3] ?? 0n
+    : 0n;
+
+  const plan = useMemo(() => {
+    if (rawEvents.length === 0) return null;
+    return planRollReconstruction(rawEvents, currentBorrowedWei, currentExpiresSec);
+  }, [rawEvents, currentBorrowedWei, currentExpiresSec]);
+
+  const { data: feeReads } = useReadContracts({
+    contracts:
+      plan && plan.missingRolls.length > 0 && vaultAddress
+        ? plan.missingRolls.map((mr) => ({
+            address: vaultAddress as Address,
+            abi: LENDING_VAULT_ABI,
+            functionName: "calculateLoanFees" as const,
+            args: [mr.borrowBeforeWei, mr.durationSec] as const,
+          }))
+        : [],
+    query: {
+      enabled: !!(plan && plan.missingRolls.length > 0 && vaultAddress),
+    },
+  });
+
+  const reconstructedEvents = useMemo(() => {
+    if (!plan) return rawEvents;
+    if (plan.bail || plan.missingRolls.length === 0) return plan.sortedEvents;
+    if (!feeReads) return plan.sortedEvents;
+    const fees = feeReads.map((r) =>
+      r.status === "success" ? (r.result as bigint) : 0n,
+    );
+    return applyRollReconstruction(plan, fees);
+  }, [plan, feeReads, rawEvents]);
+
+  const items = useMemo(
+    () => reconstructedEvents.map(toLoanHistoryItem),
+    [reconstructedEvents],
+  );
+
   // WebSocket real-time updates — same vault + user predicate as the
-  // initial fetch so foreign positions can't sneak in via push.
+  // initial fetch so foreign positions can't sneak in via push. New
+  // events from the modern contract include args.amount, so they don't
+  // need reconstruction; we just append to rawEvents.
   const onLoan = useCallback(
     (event: WSLoanEvent) => {
       const loan = event.data;
@@ -128,10 +194,9 @@ export function useLoanHistory(vaultAddress?: string) {
         if (evUser !== address.toLowerCase()) return;
       }
 
-      const item = toLoanHistoryItem(loan);
-      setItems((prev) => {
-        if (prev.some((i) => i.id === item.id)) return prev;
-        return [item, ...prev];
+      setRawEvents((prev) => {
+        if (prev.some((e) => e.id === loan.id)) return prev;
+        return [loan, ...prev];
       });
     },
     [vaultAddress, address],
