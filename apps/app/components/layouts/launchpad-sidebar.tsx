@@ -143,7 +143,9 @@ export default function LaunchpadSidebar({
           floorPrice: priceWei,
           token1: WBNB_ADDRESS as Address,
           feeTier: feeTierFor(protocol),
-          presale: Number(presaleSeconds),
+          // tokenConfig.presale is a uint8 flag (0 = no presale, 1 = enabled),
+          // NOT a duration. The duration lives in presaleConfig.deadline.
+          presale: enablePresale ? 1 : 0,
           isFreshDeploy: true,
           useUniswap,
         },
@@ -153,7 +155,8 @@ export default function LaunchpadSidebar({
           vaultAddress: zeroAddress,
         },
       ],
-      value: DEPLOYMENT_FEE_BNB,
+      // value: DEPLOYMENT_FEE_BNB intentionally omitted while we test
+      // without paying the deployment fee.
       gas: 30_000_000n,
     });
   }
@@ -236,6 +239,14 @@ export default function LaunchpadSidebar({
     if (!hasUserAttempted) stageRef.current = "idle";
   }, [hasUserAttempted]);
 
+  // Zustand's persist middleware rehydrates only on the client, so
+  // isReadyToDeploy() returns a different value on SSR than on hydration.
+  // Defer any UI that reads store-derived state until after mount so
+  // server / client DOM agrees.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const canDeploy = mounted && isReadyToDeploy();
+
   return (
     // Stack the step nav on top of the form on narrow viewports — the page
     // already sits between the global left + right sidebars, so a fixed 224px
@@ -298,7 +309,7 @@ export default function LaunchpadSidebar({
           ) : (
             <Button
               variant="default"
-              disabled={!isReadyToDeploy() || isDeploying}
+              disabled={!canDeploy || isDeploying}
               isLoading={isDeploying}
               onClick={onDeployClick}
             >
