@@ -164,8 +164,10 @@ export function useLoanHistory(vaultAddress?: string) {
     return applyRollReconstruction(plan, fees);
   }, [plan, feeReads, rawEvents]);
 
+  // Reconstruction sorts ascending for the forward walk; the table reads
+  // newest-first, so reverse on the way out.
   const items = useMemo(
-    () => reconstructedEvents.map(toLoanHistoryItem),
+    () => reconstructedEvents.slice().reverse().map(toLoanHistoryItem),
     [reconstructedEvents],
   );
 
