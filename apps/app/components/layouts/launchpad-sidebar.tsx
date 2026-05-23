@@ -12,6 +12,7 @@ import { toast } from "sonner";
 // Components
 import Link from "next/link";
 import Button from "@/components/atoms/button";
+import LaunchpadPreviewCard from "@/components/molecules/launchpad/preview-card";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -318,7 +319,14 @@ export default function LaunchpadSidebar({
           )}
         </div>
       </nav>
-      <div className="min-w-0 flex-1">{children}</div>
+      {/* Main column splits into form (children) + sticky Preview panel at
+        * 2xl+. Below that breakpoint the preview stacks under the form so
+        * the cramped 3-sidebar global layout (left prices, this nav, right
+        * wallet) still has room. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-4 2xl:flex-row 2xl:gap-6">
+        <div className="min-w-0 flex-1">{children}</div>
+        <LaunchpadPreviewCard className="2xl:sticky 2xl:top-18 2xl:w-72 2xl:self-start" />
+      </div>
     </div>
   );
 }

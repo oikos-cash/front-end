@@ -1,6 +1,7 @@
 // Components
 import PageHeader from "@/components/molecules/page-header";
 import LaunchpadPoolForm from "@/components/organism/form/launchpad-pool";
+import LaunchpadSummary from "@/components/molecules/launchpad/summary";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -19,6 +20,7 @@ export default function LaunchpadPoolTemplate() {
         ]}
       />
       <LaunchpadPoolForm />
+      <LaunchpadSummary variant="pool" />
     </div>
   );
 }

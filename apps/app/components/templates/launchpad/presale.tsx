@@ -1,6 +1,7 @@
 // Components
 import PageHeader from "@/components/molecules/page-header";
 import LaunchpadPresaleForm from "@/components/organism/form/launchpad-presale";
+import LaunchpadSummary from "@/components/molecules/launchpad/summary";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -19,6 +20,7 @@ export default function LaunchpadPresaleTemplate() {
         ]}
       />
       <LaunchpadPresaleForm />
+      <LaunchpadSummary variant="presale" />
     </div>
   );
 }
