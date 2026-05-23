@@ -331,18 +331,41 @@ export function generateMockStakeData(token = "OKS"): StakeMockData {
  * @param decimals - Number of decimal places for values below 1,000 (defaults to 4)
  * @returns A formatted string (e.g. "1.25M", "50.00K", or "123.4567")
  */
-export function formatStakeNumber(value: number, decimals = 4): string {
+const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
+
+function subscriptize(n: number): string {
+  return String(n)
+    .split("")
+    .map((c) => SUBSCRIPT_DIGITS[parseInt(c, 10)] ?? c)
+    .join("");
+}
+
+export function formatStakeNumber(
+  value: number,
+  decimals = 4,
+  /** When true, trim trailing zeros from the fractional part — useful for
+   *  price displays where "0.0001000" reads worse than "0.0001". */
+  compact = false,
+): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
   if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
-  if (value > 0 && value < 1e-4) {
-    // Avoid scientific notation ("3.578e-6") in the UI. Pick enough
-    // decimals to show ~4 significant figures, then strip trailing zeros.
-    const sig = 4;
+  // For very small numbers, use the standard DeFi "subscript zero" notation
+  // (e.g. 0.000000125 -> 0.0₆125, 0.0000644 -> 0.0₄644) instead of leaving
+  // long runs of zeros on screen. Threshold: 3+ leading zeros after the
+  // decimal (i.e. value < 1e-3) so casual amounts like 0.005 still render
+  // normally.
+  if (value > 0 && value < 1e-3) {
     const exp = Math.floor(Math.log10(value));
-    const places = Math.max(sig - exp - 1, decimals);
-    return value.toFixed(places).replace(/\.?0+$/, "");
+    const leadingZeros = -exp - 1; // # of zeros between "0." and the first nonzero digit
+    if (leadingZeros >= 3) {
+      const sigFigs = 3;
+      const sigDigits = Math.round(value * Math.pow(10, leadingZeros + sigFigs));
+      const sigStr = String(sigDigits).replace(/0+$/, "") || "0";
+      return `0.0${subscriptize(leadingZeros)}${sigStr}`;
+    }
   }
-  return value.toFixed(decimals);
+  const out = value.toFixed(decimals);
+  return compact ? out.replace(/\.?0+$/, "") : out;
 }
 
 /**

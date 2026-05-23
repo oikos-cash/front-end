@@ -175,7 +175,6 @@ export function useLiquidity(initialVault: VaultInfo | null = null) {
           key: "liquidityRatio",
           value: data.liquidityRatio.toFixed(4),
           secondary: t("protocolHealth"),
-          hasActions: true,
         },
         {
           key: "circulatingSupply",

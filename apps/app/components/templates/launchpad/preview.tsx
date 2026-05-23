@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 // Components
 import Link from "next/link";
 import Card from "@/components/atoms/card";
@@ -12,6 +14,12 @@ import { useLaunchpadPreview } from "@/hooks/use-launchpad-preview";
 export default function LaunchpadPreviewTemplate() {
   const { t, store, cards, values, missingKeys, missingByKey } =
     useLaunchpadPreview();
+  // Zustand's persist middleware only rehydrates on the client, so SSR sees
+  // the default (empty) form while the client sees the persisted values.
+  // Render store-derived content (missing-key links vs filled values) only
+  // after mount so the server/client trees match.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <div className="flex flex-col gap-6">
@@ -30,7 +38,11 @@ export default function LaunchpadPreviewTemplate() {
       />
 
       {cards.map((card, i) => {
-        if (card.presaleOnly && !store.enablePresale) return null;
+        // Until rehydrated, treat the presale-only card as visible (the
+        // store default is enablePresale=false, but post-hydration it might
+        // flip to true). Render rows with an em-dash placeholder so the
+        // SSR markup matches the first client render exactly.
+        if (mounted && card.presaleOnly && !store.enablePresale) return null;
 
         return (
           <Card key={i} title={card.title} description={card.description}>
@@ -38,7 +50,7 @@ export default function LaunchpadPreviewTemplate() {
               {card.rows.map((row) => (
                 <div key={row.key} className="flex justify-between">
                   <span className="text-muted-foreground">{row.label}</span>
-                  {missingKeys.has(row.key) ? (
+                  {mounted && missingKeys.has(row.key) ? (
                     <Link
                       href={missingByKey[row.key]!}
                       className="text-destructive hover:underline"
@@ -47,7 +59,7 @@ export default function LaunchpadPreviewTemplate() {
                     </Link>
                   ) : (
                     <span className="max-w-[60%] truncate text-right font-medium">
-                      {values[row.key] ?? "—"}
+                      {mounted ? (values[row.key] ?? "—") : "—"}
                     </span>
                   )}
                 </div>

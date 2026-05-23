@@ -49,6 +49,15 @@ export {
   MODEL_HELPER_ADDRESS,
 } from "@/lib/oikos-addresses";
 
+/** Legacy LendingVault addresses. Used by the loan-migration flow: the new
+ *  vault's migrateLoan(oldVault) entry point pulls a user's existing position
+ *  from one of these into the current lending system. The first entry is the
+ *  default migration source. */
+export const OLD_LENDING_VAULTS = [
+  "0x10229DC66ac45b6Ecd2c71ca480EDD013dE701aD",
+  "0x1E9AEF03ccD42c9531e404939f45d3A4e922ED9D",
+] as const;
+
 /** Uniswap V3 Quoter V2 on BSC */
 export const QUOTER_V2_ADDRESS =
   "0x78D78E420Da98ad378D7799bE8f4AF69033EB077" as const;

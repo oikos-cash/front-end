@@ -75,6 +75,14 @@ export function useBorrowForm(vault: VaultInfo | null) {
     borrowReverted,
     resetBorrow,
     loanData: onChainLoan,
+    hasExistingLoan,
+    refetchHasExistingLoan,
+    migrateLoan,
+    isMigrating,
+    isMigrateSubmitting,
+    migrateSuccess,
+    migrateError,
+    resetMigrate,
   } = useLending(vault?.address, vault?.token0);
 
   const hasActiveLoan = !!onChainLoan?.hasActiveLoan;
@@ -291,6 +299,36 @@ export function useBorrowForm(vault: VaultInfo | null) {
     setPendingBorrow(null);
   }
 
+  // After a successful loan migration, refresh hasExistingLoan and the
+  // on-chain loan position, surface a toast, then reload the page after a
+  // short grace period so every downstream hook (active loan, history,
+  // wallet balances) refetches from a clean slate. Mirrors the behaviour
+  // of the legacy frontend.
+  const toastedMigrateRef = useRef<"success" | "error" | null>(null);
+  useEffect(() => {
+    if (migrateSuccess && toastedMigrateRef.current !== "success") {
+      toastedMigrateRef.current = "success";
+      refetchHasExistingLoan();
+      toast.success("Loan migrated successfully");
+      const id = setTimeout(() => {
+        if (typeof window !== "undefined") window.location.reload();
+      }, 3000);
+      return () => clearTimeout(id);
+    }
+    if (migrateError && toastedMigrateRef.current !== "error") {
+      toastedMigrateRef.current = "error";
+      toast.error(formatError(migrateError));
+    }
+  }, [migrateSuccess, migrateError, refetchHasExistingLoan]);
+
+  function handleMigrate(oldVault?: Address) {
+    if (migrateError || migrateSuccess) {
+      resetMigrate();
+      toastedMigrateRef.current = null;
+    }
+    migrateLoan(oldVault);
+  }
+
   function handleUseMax() {
     form.setValue("borrowAmount", borrowData.userBalance.toString(), {
       shouldValidate: true,
@@ -362,5 +400,9 @@ export function useBorrowForm(vault: VaultInfo | null) {
     needsApproval,
     isPending,
     flowState,
+    // Legacy-loan migration
+    hasExistingLoan,
+    migrate: handleMigrate,
+    isMigrating: isMigrating || isMigrateSubmitting,
   };
 }

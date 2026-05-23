@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // Components
 import Button from "@/components/atoms/button";
 import Tooltip from "@/components/atoms/tooltip";
@@ -28,18 +30,48 @@ export default function LiquidityTemplate({
   const { t, data, handleRefresh, kpiCards } = useLiquidity(initialVault);
   const te = useTranslations("error");
 
+  // handleRefresh is synchronous (just bumps a refresh key) so the icon
+  // gets a brief ephemeral spin to acknowledge the click, matching the
+  // price-chart refresh behaviour.
+  const [refreshing, setRefreshing] = useState(false);
+  function onRefreshClick() {
+    setRefreshing(true);
+    handleRefresh();
+    setTimeout(() => setRefreshing(false), 600);
+  }
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between gap-4 pt-4">
         <PageHeader
           title={t("title")}
           breadcrumbs={[{ label: "Home", href: "/" }, { label: t("title") }]}
         />
-        <Tooltip content={t("refresh")}>
-          <Button variant="ghost" size="icon-xs" onClick={handleRefresh}>
-            <RefreshCw className="size-3.5" />
-          </Button>
-        </Tooltip>
+        <div className="flex items-center gap-2">
+          {/* Shift / Slide are vault-management actions — they live in the
+            * header next to refresh so they don't crowd the Liquidity
+            * Ratio card. */}
+          <ButtonGroup>
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              {t("shift")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              {t("slide")}
+            </Button>
+          </ButtonGroup>
+          <Tooltip content={t("refresh")}>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={onRefreshClick}
+              disabled={refreshing}
+            >
+              <RefreshCw
+                className={`size-3.5 ${refreshing ? "animate-spin" : ""}`}
+              />
+            </Button>
+          </Tooltip>
+        </div>
       </div>
 
       {!data ? (
@@ -58,26 +90,6 @@ export default function LiquidityTemplate({
                 title={t(kpi.key)}
                 value={kpi.value}
                 secondary={kpi.secondary}
-                actions={
-                  kpi.hasActions ? (
-                    <ButtonGroup>
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={handleRefresh}
-                      >
-                        {t("shift")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        onClick={handleRefresh}
-                      >
-                        {t("slide")}
-                      </Button>
-                    </ButtonGroup>
-                  ) : undefined
-                }
               />
             ))}
           </div>

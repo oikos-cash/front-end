@@ -32,15 +32,18 @@ export default function Header() {
   const t = useTranslations("header");
   const { bnbPrice } = useBnbPrice();
 
+  // Stake / Dividends / Studio are hidden from the nav for now — the routes
+  // still exist if visited directly. Re-add by uncommenting once they're
+  // ready to ship.
   const navItems = [
     { value: "exchange", label: t("nav.exchange"), href: "/" },
     { value: "liquidity", label: t("nav.liquidity"), href: "/liquidity/oks" },
     { value: "borrow", label: t("nav.borrow"), href: "/borrow/oks" },
-    { value: "stake", label: t("nav.stake"), href: "/stake/oks" },
+    // { value: "stake", label: t("nav.stake"), href: "/stake/oks" },
     { value: "markets", label: t("nav.markets"), href: "/markets" },
-    { value: "dividends", label: t("nav.dividends"), href: "/dividends" },
+    // { value: "dividends", label: t("nav.dividends"), href: "/dividends" },
     { value: "launchpad", label: t("nav.launchpad"), href: "/launchpad" },
-    { value: "studio", label: t("nav.studio"), href: "/studio" },
+    // { value: "studio", label: t("nav.studio"), href: "/studio" },
   ];
 
   const networkItems = [{ value: "bsc-mainnet", label: t("network") }];

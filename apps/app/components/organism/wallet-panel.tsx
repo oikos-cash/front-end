@@ -19,21 +19,21 @@ import { Lock, Wallet } from "lucide-react";
 
 function BalanceSkeleton() {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       {[0, 1].map((i) => (
         <div
           key={i}
-          className="flex flex-col gap-2 rounded-md border border-border p-3"
+          className="flex flex-col gap-1 rounded-md border border-border px-3 py-2"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="size-8 animate-pulse rounded-full bg-muted" />
-              <div className="h-4 w-10 animate-pulse rounded bg-muted" />
+              <div className="size-6 animate-pulse rounded-full bg-muted" />
+              <div className="h-3.5 w-10 animate-pulse rounded bg-muted" />
             </div>
-            <div className="h-4 w-14 animate-pulse rounded bg-muted" />
+            <div className="h-3.5 w-14 animate-pulse rounded bg-muted" />
           </div>
           <div className="flex items-center justify-between">
-            <div className="h-5 w-12 animate-pulse rounded bg-muted" />
+            <div className="h-3 w-12 animate-pulse rounded bg-muted" />
             <div className="h-3 w-16 animate-pulse rounded bg-muted" />
           </div>
         </div>
@@ -61,10 +61,10 @@ export default function WalletPanel() {
       footer={
         isConnected && (
           <div className="flex w-full items-center justify-between">
-            <span className="text-sm font-medium">{t("totalValue")}</span>
-            <span className="text-sm font-semibold">
+            <span className="text-xs font-medium">{t("totalValue")}</span>
+            <span className="text-xs font-semibold">
               {isBalancesLoading ? (
-                <span className="inline-block h-4 w-14 animate-pulse rounded bg-muted" />
+                <span className="inline-block h-3.5 w-14 animate-pulse rounded bg-muted" />
               ) : (
                 totalValue
               )}
@@ -77,20 +77,26 @@ export default function WalletPanel() {
         isBalancesLoading ? (
           <BalanceSkeleton />
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
             {balances.map((balance) => (
               <div
                 key={balance.token}
-                className="flex flex-col gap-2 rounded-md border border-border p-3"
+                className="flex flex-col gap-1 rounded-md border border-border px-3 py-2"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Avatar name={balance.token} src={balance.iconUrl} />
-                    <span className="text-sm font-medium">
+                    <Avatar
+                      name={balance.token}
+                      src={balance.iconUrl}
+                      size="sm"
+                    />
+                    <span className="text-xs font-medium leading-none">
                       {balance.token}
                     </span>
                   </div>
-                  <span className="text-sm font-medium">{balance.amount}</span>
+                  <span className="text-xs font-medium leading-none">
+                    {balance.amount}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -98,11 +104,11 @@ export default function WalletPanel() {
                     <button
                       type="button"
                       onClick={() => openWrap("wrap")}
-                      className="text-xs"
+                      className="text-[10px]"
                     >
                       <Badge
                         variant="outline"
-                        className="cursor-pointer text-xs transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                        className="cursor-pointer px-1.5 py-0 text-[10px] leading-none transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
                       >
                         {t("wrap")}
                       </Badge>
@@ -111,11 +117,11 @@ export default function WalletPanel() {
                     <button
                       type="button"
                       onClick={() => openWrap("unwrap")}
-                      className="text-xs"
+                      className="text-[10px]"
                     >
                       <Badge
                         variant="outline"
-                        className="cursor-pointer text-xs transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                        className="cursor-pointer px-1.5 py-0 text-[10px] leading-none transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
                       >
                         {t("unwrap")}
                       </Badge>
@@ -123,7 +129,7 @@ export default function WalletPanel() {
                   ) : (
                     <span />
                   )}
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-[10px] leading-none text-muted-foreground">
                     ≈ {balance.usd}
                   </span>
                 </div>
