@@ -29,7 +29,11 @@ import {
 import { FACTORY_ABI, FACTORY_ADDRESS } from "@/lib/oikos-addresses";
 
 // Utils
-import { meetsMinTotalSupply } from "@/utils/launchpad-supply";
+import {
+  idoPriceFromFloorWei,
+  meetsMinTotalSupply,
+} from "@/utils/launchpad-supply";
+import { extractRevertReason } from "@/utils/wagmi-error";
 
 // Icons
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
@@ -134,10 +138,11 @@ export default function LaunchpadSidebar({
     const useUniswap = protocol === "uniswap";
     const supplyWei = safeParseEther(totalSupply);
     const floorPriceWei = safeParseEther(floorPrice);
-    // Legacy launchpad: the on-chain IDOPrice is the user's floor price
-    // marked up 25% (the "sale price"). Keep BigInt arithmetic to avoid
-    // float drift on small values.
-    const idoPriceWei = (floorPriceWei * 125n) / 100n;
+    // Single source of truth for the floor → IDOPrice mapping (legacy
+    // 1.25× markup + 1-wei strict-`>` dust). Lives in
+    // utils/launchpad-supply so the deploy and the supply-ladder hint
+    // are guaranteed to agree.
+    const idoPriceWei = idoPriceFromFloorWei(floorPriceWei);
     // Hardcap (in BNB wei) = floorPrice × totalSupply × 10% =
     //   (floorPriceWei × supplyWei) / 1e18 / 10 = / 1e19.
     // Soft cap is `softCapPercent` of the hardcap.
@@ -178,10 +183,12 @@ export default function LaunchpadSidebar({
           vaultAddress: zeroAddress,
         },
       ],
-      // Factory test vectors: msg.value is zero on the no-presale path and
-      // 0.0001 BNB when the presale leg is enabled.
-      value: enablePresale ? DEPLOYMENT_FEE_BNB : 0n,
-      gas: 30_000_000n,
+      // Flat deployment fee on both paths.
+      value: DEPLOYMENT_FEE_BNB,
+      // Mirror the live frontend (2^24 = 16,777,216). The successful
+      // production tx consumed ~16.54M, so this is a tight-but-safe cap
+      // that keeps wallet gas estimates sane.
+      gas: 16_777_216n,
     });
   }
 
@@ -208,11 +215,12 @@ export default function LaunchpadSidebar({
   useEffect(() => {
     if (deployError && stageRef.current !== "error") {
       stageRef.current = "error";
-      const msg =
-        deployError instanceof Error
-          ? deployError.message.split("\n")[0]
-          : String(deployError);
-      toast.error(msg);
+      const reason = extractRevertReason(deployError);
+      // Log the full error too — useful when the on-chain payload
+      // didn't decode (e.g. raw bytes) and the user wants to inspect
+      // the cause chain in DevTools.
+      console.error("[Launchpad] deployVault failed:", deployError);
+      toast.error(reason);
     }
   }, [deployError]);
 

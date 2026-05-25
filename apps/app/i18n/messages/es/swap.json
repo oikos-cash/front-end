@@ -46,6 +46,7 @@
     "noRecentSwaps": "Sin intercambios recientes",
     "time": "Tiempo",
     "balance": "Balance",
+    "max": "Máx",
     "connectTitle": "Conectar Billetera",
     "connectDescription": "Conecta tu billetera para empezar a intercambiar tokens",
     "connectButton": "Conectar Billetera",

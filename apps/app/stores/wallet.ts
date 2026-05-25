@@ -9,6 +9,7 @@ import type { Address } from "viem";
 import { useBalances } from "@/hooks/use-balances";
 import { useBnbPrice } from "@/hooks/use-bnb-price";
 import { swrFetcher } from "@/utils/fetcher";
+import { filterBlockedVaults } from "@/utils/token-blocklist";
 
 import type { WalletState, TokenBalance, VaultInfo } from "@/types/interfaces";
 import {
@@ -28,10 +29,14 @@ export function useWallet(): WalletState {
     (SUPPORTED_CHAIN_IDS as readonly number[]).includes(chainId);
 
   // Shared SWR key with TradePanel / swap page — no extra request.
-  const { data: vaults } = useSWR<VaultInfo[]>(
+  const { data: rawVaults } = useSWR<VaultInfo[]>(
     `${VAULT_API_URL}/vaults`,
     swrFetcher,
     { errorRetryCount: 0, revalidateOnFocus: false },
+  );
+  const vaults = useMemo(
+    () => (rawVaults ? filterBlockedVaults(rawVaults) : rawVaults),
+    [rawVaults],
   );
   const activeVault = vaults?.[0] ?? null;
   const wbnbLower = WBNB_ADDRESS.toLowerCase();

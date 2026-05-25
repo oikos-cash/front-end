@@ -121,6 +121,10 @@ export interface TableProps<TData, TValue> {
   data: TData[];
   className?: string;
   pageSize?: number;
+  /** Optional per-row click handler. When set, rows become button-like:
+   *  cursor pointer + keyboard-activatable (Enter / Space). Useful for
+   *  navigating to a detail page from a row in the sidebar price table. */
+  onRowClick?: (row: TData) => void;
 }
 
 export interface AvatarProps {
@@ -611,6 +615,11 @@ export interface Trade {
   id: string;
   type: "buy" | "sell";
   token: string;
+  /** Pool address the swap occurred in. Kept on the row so the trades
+   *  hook can re-label `token` when the pool→symbol map resolves
+   *  asynchronously (the symbol-source `/vaults` SWR can land after the
+   *  historical seed has already been loaded). */
+  poolAddress?: string;
   amount: number;
   price: number;
   bnbAmount: number;
@@ -825,6 +834,10 @@ export interface SwapToken {
   /** Raw spotPriceX96 string from the vault API — used as the ExchangeHelper
    *  reference price. Absent for the synthetic WBNB base entry. */
   spotPriceX96?: string;
+  /** Pool fee tier in hundredths-of-a-bps (Uniswap V3 = 3000 / Pancake V3 =
+   *  2500). Keys the Quoter contract; the wrong one makes the quote revert
+   *  silently. Defaults to 3000 in code when the vault feed doesn't carry it. */
+  feeTier?: number;
 }
 
 export interface SwapFormValues {

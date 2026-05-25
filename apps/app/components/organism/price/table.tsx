@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -26,6 +27,10 @@ import { RefreshCw, ServerOff } from "lucide-react";
 
 // Utils
 import { swrFetcher } from "@/utils/fetcher";
+import {
+  filterBlockedTokenInfo,
+  filterBlockedVaults,
+} from "@/utils/token-blocklist";
 import { VAULT_API_URL, API_BASE_URL, OHLC_API_URL } from "@/types/constants";
 
 interface OHLCCandle {
@@ -65,13 +70,14 @@ async function fetch24hChange(poolAddress: string): Promise<number> {
 }
 
 async function fetchPriceTable(): Promise<PriceTableToken[]> {
-  const [vaults, tokensRes] = await Promise.all([
+  const [rawVaults, tokensRes] = await Promise.all([
     swrFetcher<VaultInfo[]>(`${VAULT_API_URL}/vaults`),
     swrFetcher<{ tokens: TokenInfo[] }>(`${API_BASE_URL}/api/tokens`),
   ]);
+  const vaults = filterBlockedVaults(rawVaults);
 
   const tokenMap = new Map<string, TokenInfo>();
-  for (const t of tokensRes.tokens ?? []) {
+  for (const t of filterBlockedTokenInfo(tokensRes.tokens ?? [])) {
     if (t.tokenSymbol) tokenMap.set(t.tokenSymbol.toLowerCase(), t);
   }
 
@@ -113,6 +119,7 @@ async function fetchPriceTable(): Promise<PriceTableToken[]> {
 export default function PriceTable() {
   const t = useTranslations("priceTable");
   const te = useTranslations("error");
+  const router = useRouter();
   const { bnbPrice } = useBnbPrice();
 
   const { data, error, isLoading, isValidating, mutate } = useSWR(
@@ -224,7 +231,14 @@ export default function PriceTable() {
           icon={<ServerOff className="size-5 text-muted-foreground" />}
         />
       ) : (
-        <Table columns={columns} data={tokens} />
+        <Table
+          columns={columns}
+          data={tokens}
+          onRowClick={(row) => {
+            const sym = (row.symbol ?? row.token)?.toLowerCase();
+            if (sym) router.push(`/trade/${sym}`);
+          }}
+        />
       )}
     </Card>
   );

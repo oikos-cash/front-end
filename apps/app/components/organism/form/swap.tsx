@@ -44,7 +44,6 @@ import {
   WBNB_ADDRESS,
   QUOTER_V2_ADDRESS,
   EXCHANGE_HELPER_ADDRESS,
-  DEFAULT_POOL_FEE,
 } from "@/types/constants";
 
 // Icons
@@ -425,33 +424,63 @@ export default function SwapForm({
       return;
     }
 
+    // Resolve the WBNB-address fallback for BOTH native BNB and WBNB.
+    // The previous code only fell through for the literal "WBNB" symbol,
+    // so a native-BNB leg ended up with `tokenIn === ""` and the effect
+    // short-circuited — no quote ever fired for BNB→token swaps.
+    const wrappedFallback = (symbol: string): string =>
+      symbol === "WBNB" || symbol === "BNB" ? WBNB_ADDRESS : "";
     const tokenIn =
-      fromTokenData.token0 ||
-      (fromTokenData.symbol === "WBNB" ? WBNB_ADDRESS : "");
+      fromTokenData.token0 || wrappedFallback(fromTokenData.symbol);
     const tokenOut =
-      toTokenData.token0 ||
-      (toTokenData.symbol === "WBNB" ? WBNB_ADDRESS : "");
+      toTokenData.token0 || wrappedFallback(toTokenData.symbol);
 
     if (!tokenIn || !tokenOut) {
       setQuote(null);
       return;
     }
 
+    // Fee-tier resolution: prefer whichever the vault side carries (the
+    // pool-API enrichment in utils/swap.ts populates this when the
+    // backend exposes /api/pools). Fall back to a 3000-then-2500 race so
+    // Pancake pools (fee=2500) don't silently revert against the
+    // hardcoded Uniswap 3000 we used to send.
+    const knownFeeTier =
+      fromTokenData.feeTier ?? toTokenData.feeTier ?? undefined;
+    const feeTiersToTry: number[] = knownFeeTier
+      ? [knownFeeTier]
+      : [3000, 2500];
+
     let cancelled = false;
 
-    simulateTrade({
-      quoterAddress: QUOTER_V2_ADDRESS,
-      tokenIn: tokenIn as `0x${string}`,
-      tokenOut: tokenOut as `0x${string}`,
-      amountIn: parseEther(fromAmount.toString()),
-      fee: DEFAULT_POOL_FEE,
-    })
-      .then((result) => {
-        if (!cancelled) setQuote(result);
-      })
-      .catch(() => {
-        if (!cancelled) setQuote(null);
-      });
+    (async () => {
+      let lastErr: unknown = null;
+      for (const fee of feeTiersToTry) {
+        try {
+          const result = await simulateTrade({
+            quoterAddress: QUOTER_V2_ADDRESS,
+            tokenIn: tokenIn as `0x${string}`,
+            tokenOut: tokenOut as `0x${string}`,
+            amountIn: parseEther(fromAmount.toString()),
+            fee,
+          });
+          if (cancelled) return;
+          setQuote(result);
+          return;
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      if (cancelled) return;
+      if (lastErr) {
+        // Surface the failure so devtools shows *why* the To-leg is
+        // stuck at 0.00. Common cause: no pool exists at any of the
+        // tiers we tried (typically a freshly deployed vault whose
+        // initial liquidity hasn't been seeded yet).
+        console.warn("[SwapForm] Quoter reverted for all tiers:", lastErr);
+      }
+      setQuote(null);
+    })();
 
     return () => {
       cancelled = true;

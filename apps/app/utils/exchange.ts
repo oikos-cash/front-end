@@ -1,5 +1,9 @@
 import { fetchVaultServer, fetchServer } from "@/utils/fetcher";
 import { SSR_REVALIDATE_DEFAULT } from "@/types/constants";
+import {
+  filterBlockedTokenInfo,
+  filterBlockedVaults,
+} from "@/utils/token-blocklist";
 import type { VaultInfo, TokenInfo, PriceTableToken } from "@/types/interfaces";
 
 /**
@@ -11,7 +15,7 @@ export async function fetchDefaultVault(): Promise<VaultInfo | null> {
     const vaults = await fetchVaultServer<VaultInfo[]>("/vaults", {
       revalidate: SSR_REVALIDATE_DEFAULT,
     });
-    return vaults[0] ?? null;
+    return filterBlockedVaults(vaults)[0] ?? null;
   } catch {
     return null;
   }
@@ -40,7 +44,7 @@ export async function fetchVaultByAddress(
  */
 export async function fetchPriceTableTokens(): Promise<PriceTableToken[]> {
   try {
-    const [vaults, tokensRes] = await Promise.all([
+    const [rawVaults, tokensRes] = await Promise.all([
       fetchVaultServer<VaultInfo[]>("/vaults", {
         revalidate: SSR_REVALIDATE_DEFAULT,
       }),
@@ -48,9 +52,10 @@ export async function fetchPriceTableTokens(): Promise<PriceTableToken[]> {
         revalidate: SSR_REVALIDATE_DEFAULT,
       }),
     ]);
+    const vaults = filterBlockedVaults(rawVaults);
 
     const tokenMap = new Map<string, TokenInfo>();
-    for (const t of tokensRes.tokens ?? []) {
+    for (const t of filterBlockedTokenInfo(tokensRes.tokens ?? [])) {
       if (t.tokenSymbol) tokenMap.set(t.tokenSymbol.toLowerCase(), t);
     }
 
