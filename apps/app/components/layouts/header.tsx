@@ -15,6 +15,7 @@ import WrapUnwrapModal from "@/components/organism/wrap-unwrap-modal";
 
 // Hooks
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
 import { useBnbPrice } from "@/hooks/use-bnb-price";
 
 // Icons
@@ -30,16 +31,49 @@ export default function Header() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const t = useTranslations("header");
+  const pathname = usePathname();
   const { bnbPrice } = useBnbPrice();
+
+  // Token-scoped routes (Trade / Borrow / Liquidity / Stake / Presale /
+  // Dividends / Studio) carry their token slug as the trailing path
+  // segment. When the user navigates from one of these via the nav
+  // dropdown, swap-in the current slug so e.g. on /trade/dws the
+  // "Liquidity" entry routes to /liquidity/dws instead of the hardcoded
+  // /liquidity/oks default.
+  const TOKEN_SCOPED = [
+    "trade",
+    "borrow",
+    "liquidity",
+    "stake",
+    "presale",
+    "dividends",
+    "studio",
+  ];
+  const currentTokenSlug = (() => {
+    // `pathname` is locale-prefixed (e.g. /en/trade/dws). Strip the locale
+    // segment, then look for one of the token-scoped routes.
+    const parts = pathname.split("/").filter(Boolean);
+    // parts[0] = locale, parts[1] = route, parts[2] = token (when scoped).
+    if (parts.length >= 3 && TOKEN_SCOPED.includes(parts[1])) return parts[2];
+    return "oks";
+  })();
 
   // Stake / Dividends / Studio are hidden from the nav for now — the routes
   // still exist if visited directly. Re-add by uncommenting once they're
   // ready to ship.
   const navItems = [
     { value: "exchange", label: t("nav.exchange"), href: "/" },
-    { value: "liquidity", label: t("nav.liquidity"), href: "/liquidity/oks" },
-    { value: "borrow", label: t("nav.borrow"), href: "/borrow/oks" },
-    // { value: "stake", label: t("nav.stake"), href: "/stake/oks" },
+    {
+      value: "liquidity",
+      label: t("nav.liquidity"),
+      href: `/liquidity/${currentTokenSlug}`,
+    },
+    {
+      value: "borrow",
+      label: t("nav.borrow"),
+      href: `/borrow/${currentTokenSlug}`,
+    },
+    // { value: "stake", label: t("nav.stake"), href: `/stake/${currentTokenSlug}` },
     { value: "markets", label: t("nav.markets"), href: "/markets" },
     // { value: "dividends", label: t("nav.dividends"), href: "/dividends" },
     { value: "launchpad", label: t("nav.launchpad"), href: "/launchpad" },
