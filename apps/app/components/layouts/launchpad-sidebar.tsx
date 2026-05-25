@@ -32,10 +32,11 @@ import { FACTORY_ABI, FACTORY_ADDRESS } from "@/lib/oikos-addresses";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
- * Cost the Factory charges to deploy a new vault, denominated in native BNB.
- * Mirrors the legacy frontend (`value: parseEther(1)`).
+ * Native BNB attached to the deployVault transaction. The Factory's
+ * deployVault entrypoint is `payable`; this value covers whatever fee /
+ * funding the factory requires for a fresh deploy.
  */
-const DEPLOYMENT_FEE_BNB = parseEther("1");
+const DEPLOYMENT_FEE_BNB = parseEther("0.0001");
 
 /** Uniswap V3 = 0.30% (3000) / PancakeSwap V3 = 0.25% (2500). */
 function feeTierFor(protocol: string): number {
@@ -156,8 +157,7 @@ export default function LaunchpadSidebar({
           vaultAddress: zeroAddress,
         },
       ],
-      // value: DEPLOYMENT_FEE_BNB intentionally omitted while we test
-      // without paying the deployment fee.
+      value: DEPLOYMENT_FEE_BNB,
       gas: 30_000_000n,
     });
   }
