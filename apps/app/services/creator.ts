@@ -83,9 +83,10 @@ function buildStatsResponse(
         point?.earningsFormatted ?? safeFormatEther(currentEarnings);
       return {
         vaultAddress: t.vaultAddress!,
-        tokenAddress: t.tokenAddress ?? "",
+        tokenAddress: t.contractAddress ?? "",
         tokenSymbol: t.tokenSymbol,
-        tokenDecimals: t.tokenDecimals,
+        // CreatorVaultStats.tokenDecimals is legacy-typed as string.
+        tokenDecimals: String(t.tokenDecimals ?? 18),
         currentEarnings,
         currentEarningsFormatted,
       };
