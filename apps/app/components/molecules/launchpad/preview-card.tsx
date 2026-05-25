@@ -24,13 +24,17 @@ export default function LaunchpadPreviewCard({
       label: "Supply",
       value: d.supply > 0 ? formatStakeNumber(d.supply, 0) : "—",
     },
-    {
-      label: "Presale Price",
-      value:
-        d.presalePriceBnb > 0
-          ? `${formatStakeNumber(d.presalePriceBnb, 7, true)} BNB`
-          : "—",
-    },
+    ...(d.enablePresale
+      ? [
+          {
+            label: "Presale Price",
+            value:
+              d.presalePriceBnb > 0
+                ? `${formatStakeNumber(d.presalePriceBnb, 7, true)} BNB`
+                : "—",
+          },
+        ]
+      : []),
     {
       label: "Market Cap",
       value:
