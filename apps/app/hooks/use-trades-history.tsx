@@ -53,7 +53,15 @@ export function useTradesHistory(
       // amounts come as wei (18 decimals) — convert to human-readable
       const amount0 = raw0 / 1e18;
       const amount1 = raw1 / 1e18;
-      const isBuy = amount1 < 0; // Negative amount1 = token out = buy
+      // Prefer the indexer's decoded side — it already accounts for token0/
+      // token1 ordering per pool. The amount1-sign heuristic is only correct
+      // when the project token is token0 and WBNB is token1; pools where
+      // WBNB sorts first (smaller address) would flip it. When tradeInfo is
+      // absent fall back to: user buys the project token when WBNB flows
+      // INTO the pool (amount1 > 0 with WBNB = token1).
+      const isBuy = event.tradeInfo?.type
+        ? event.tradeInfo.type === "buy"
+        : amount1 > 0;
       const amount = Math.abs(amount0);
       const bnbAmount = Math.abs(amount1);
       const price = amount > 0 ? bnbAmount / amount : 0;
@@ -107,7 +115,10 @@ export function useTradesHistory(
       const raw1 = parseFloat(event.args.amount1 ?? "0");
       const amount0 = raw0 / 1e18;
       const amount1 = raw1 / 1e18;
-      const isBuy = amount1 < 0;
+      // See onEvent above for why we prefer tradeInfo.type over the sign.
+      const isBuy = event.tradeInfo?.type
+        ? event.tradeInfo.type === "buy"
+        : amount1 > 0;
       const amount = Math.abs(amount0);
       const bnbAmount = Math.abs(amount1);
       const price = amount > 0 ? bnbAmount / amount : 0;
