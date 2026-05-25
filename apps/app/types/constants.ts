@@ -465,4 +465,5 @@ export const BLOCKED_TOKENS: ReadonlyArray<BlockedTokenEntry> = [
   // Example:
   // { symbol: "SCAM", reason: "Reported phishing token" },
   // { address: "0x0000000000000000000000000000000000000000", reason: "Test deploy" },
+  { symbol: "DFS", reason: "test deploy" },
 ] as const;
