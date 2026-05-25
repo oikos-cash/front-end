@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -118,6 +119,7 @@ async function fetchPriceTable(): Promise<PriceTableToken[]> {
 export default function PriceTable() {
   const t = useTranslations("priceTable");
   const te = useTranslations("error");
+  const router = useRouter();
   const { bnbPrice } = useBnbPrice();
 
   const { data, error, isLoading, isValidating, mutate } = useSWR(
@@ -229,7 +231,14 @@ export default function PriceTable() {
           icon={<ServerOff className="size-5 text-muted-foreground" />}
         />
       ) : (
-        <Table columns={columns} data={tokens} />
+        <Table
+          columns={columns}
+          data={tokens}
+          onRowClick={(row) => {
+            const sym = (row.symbol ?? row.token)?.toLowerCase();
+            if (sym) router.push(`/trade/${sym}`);
+          }}
+        />
       )}
     </Card>
   );
