@@ -37,10 +37,6 @@ export default function MarketsCatalog({
     setFilter,
     setSort,
     processed,
-    presaleTokens,
-    graduatedTokens,
-    liveTokens,
-    showSections,
   } = useMarketsCatalog(initialTokens);
 
   const sortOptions = [
@@ -108,36 +104,14 @@ export default function MarketsCatalog({
       </div>
 
       {processed.length > 0 ? (
-        showSections ? (
-          <div className="flex flex-col gap-6">
-            {liveTokens.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold">{t("sectionLive")}</h2>
-                {renderGrid(liveTokens)}
-              </div>
-            )}
-
-            {presaleTokens.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold">
-                  {t("sectionPresales")}
-                </h2>
-                {renderGrid(presaleTokens)}
-              </div>
-            )}
-
-            {graduatedTokens.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold">
-                  {t("sectionGraduated")}
-                </h2>
-                {renderGrid(graduatedTokens)}
-              </div>
-            )}
-          </div>
-        ) : (
-          renderGrid(processed)
-        )
+        // Section split previously rendered three sub-grids (Live /
+        // Presales / Graduated) under the default "All" filter. On a
+        // small catalogue (one card per category) that read as several
+        // stacked rows instead of a single flat grid. The filter
+        // buttons above already let users drill into a category, so
+        // collapse to one flat grid by default — sections are pure
+        // visual noise until the catalogue is much bigger.
+        renderGrid(processed)
       ) : (
         <Empty
           className="py-16"
