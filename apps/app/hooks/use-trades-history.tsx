@@ -13,6 +13,9 @@ import { useBnbPrice } from "@/hooks/use-bnb-price";
 import { useWallet } from "@/stores/wallet";
 import { getWebSocketService } from "@/services/websocket";
 
+// Services
+import { fetchPools } from "@/services/pool-api";
+
 // Types
 import { Trade, WSBlockchainEvent } from "@/types/interfaces";
 
@@ -70,9 +73,13 @@ export function useTradesHistory(
       const price = amount > 0 ? bnbAmount / amount : 0;
 
       const trade: Trade = {
-        id: `${event.transactionHash}-${event.blockNumber}`,
+        id: event.id ?? `${event.transactionHash}-${event.logIndex ?? event.blockNumber}`,
         type: isBuy ? "buy" : "sell",
-        token,
+        // Prefer the event's tokenSymbol so global-view rows show the
+        // right ticker per pool; fall back to the hook's `token` prop.
+        token: event.tokenSymbol && event.tokenSymbol !== "UNKNOWN"
+          ? event.tokenSymbol
+          : token,
         amount,
         price,
         bnbAmount,
@@ -96,17 +103,73 @@ export function useTradesHistory(
         ),
       };
 
-      setTrades((prev) => [trade, ...prev].slice(0, TRADES_MAX_TRADES));
+      setTrades((prev) => {
+        // De-dup against the historical seed: an event that arrives via
+        // push immediately after the initial getGlobalTrades() reply
+        // would otherwise show up twice.
+        if (prev.some((p) => p.id === trade.id)) return prev;
+        return [trade, ...prev].slice(0, TRADES_MAX_TRADES);
+      });
     },
     [token, bnbPrice],
   );
 
+  // Always enable the WS hook so the GLOBAL `onEvent` callback registers
+  // regardless of whether a specific pool is being viewed. When a pool
+  // is supplied the hook also emits the per-pool `subscribe`; when no
+  // pool is supplied we fan out the subscription to every known pool
+  // below so the global trade feed receives swaps from all markets.
   const { isConnected } = useWebSocket({
     poolAddress,
-    channels: ["event"],
+    channels: poolAddress ? ["event"] : [],
     onEvent,
-    enabled: !!poolAddress,
+    enabled: true,
   });
+
+  // Global-view subscription fan-out. The backend only pushes events for
+  // pools the client has explicitly registered, so for "all trades"
+  // (poolAddress undefined) we fetch the pool catalogue once and emit a
+  // subscribe for each address. Refs counts inside the WS service mean
+  // the per-pool subscriptions cleanly coexist with any single-pool
+  // subscribers (chart panels, swap form, etc.) — they share refs.
+  useEffect(() => {
+    if (poolAddress) return; // per-pool mode already subscribed by useWebSocket
+    let cancelled = false;
+    let subscribed: string[] = [];
+    const ws = getWebSocketService();
+
+    function subscribeAll(addresses: string[]) {
+      if (cancelled) return;
+      subscribed = addresses;
+      for (const a of addresses) ws.subscribe("event", a);
+    }
+
+    fetchPools()
+      .then((pools) => {
+        if (cancelled) return;
+        const addresses = pools
+          .filter((p) => p.enabled !== false)
+          .map((p) => p.address);
+        if (addresses.length === 0) return;
+        if (ws.isConnected()) {
+          subscribeAll(addresses);
+        } else {
+          ws.connect()
+            .then(() => subscribeAll(addresses))
+            .catch((err) =>
+              console.error("[useTradesHistory] WS connect failed:", err),
+            );
+        }
+      })
+      .catch((err) =>
+        console.error("[useTradesHistory] fetchPools failed:", err),
+      );
+
+    return () => {
+      cancelled = true;
+      for (const a of subscribed) ws.unsubscribe("event", a);
+    };
+  }, [poolAddress]);
 
   // Load historical trades via WS getGlobalTrades
   useEffect(() => {
