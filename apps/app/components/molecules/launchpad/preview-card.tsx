@@ -54,7 +54,7 @@ export default function LaunchpadPreviewCard({
   // workflow state, not a generic "preview" label.
   const status: { label: string; tone: "draft" | "config" | "ready" } =
     d.progressPercent >= 100
-      ? { label: "Ready to deploy", tone: "ready" }
+      ? { label: "Ready", tone: "ready" }
       : d.progressPercent > 0
         ? { label: "Configuring", tone: "config" }
         : { label: "Draft", tone: "draft" };
