@@ -1,14 +1,13 @@
 "use client";
 
 // Components
-import Card from "@/components/atoms/card";
-import Badge from "@/components/atoms/badge";
+import LaunchpadSection from "@/components/molecules/launchpad/section";
 import FieldRenderer from "@/components/molecules/field-renderer";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLaunchpadStore } from "@/stores/launchpad";
 
@@ -41,12 +40,6 @@ export default function LaunchpadPoolForm() {
 
   const values = form.watch();
   const hydrated = useRef(false);
-
-  const fdv = useMemo(() => {
-    const price = parseFloat(values.floorPrice) || 0;
-    const supply = parseFloat(values.totalSupply) || 0;
-    return price * supply;
-  }, [values.floorPrice, values.totalSupply]);
 
   useEffect(() => {
     if (hydrated.current) return;
@@ -88,24 +81,15 @@ export default function LaunchpadPoolForm() {
   ]);
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       {cards.map((card, i) => (
-        <Card
+        <LaunchpadSection
           key={i}
+          index={i + 1}
           title={card.title}
           description={card.description}
-          action={
-            card.required && (
-              <Badge className="bg-blue-500/10 text-blue-500">
-                {t("required")}
-              </Badge>
-            )
-          }
-          footer={
-            card.help && (
-              <span className="text-xs text-muted-foreground">{card.help}</span>
-            )
-          }
+          help={card.help}
+          required={card.required}
         >
           <FieldRenderer
             control={form.control}
@@ -122,21 +106,8 @@ export default function LaunchpadPoolForm() {
                 }) as FieldItem,
             )}
           />
-        </Card>
+        </LaunchpadSection>
       ))}
-
-      <Card title={t("summaryTitle")} description={t("summaryDesc")}>
-        <div className="flex flex-col gap-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">{t("floorPrice")}</span>
-            <span className="font-medium">{values.floorPrice || "0"} BNB</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">{t("calculatedFdv")}</span>
-            <span className="font-medium">{fdv.toLocaleString()} BNB</span>
-          </div>
-        </div>
-      </Card>
-    </>
+    </div>
   );
 }

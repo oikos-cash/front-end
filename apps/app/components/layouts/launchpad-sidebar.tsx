@@ -29,7 +29,7 @@ import {
 import { FACTORY_ABI, FACTORY_ADDRESS } from "@/lib/oikos-addresses";
 
 // Icons
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
  * Cost the Factory charges to deploy a new vault, denominated in native BNB.
@@ -254,36 +254,52 @@ export default function LaunchpadSidebar({
     <div className="flex flex-col gap-4 py-4">
       <nav
         aria-label="Launchpad steps"
-        className="-mx-1 flex gap-1 overflow-x-auto border-b border-border px-1"
+        className="-mx-1 flex gap-0.5 overflow-x-auto border-b border-border px-1"
       >
         {LAUNCHPAD_STEPS.map((step, index) => {
           const isActive = pathname.endsWith(step.path);
           const isCompleted = completedSteps.includes(index);
           const isPresaleStep = index === 2;
+          const isSkipped = isPresaleStep && !enablePresale;
           return (
             <Link
               key={step.path}
               href={step.path}
-              className={`group relative flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-2 text-sm transition-colors ${
+              aria-current={isActive ? "page" : undefined}
+              className={`group relative flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-2.5 text-sm transition-colors ${
                 isActive
                   ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <span>{t(LAUNCHPAD_STEP_LABELS[index])}</span>
-              {isCompleted && (
-                <span className="size-1.5 rounded-full bg-primary" />
-              )}
-              {isPresaleStep && !enablePresale && (
-                <span className="text-xs text-muted-foreground">
+              {/* Numbered chip / completion checkmark — sits left of label. */}
+              <span
+                aria-hidden
+                className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full font-mono text-2xs font-semibold tabular-nums tracking-tight transition-colors ${
+                  isCompleted
+                    ? "bg-primary text-primary-foreground ring-1 ring-inset ring-primary/40"
+                    : isActive
+                      ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/35"
+                      : "bg-muted/40 text-muted-foreground/80 ring-1 ring-inset ring-border/60"
+                }`}
+              >
+                {isCompleted ? (
+                  <Check className="size-3" strokeWidth={3} />
+                ) : (
+                  index + 1
+                )}
+              </span>
+              <span className="font-medium">{t(LAUNCHPAD_STEP_LABELS[index])}</span>
+              {isSkipped && (
+                <span className="eyebrow rounded-sm bg-muted/40 px-1.5 py-0.5 text-muted-foreground/70">
                   {t("skipped")}
                 </span>
               )}
               {/* Active-tab underline drawn over the strip's bottom border. */}
               <span
                 aria-hidden
-                className={`pointer-events-none absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-colors ${
-                  isActive ? "bg-primary" : "bg-transparent"
+                className={`pointer-events-none absolute inset-x-2 -bottom-px h-0.5 rounded-full transition-colors ${
+                  isActive ? "bg-primary shadow-[0_0_10px_-1px_rgba(245,200,67,0.7)]" : "bg-transparent"
                 }`}
               />
             </Link>
