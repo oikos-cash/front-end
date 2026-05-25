@@ -35,9 +35,18 @@ export const WAD = 10n ** 18n;
 export const MIN_FLOOR_PRICE_BNB = 0.00000000001; // 1e-11
 
 /** The IDO/launch price the factory consumes is the user-entered floor
- *  price marked up by 25 %, in BigInt-safe form. */
+ *  price marked up by 25 %, in BigInt-safe form.
+ *
+ *  The trailing `+ 1n` is a deliberate 1-wei dust: the contract's tier
+ *  boundaries use strict `>` (`SupplyRules.sol:33-40`), so when integer
+ *  math lands the markup exactly on a threshold (e.g. floor 0.000008 BNB
+ *  → markup 1e13 = t0) the user would slip into the harsher tier. The
+ *  extra wei keeps us *strictly above* the boundary in the user's
+ *  favour. Economically a no-op (1 wei is dust); UX-wise it removes a
+ *  whole class of off-by-one surprises right at every tier edge. */
 export function idoPriceFromFloorWei(floorPriceWei: bigint): bigint {
-  return (floorPriceWei * 125n) / 100n;
+  if (floorPriceWei <= 0n) return 0n;
+  return (floorPriceWei * 125n) / 100n + 1n;
 }
 
 /**

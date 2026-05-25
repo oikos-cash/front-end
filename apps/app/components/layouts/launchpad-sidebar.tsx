@@ -29,7 +29,10 @@ import {
 import { FACTORY_ABI, FACTORY_ADDRESS } from "@/lib/oikos-addresses";
 
 // Utils
-import { meetsMinTotalSupply } from "@/utils/launchpad-supply";
+import {
+  idoPriceFromFloorWei,
+  meetsMinTotalSupply,
+} from "@/utils/launchpad-supply";
 
 // Icons
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
@@ -134,10 +137,11 @@ export default function LaunchpadSidebar({
     const useUniswap = protocol === "uniswap";
     const supplyWei = safeParseEther(totalSupply);
     const floorPriceWei = safeParseEther(floorPrice);
-    // Legacy launchpad: the on-chain IDOPrice is the user's floor price
-    // marked up 25% (the "sale price"). Keep BigInt arithmetic to avoid
-    // float drift on small values.
-    const idoPriceWei = (floorPriceWei * 125n) / 100n;
+    // Single source of truth for the floor → IDOPrice mapping (legacy
+    // 1.25× markup + 1-wei strict-`>` dust). Lives in
+    // utils/launchpad-supply so the deploy and the supply-ladder hint
+    // are guaranteed to agree.
+    const idoPriceWei = idoPriceFromFloorWei(floorPriceWei);
     // Hardcap (in BNB wei) = floorPrice × totalSupply × 10% =
     //   (floorPriceWei × supplyWei) / 1e18 / 10 = / 1e19.
     // Soft cap is `softCapPercent` of the hardcap.
