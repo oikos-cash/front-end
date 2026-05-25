@@ -78,7 +78,35 @@ export function useLaunchpadPreview() {
     floorPrice: `${store.floorPrice} BNB`,
     reserveAsset: store.reserveAsset.toUpperCase(),
     fdv: `${fdv.toLocaleString()} BNB`,
-    protocol: store.protocol,
+    protocol: (() => {
+      // Match the live Summary card: small protocol logo + capitalised name.
+      const logo =
+        store.protocol === "uniswap"
+          ? "/uniswap.png"
+          : store.protocol === "pancakeswap"
+            ? "/pancake.png"
+            : null;
+      const label =
+        store.protocol === "pancakeswap"
+          ? "PancakeSwap"
+          : store.protocol
+            ? store.protocol.charAt(0).toUpperCase() + store.protocol.slice(1)
+            : "—";
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          {logo && (
+            <Image
+              src={logo}
+              alt={label}
+              width={16}
+              height={16}
+              className="size-4 shrink-0 rounded-full object-contain"
+            />
+          )}
+          <span>{label}</span>
+        </span>
+      );
+    })(),
     presalePrice: `${store.floorPrice} BNB`,
     hardCap: `${hardCap.toLocaleString()} BNB`,
     softCap: `${softCap.toLocaleString()} BNB (${store.softCapPercent}%)`,
