@@ -46,6 +46,7 @@
     "noRecentSwaps": "No recent swaps",
     "time": "Time",
     "balance": "Balance",
+    "max": "Max",
     "connectTitle": "Connect Wallet",
     "connectDescription": "Connect your wallet to start swapping tokens",
     "connectButton": "Connect Wallet",
