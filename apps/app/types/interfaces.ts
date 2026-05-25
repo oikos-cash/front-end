@@ -121,6 +121,10 @@ export interface TableProps<TData, TValue> {
   data: TData[];
   className?: string;
   pageSize?: number;
+  /** Optional per-row click handler. When set, rows become button-like:
+   *  cursor pointer + keyboard-activatable (Enter / Space). Useful for
+   *  navigating to a detail page from a row in the sidebar price table. */
+  onRowClick?: (row: TData) => void;
 }
 
 export interface AvatarProps {
