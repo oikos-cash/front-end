@@ -249,82 +249,86 @@ export default function LaunchpadSidebar({
   const canDeploy = mounted && isReadyToDeploy();
 
   return (
-    // Stack the step nav on top of the form on narrow viewports — the page
-    // already sits between the global left + right sidebars, so a fixed 224px
-    // inner sidebar squeezed the form to nothing below xl. Switch to the row
-    // layout only at xl+ where there's enough horizontal room.
-    <div className="flex flex-col gap-4 py-4 xl:flex-row xl:gap-6">
-      <nav className="flex w-full shrink-0 flex-col gap-4 xl:sticky xl:top-18 xl:w-56 xl:self-start">
-        {/* Compact horizontal pill row on mobile / tablet; vertical list on
-          * desktop. Overflow scrolls horizontally so step labels are reachable
-          * without wrapping. */}
-        <ul className="-mx-1 flex gap-1 overflow-x-auto px-1 xl:mx-0 xl:flex-col xl:gap-0 xl:overflow-visible xl:px-0">
-          {LAUNCHPAD_STEPS.map((step, index) => {
-            const isActive = pathname.endsWith(step.path);
-            const isCompleted = completedSteps.includes(index);
-            const isPresaleStep = index === 2;
-            return (
-              <li key={step.path} className="shrink-0">
-                <Link
-                  href={step.path}
-                  className={`group flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors ${
-                    isActive
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <span>{t(LAUNCHPAD_STEP_LABELS[index])}</span>
-                  {isCompleted && (
-                    <span className="size-1.5 rounded-full bg-primary" />
-                  )}
-                  {isPresaleStep && !enablePresale && (
-                    <span className="text-xs text-muted-foreground">
-                      {t("skipped")}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+    // Wizard nav is rendered as underline tabs above the form. The form
+    // column splits off the preview panel at 2xl+; below that they stack.
+    <div className="flex flex-col gap-4 py-4">
+      <nav
+        aria-label="Launchpad steps"
+        className="-mx-1 flex gap-1 overflow-x-auto border-b border-border px-1"
+      >
+        {LAUNCHPAD_STEPS.map((step, index) => {
+          const isActive = pathname.endsWith(step.path);
+          const isCompleted = completedSteps.includes(index);
+          const isPresaleStep = index === 2;
+          return (
+            <Link
+              key={step.path}
+              href={step.path}
+              className={`group relative flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-2 text-sm transition-colors ${
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <span>{t(LAUNCHPAD_STEP_LABELS[index])}</span>
+              {isCompleted && (
+                <span className="size-1.5 rounded-full bg-primary" />
+              )}
+              {isPresaleStep && !enablePresale && (
+                <span className="text-xs text-muted-foreground">
+                  {t("skipped")}
+                </span>
+              )}
+              {/* Active-tab underline drawn over the strip's bottom border. */}
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute inset-x-0 -bottom-px h-0.5 rounded-full transition-colors ${
+                  isActive ? "bg-primary" : "bg-transparent"
+                }`}
+              />
+            </Link>
+          );
+        })}
+      </nav>
 
-        <div className="flex items-center justify-between border-t border-border pt-4">
-          <Button
-            size="xs"
-            variant="ghost"
-            disabled={!prevStep}
-            onClick={() => prevStep && router.push(prevStep.path)}
-          >
-            <ChevronLeft className="size-4" />
-            {t("back")}
-          </Button>
-          {nextStep ? (
+      {/* Main column splits into form (children) + sticky Preview panel at
+        * 2xl+. Below that breakpoint the preview stacks under the form so
+        * the cramped 3-sidebar global layout (left prices, nav, right
+        * wallet) still has room. */}
+      <div className="flex min-w-0 flex-col gap-4 2xl:flex-row 2xl:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          {children}
+          <div className="flex items-center justify-between border-t border-border pt-4">
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => router.push(nextStep.path)}
+              disabled={!prevStep}
+              onClick={() => prevStep && router.push(prevStep.path)}
             >
-              {t("next")}
-              <ChevronRight className="size-4" />
+              <ChevronLeft className="size-4" />
+              {t("back")}
             </Button>
-          ) : (
-            <Button
-              variant="default"
-              disabled={!canDeploy || isDeploying}
-              isLoading={isDeploying}
-              onClick={onDeployClick}
-            >
-              {t("deployButton")}
-            </Button>
-          )}
+            {nextStep ? (
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => router.push(nextStep.path)}
+              >
+                {t("next")}
+                <ChevronRight className="size-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                disabled={!canDeploy || isDeploying}
+                isLoading={isDeploying}
+                onClick={onDeployClick}
+              >
+                {t("deployButton")}
+              </Button>
+            )}
+          </div>
         </div>
-      </nav>
-      {/* Main column splits into form (children) + sticky Preview panel at
-        * 2xl+. Below that breakpoint the preview stacks under the form so
-        * the cramped 3-sidebar global layout (left prices, this nav, right
-        * wallet) still has room. */}
-      <div className="flex min-w-0 flex-1 flex-col gap-4 2xl:flex-row 2xl:gap-6">
-        <div className="min-w-0 flex-1">{children}</div>
         <LaunchpadPreviewCard className="2xl:sticky 2xl:top-18 2xl:w-72 2xl:self-start" />
       </div>
     </div>
