@@ -1,5 +1,9 @@
 import { fetchServer, fetchVaultServer } from "@/utils/fetcher";
 import { SSR_REVALIDATE_DEFAULT, SSR_REVALIDATE_LONG } from "@/types/constants";
+import {
+  filterBlockedTokenInfo,
+  filterBlockedVaults,
+} from "@/utils/token-blocklist";
 import type {
   MarketToken,
   VaultInfo,
@@ -18,16 +22,17 @@ export async function fetchMarketTokens(): Promise<MarketToken[]> {
   try {
     // Fetch vaults (required) and tokens metadata (optional) separately
     // so that a failing token API doesn't break the entire page
-    const vaults = await fetchVaultServer<VaultInfo[]>("/vaults", {
+    const rawVaults = await fetchVaultServer<VaultInfo[]>("/vaults", {
       revalidate: SSR_REVALIDATE_DEFAULT,
     });
+    const vaults = filterBlockedVaults(rawVaults);
 
     let tokenMap = new Map<string, TokenInfo>();
     try {
       const tokensRes = await fetchServer<{ tokens: TokenInfo[] }>("/api/tokens", {
         revalidate: SSR_REVALIDATE_LONG,
       });
-      for (const t of tokensRes.tokens ?? []) {
+      for (const t of filterBlockedTokenInfo(tokensRes.tokens ?? [])) {
         if (t.tokenSymbol) {
           tokenMap.set(t.tokenSymbol.toLowerCase(), t);
         }

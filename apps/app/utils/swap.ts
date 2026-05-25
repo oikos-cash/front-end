@@ -1,5 +1,9 @@
 import { fetchServer, fetchVaultServer } from "@/utils/fetcher";
 import { SSR_REVALIDATE_DEFAULT, SSR_REVALIDATE_LONG } from "@/types/constants";
+import {
+  filterBlockedTokenInfo,
+  filterBlockedVaults,
+} from "@/utils/token-blocklist";
 import type { VaultInfo, TokenInfo, SwapToken } from "@/types/interfaces";
 
 /**
@@ -8,7 +12,7 @@ import type { VaultInfo, TokenInfo, SwapToken } from "@/types/interfaces";
  */
 export async function fetchSwapTokens(): Promise<SwapToken[]> {
   try {
-    const [vaults, tokensRes] = await Promise.all([
+    const [rawVaults, tokensRes] = await Promise.all([
       fetchVaultServer<VaultInfo[]>("/vaults", {
         revalidate: SSR_REVALIDATE_DEFAULT,
       }),
@@ -16,9 +20,10 @@ export async function fetchSwapTokens(): Promise<SwapToken[]> {
         revalidate: SSR_REVALIDATE_LONG,
       }),
     ]);
+    const vaults = filterBlockedVaults(rawVaults);
 
     const tokenMap = new Map<string, TokenInfo>();
-    for (const t of tokensRes.tokens ?? []) {
+    for (const t of filterBlockedTokenInfo(tokensRes.tokens ?? [])) {
       if (t.tokenSymbol) tokenMap.set(t.tokenSymbol.toLowerCase(), t);
     }
 

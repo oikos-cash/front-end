@@ -26,6 +26,10 @@ import { RefreshCw, ServerOff } from "lucide-react";
 
 // Utils
 import { swrFetcher } from "@/utils/fetcher";
+import {
+  filterBlockedTokenInfo,
+  filterBlockedVaults,
+} from "@/utils/token-blocklist";
 import { VAULT_API_URL, API_BASE_URL, OHLC_API_URL } from "@/types/constants";
 
 interface OHLCCandle {
@@ -65,13 +69,14 @@ async function fetch24hChange(poolAddress: string): Promise<number> {
 }
 
 async function fetchPriceTable(): Promise<PriceTableToken[]> {
-  const [vaults, tokensRes] = await Promise.all([
+  const [rawVaults, tokensRes] = await Promise.all([
     swrFetcher<VaultInfo[]>(`${VAULT_API_URL}/vaults`),
     swrFetcher<{ tokens: TokenInfo[] }>(`${API_BASE_URL}/api/tokens`),
   ]);
+  const vaults = filterBlockedVaults(rawVaults);
 
   const tokenMap = new Map<string, TokenInfo>();
-  for (const t of tokensRes.tokens ?? []) {
+  for (const t of filterBlockedTokenInfo(tokensRes.tokens ?? [])) {
     if (t.tokenSymbol) tokenMap.set(t.tokenSymbol.toLowerCase(), t);
   }
 
