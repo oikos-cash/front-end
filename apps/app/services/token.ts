@@ -12,12 +12,7 @@ function filterBlocked(tokens: TokenApiResponse[]): TokenApiResponse[] {
     (t) =>
       !isTokenBlocked({
         symbol: t.tokenSymbol,
-        addresses: [
-          t.tokenAddress,
-          t.contractAddress,
-          t.vaultAddress,
-          t.poolAddress,
-        ],
+        addresses: [t.contractAddress, t.vaultAddress, t.poolAddress],
       }),
   );
 }
