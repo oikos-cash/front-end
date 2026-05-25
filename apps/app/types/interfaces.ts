@@ -830,6 +830,10 @@ export interface SwapToken {
   /** Raw spotPriceX96 string from the vault API — used as the ExchangeHelper
    *  reference price. Absent for the synthetic WBNB base entry. */
   spotPriceX96?: string;
+  /** Pool fee tier in hundredths-of-a-bps (Uniswap V3 = 3000 / Pancake V3 =
+   *  2500). Keys the Quoter contract; the wrong one makes the quote revert
+   *  silently. Defaults to 3000 in code when the vault feed doesn't carry it. */
+  feeTier?: number;
 }
 
 export interface SwapFormValues {
