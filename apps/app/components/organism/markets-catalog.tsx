@@ -39,6 +39,7 @@ export default function MarketsCatalog({
     processed,
     presaleTokens,
     graduatedTokens,
+    liveTokens,
     showSections,
   } = useMarketsCatalog(initialTokens);
 
@@ -109,6 +110,13 @@ export default function MarketsCatalog({
       {processed.length > 0 ? (
         showSections ? (
           <div className="flex flex-col gap-6">
+            {liveTokens.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold">{t("sectionLive")}</h2>
+                {renderGrid(liveTokens)}
+              </div>
+            )}
+
             {presaleTokens.length > 0 && (
               <div className="flex flex-col gap-3">
                 <h2 className="text-lg font-semibold">
