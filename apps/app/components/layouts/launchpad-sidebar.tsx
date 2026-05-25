@@ -33,6 +33,7 @@ import {
   idoPriceFromFloorWei,
   meetsMinTotalSupply,
 } from "@/utils/launchpad-supply";
+import { extractRevertReason } from "@/utils/wagmi-error";
 
 // Icons
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
@@ -212,11 +213,12 @@ export default function LaunchpadSidebar({
   useEffect(() => {
     if (deployError && stageRef.current !== "error") {
       stageRef.current = "error";
-      const msg =
-        deployError instanceof Error
-          ? deployError.message.split("\n")[0]
-          : String(deployError);
-      toast.error(msg);
+      const reason = extractRevertReason(deployError);
+      // Log the full error too — useful when the on-chain payload
+      // didn't decode (e.g. raw bytes) and the user wants to inspect
+      // the cause chain in DevTools.
+      console.error("[Launchpad] deployVault failed:", deployError);
+      toast.error(reason);
     }
   }, [deployError]);
 
