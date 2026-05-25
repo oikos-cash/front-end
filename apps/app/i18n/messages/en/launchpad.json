@@ -225,7 +225,11 @@
 
     "errors": {
       "required": "This field is required",
-      "mustBePositive": "Must be a positive number"
-    }
+      "mustBePositive": "Must be a positive number",
+      "supplyBelowMin": "Total supply is too low for this floor price"
+    },
+
+    "supplyHint": "Min for this floor price",
+    "supplyApplyMin": "Use minimum"
   }
 }

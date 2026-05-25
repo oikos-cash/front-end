@@ -225,7 +225,11 @@
 
     "errors": {
       "required": "Este campo es obligatorio",
-      "mustBePositive": "Debe ser un numero positivo"
-    }
+      "mustBePositive": "Debe ser un numero positivo",
+      "supplyBelowMin": "El suministro total es demasiado bajo para este precio mínimo"
+    },
+
+    "supplyHint": "Mínimo para este precio",
+    "supplyApplyMin": "Usar mínimo"
   }
 }

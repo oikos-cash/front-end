@@ -28,6 +28,9 @@ import {
 } from "@/types/constants";
 import { FACTORY_ABI, FACTORY_ADDRESS } from "@/lib/oikos-addresses";
 
+// Utils
+import { meetsMinTotalSupply } from "@/utils/launchpad-supply";
+
 // Icons
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -119,6 +122,12 @@ export default function LaunchpadSidebar({
 
   function handleDeploy() {
     if (!isReadyToDeploy()) return;
+    // Belt-and-suspenders: the Pool form already gates on the supply
+    // ladder via zod, but if a stale completedSteps flag from an older
+    // session lets us through, mirror the contract's
+    // `enforceMinTotalSupply` check client-side and bail before we
+    // pop up the wallet.
+    if (!meetsMinTotalSupply(floorPrice, totalSupply)) return;
     // Clear any prior terminal state so the new attempt starts clean.
     if (writeError || receiptError) resetDeployWrite();
 
