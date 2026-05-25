@@ -114,19 +114,15 @@ function GasFeeDialog({
                 onClick={() => setSelected(p.key)}
                 className="flex h-auto flex-col items-center gap-0.5 px-2 py-2"
               >
-                <span className="text-[11px] font-semibold uppercase tracking-[0.06em]">
-                  {p.label}
-                </span>
-                <span className="font-mono text-[10px] tabular-nums opacity-80">
+                <span className="eyebrow-strong">{p.label}</span>
+                <span className="eyebrow eyebrow-mono opacity-80">
                   {p.gwei == null ? "—" : `${p.gwei.toFixed(2)} gwei`}
                 </span>
               </Button>
             ))}
           </div>
           <div className="flex flex-col gap-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
-              Custom (Gwei)
-            </span>
+            <span className="eyebrow-strong">Custom (Gwei)</span>
             <Input
               type="number"
               step="0.01"
@@ -272,9 +268,7 @@ export default function TradePanel() {
               * brand-tinted treatment; unselected uses the card chrome. */}
             {side === "buy" && (
               <div className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
-                  {t("payWith")}
-                </span>
+                <span className="eyebrow-strong">{t("payWith")}</span>
                 <div className="grid grid-cols-2 gap-1.5">
                   {([
                     { id: "bnb", label: "BNB", selected: !useWbnb, onSelect: () => setUseWbnb(false) },
@@ -331,9 +325,7 @@ export default function TradePanel() {
               * so they read as a separate concern from the "amount" block. */}
             <div className="mt-2 flex flex-col gap-4 border-t border-border/40 pt-4">
               <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
-                  {t("maxSlippage")}
-                </span>
+                <span className="eyebrow-strong">{t("maxSlippage")}</span>
                 <ButtonGroup>
                   {SLIPPAGE_OPTIONS.map((opt) => (
                     <Button
@@ -383,10 +375,8 @@ export default function TradePanel() {
                     className="group flex w-full items-center justify-between gap-2 rounded-md border border-border/60 bg-card/40 px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-card/60"
                   >
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
-                        {t("networkFee")}
-                      </span>
-                      <span className="font-mono text-[10px] tabular-nums text-muted-foreground/70">
+                      <span className="eyebrow-strong">{t("networkFee")}</span>
+                      <span className="eyebrow eyebrow-mono normal-case tracking-normal text-muted-foreground/70">
                         {networkFee.bnb > 0 ? (
                           <>
                             {networkFee.bnb.toFixed(6)} BNB ·{" "}
@@ -402,7 +392,7 @@ export default function TradePanel() {
                     <div className="flex items-center gap-1.5">
                       <span
                         className={
-                          "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] " +
+                          "eyebrow inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-semibold " +
                           (isAuto
                             ? "border-border/60 bg-muted/40 text-muted-foreground"
                             : "border-primary/40 bg-primary/15 text-primary")
@@ -432,9 +422,7 @@ export default function TradePanel() {
                 htmlFor="trade-approve-max"
                 className="flex cursor-pointer items-center justify-between gap-2 select-none"
               >
-                <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
-                  {t("approveMax")}
-                </span>
+                <span className="eyebrow-strong">{t("approveMax")}</span>
                 <Checkbox
                   id="trade-approve-max"
                   checked={form.watch("approveMax")}

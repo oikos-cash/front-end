@@ -51,7 +51,7 @@ export default function TxFlowStatus({ state, labels, onDismiss }: Props) {
   return (
     <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
           {labels.title}
         </span>
         {(hasError || actionDone) && onDismiss && (

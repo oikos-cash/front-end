@@ -170,7 +170,7 @@ function CreateTab({
       {quote && (
         <>
           <div className="flex flex-col gap-1 rounded-md border border-border p-3">
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
               Recommended Hedge
             </span>
             <div className="flex items-center justify-between">

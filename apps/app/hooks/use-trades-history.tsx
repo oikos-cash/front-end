@@ -176,7 +176,7 @@ export function useTradesHistory(
           return (
             <Badge
               variant={type === "buy" ? "default" : "destructive"}
-              className="px-1.5 py-0 text-[10px]"
+              className="px-1.5 py-0 text-2xs"
             >
               {type === "buy" ? t("buy") : t("sell")}
             </Badge>

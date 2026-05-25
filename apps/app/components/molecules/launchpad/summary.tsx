@@ -51,21 +51,17 @@ export default function LaunchpadSummary({
       <div className="grid grid-cols-2 gap-x-6 gap-y-4 rounded-lg border border-border/60 bg-card/40 px-4 py-3 sm:grid-cols-3 lg:grid-cols-4">
         {cols.map((c) => (
           <div key={c.label} className="flex flex-col gap-0.5">
-            <span className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground/70">
-              {c.label}
-            </span>
+            <span className="eyebrow">{c.label}</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {formatStakeNumber(c.bnb, 7, true)} BNB
             </span>
-            <span className="font-mono text-[11px] tabular-nums text-primary/90">
+            <span className="font-mono text-mini tabular-nums text-primary/90">
               ${formatStakeNumber(c.usd, 2, true)}
             </span>
           </div>
         ))}
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground/70">
-            Protocol
-          </span>
+          <span className="eyebrow">Protocol</span>
           <span className="flex items-center gap-1.5">
             {d.protocol === "uniswap" || d.protocol === "pancakeswap" ? (
               // eslint-disable-next-line @next/next/no-img-element

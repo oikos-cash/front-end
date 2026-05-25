@@ -57,7 +57,7 @@ export default function LaunchpadPreviewCard({
     >
       <div className="flex items-center gap-2">
         <span className="block size-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(245,200,67,0.6)]" />
-        <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+        <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Preview
         </span>
       </div>
@@ -93,9 +93,7 @@ export default function LaunchpadPreviewCard({
             key={tile.label}
             className="flex flex-col gap-0.5 rounded-md border border-border/40 bg-background/30 px-3 py-2"
           >
-            <span className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground/70">
-              {tile.label}
-            </span>
+            <span className="eyebrow">{tile.label}</span>
             <span className="truncate font-mono text-sm font-semibold tabular-nums text-foreground">
               {tile.value}
             </span>
@@ -104,7 +102,7 @@ export default function LaunchpadPreviewCard({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.08em] text-muted-foreground/80">
+        <div className="eyebrow flex items-center justify-between">
           <span>Progress</span>
           <span className="font-mono tabular-nums text-primary">
             {d.progressPercent}%
@@ -116,7 +114,7 @@ export default function LaunchpadPreviewCard({
             style={{ width: `${d.progressPercent}%` }}
           />
         </div>
-        <span className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground/60">
+        <span className="eyebrow text-muted-foreground/60">
           Step {d.currentStepIndex + 1} of {d.totalSteps}
         </span>
       </div>

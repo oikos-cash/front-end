@@ -73,7 +73,7 @@ export default function LocaleSwitcher() {
         size="sm"
         onClick={toggle}
         aria-label={`Current language: ${locale.toUpperCase()}. Switch to ${next.toUpperCase()}`}
-        className="gap-1.5 px-2 font-mono text-[11px] tracking-[0.1em]"
+        className="gap-1.5 px-2 font-mono text-mini tracking-[0.08em]"
       >
         <FlagGlyph locale={locale} />
         {locale.toUpperCase()}

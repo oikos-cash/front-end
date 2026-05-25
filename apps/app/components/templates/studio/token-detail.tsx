@@ -125,7 +125,7 @@ export default function StudioTokenDetailTemplate() {
                 <div className="flex items-center gap-3">
                   <Badge
                     variant={ACTIVITY_VARIANT[item.type]}
-                    className="px-1.5 py-0 text-[10px]"
+                    className="px-1.5 py-0 text-2xs"
                   >
                     {t(`activity_${item.type}`)}
                   </Badge>

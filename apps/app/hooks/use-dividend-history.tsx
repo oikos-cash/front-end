@@ -46,7 +46,7 @@ export function useDividendHistory(token?: string) {
         return (
           <Badge
             variant={type === "lock" ? "default" : "destructive"}
-            className="px-1.5 py-0 text-[10px]"
+            className="px-1.5 py-0 text-2xs"
           >
             {type === "lock" ? t("historyLock") : t("historyWithdraw")}
           </Badge>

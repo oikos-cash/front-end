@@ -34,7 +34,7 @@ export default function TokenCard({ token }: TokenCardProps) {
           <Avatar name={token.symbol} src={token.iconUrl} size="lg" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{token.name}</p>
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="text-2xs">
               {token.symbol}
             </Badge>
           </div>
@@ -67,10 +67,10 @@ export default function TokenCard({ token }: TokenCardProps) {
         </p>
 
         <div className="flex flex-wrap gap-1.5">
-          <Badge variant={STATUS_VARIANT[token.status]} className="text-[10px]">
+          <Badge variant={STATUS_VARIANT[token.status]} className="text-2xs">
             {statusLabel}
           </Badge>
-          <Badge variant={HEALTH_VARIANT[token.health]} className="text-[10px]">
+          <Badge variant={HEALTH_VARIANT[token.health]} className="text-2xs">
             {healthLabel}
           </Badge>
         </div>

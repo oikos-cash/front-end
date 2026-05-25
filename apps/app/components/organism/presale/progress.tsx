@@ -79,7 +79,7 @@ export default function PresaleProgress({
 
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Status</span>
-            <Badge variant={variant} className="px-1.5 py-0 text-[10px]">
+            <Badge variant={variant} className="px-1.5 py-0 text-2xs">
               {statusLabel}
             </Badge>
           </div>
