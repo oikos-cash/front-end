@@ -28,14 +28,19 @@ import {
 } from "@/types/constants";
 import { FACTORY_ABI, FACTORY_ADDRESS } from "@/lib/oikos-addresses";
 
+// Utils
+import { meetsMinTotalSupply } from "@/utils/launchpad-supply";
+
 // Icons
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
- * Cost the Factory charges to deploy a new vault, denominated in native BNB.
- * Mirrors the legacy frontend (`value: parseEther(1)`).
+ * Native BNB attached to the deployVault transaction when the user
+ * enables the presale leg. Per the factory's test vectors:
+ *   • presale OFF → msg.value = 0
+ *   • presale ON  → msg.value = 0.0001 BNB (1e14 wei)
  */
-const DEPLOYMENT_FEE_BNB = parseEther("1");
+const DEPLOYMENT_FEE_BNB = parseEther("0.0001");
 
 /** Uniswap V3 = 0.30% (3000) / PancakeSwap V3 = 0.25% (2500). */
 function feeTierFor(protocol: string): number {
@@ -117,13 +122,30 @@ export default function LaunchpadSidebar({
 
   function handleDeploy() {
     if (!isReadyToDeploy()) return;
+    // Belt-and-suspenders: the Pool form already gates on the supply
+    // ladder via zod, but if a stale completedSteps flag from an older
+    // session lets us through, mirror the contract's
+    // `enforceMinTotalSupply` check client-side and bail before we
+    // pop up the wallet.
+    if (!meetsMinTotalSupply(floorPrice, totalSupply)) return;
     // Clear any prior terminal state so the new attempt starts clean.
     if (writeError || receiptError) resetDeployWrite();
 
     const useUniswap = protocol === "uniswap";
-    const presaleSeconds = enablePresale ? safeBigInt(presaleDuration) : 0n;
     const supplyWei = safeParseEther(totalSupply);
-    const priceWei = safeParseEther(floorPrice);
+    const floorPriceWei = safeParseEther(floorPrice);
+    // Legacy launchpad: the on-chain IDOPrice is the user's floor price
+    // marked up 25% (the "sale price"). Keep BigInt arithmetic to avoid
+    // float drift on small values.
+    const idoPriceWei = (floorPriceWei * 125n) / 100n;
+    // Hardcap (in BNB wei) = floorPrice × totalSupply × 10% =
+    //   (floorPriceWei × supplyWei) / 1e18 / 10 = / 1e19.
+    // Soft cap is `softCapPercent` of the hardcap.
+    const hardcapWei = (floorPriceWei * supplyWei) / 10n ** 19n;
+    const softCapWei = (hardcapWei * BigInt(softCapPercent)) / 100n;
+    // Deadline is required > 0 even on the no-presale path; the store seeds
+    // a 30-day default so this is always safe.
+    const deadlineSec = safeBigInt(presaleDuration);
 
     writeContract({
       address: FACTORY_ADDRESS,
@@ -131,8 +153,8 @@ export default function LaunchpadSidebar({
       functionName: "deployVault",
       args: [
         {
-          softCap: safeParseEther(softCapPercent),
-          deadline: presaleSeconds,
+          softCap: softCapWei,
+          deadline: deadlineSec,
         },
         {
           name: tokenName,
@@ -140,8 +162,8 @@ export default function LaunchpadSidebar({
           decimals: tokenDecimals,
           initialSupply: supplyWei,
           maxTotalSupply: supplyWei,
-          IDOPrice: priceWei,
-          floorPrice: priceWei,
+          IDOPrice: idoPriceWei,
+          floorPrice: floorPriceWei,
           token1: WBNB_ADDRESS as Address,
           feeTier: feeTierFor(protocol),
           // tokenConfig.presale is a uint8 flag (0 = no presale, 1 = enabled),
@@ -156,8 +178,9 @@ export default function LaunchpadSidebar({
           vaultAddress: zeroAddress,
         },
       ],
-      // value: DEPLOYMENT_FEE_BNB intentionally omitted while we test
-      // without paying the deployment fee.
+      // Factory test vectors: msg.value is zero on the no-presale path and
+      // 0.0001 BNB when the presale leg is enabled.
+      value: enablePresale ? DEPLOYMENT_FEE_BNB : 0n,
       gas: 30_000_000n,
     });
   }
@@ -249,82 +272,102 @@ export default function LaunchpadSidebar({
   const canDeploy = mounted && isReadyToDeploy();
 
   return (
-    // Stack the step nav on top of the form on narrow viewports — the page
-    // already sits between the global left + right sidebars, so a fixed 224px
-    // inner sidebar squeezed the form to nothing below xl. Switch to the row
-    // layout only at xl+ where there's enough horizontal room.
-    <div className="flex flex-col gap-4 py-4 xl:flex-row xl:gap-6">
-      <nav className="flex w-full shrink-0 flex-col gap-4 xl:sticky xl:top-18 xl:w-56 xl:self-start">
-        {/* Compact horizontal pill row on mobile / tablet; vertical list on
-          * desktop. Overflow scrolls horizontally so step labels are reachable
-          * without wrapping. */}
-        <ul className="-mx-1 flex gap-1 overflow-x-auto px-1 xl:mx-0 xl:flex-col xl:gap-0 xl:overflow-visible xl:px-0">
-          {LAUNCHPAD_STEPS.map((step, index) => {
-            const isActive = pathname.endsWith(step.path);
-            const isCompleted = completedSteps.includes(index);
-            const isPresaleStep = index === 2;
-            return (
-              <li key={step.path} className="shrink-0">
-                <Link
-                  href={step.path}
-                  className={`group flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm transition-colors ${
-                    isActive
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <span>{t(LAUNCHPAD_STEP_LABELS[index])}</span>
-                  {isCompleted && (
-                    <span className="size-1.5 rounded-full bg-primary" />
-                  )}
-                  {isPresaleStep && !enablePresale && (
-                    <span className="text-xs text-muted-foreground">
-                      {t("skipped")}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+    // Wizard nav is rendered as underline tabs above the form. The form
+    // column splits off the preview panel at 2xl+; below that they stack.
+    <div className="flex flex-col gap-4 py-4">
+      <nav
+        aria-label="Launchpad steps"
+        className="-mx-1 flex gap-0.5 overflow-x-auto border-b border-border px-1"
+      >
+        {LAUNCHPAD_STEPS.map((step, index) => {
+          const isActive = pathname.endsWith(step.path);
+          const isCompleted = completedSteps.includes(index);
+          const isPresaleStep = index === 2;
+          const isSkipped = isPresaleStep && !enablePresale;
+          return (
+            <Link
+              key={step.path}
+              href={step.path}
+              aria-current={isActive ? "page" : undefined}
+              className={`group relative flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-2.5 text-sm transition-colors ${
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {/* Numbered chip / completion checkmark — sits left of label. */}
+              <span
+                aria-hidden
+                className={`inline-flex size-5 shrink-0 items-center justify-center rounded-full font-mono text-2xs font-semibold tabular-nums tracking-tight transition-colors ${
+                  isCompleted
+                    ? "bg-primary text-primary-foreground ring-1 ring-inset ring-primary/40"
+                    : isActive
+                      ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/35"
+                      : "bg-muted/40 text-muted-foreground/80 ring-1 ring-inset ring-border/60"
+                }`}
+              >
+                {isCompleted ? (
+                  <Check className="size-3" strokeWidth={3} />
+                ) : (
+                  index + 1
+                )}
+              </span>
+              <span className="font-medium">{t(LAUNCHPAD_STEP_LABELS[index])}</span>
+              {isSkipped && (
+                <span className="eyebrow rounded-sm bg-muted/40 px-1.5 py-0.5 text-muted-foreground/70">
+                  {t("skipped")}
+                </span>
+              )}
+              {/* Active-tab underline drawn over the strip's bottom border. */}
+              <span
+                aria-hidden
+                className={`pointer-events-none absolute inset-x-2 -bottom-px h-0.5 rounded-full transition-colors ${
+                  isActive ? "bg-primary shadow-[0_0_10px_-1px_rgba(245,200,67,0.7)]" : "bg-transparent"
+                }`}
+              />
+            </Link>
+          );
+        })}
+      </nav>
 
-        <div className="flex items-center justify-between border-t border-border pt-4">
-          <Button
-            size="xs"
-            variant="ghost"
-            disabled={!prevStep}
-            onClick={() => prevStep && router.push(prevStep.path)}
-          >
-            <ChevronLeft className="size-4" />
-            {t("back")}
-          </Button>
-          {nextStep ? (
+      {/* Main column splits into form (children) + sticky Preview panel at
+        * 2xl+. Below that breakpoint the preview stacks under the form so
+        * the cramped 3-sidebar global layout (left prices, nav, right
+        * wallet) still has room. */}
+      <div className="flex min-w-0 flex-col gap-4 2xl:flex-row 2xl:gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          {children}
+          <div className="flex items-center justify-between border-t border-border pt-4">
             <Button
               size="xs"
               variant="ghost"
-              onClick={() => router.push(nextStep.path)}
+              disabled={!prevStep}
+              onClick={() => prevStep && router.push(prevStep.path)}
             >
-              {t("next")}
-              <ChevronRight className="size-4" />
+              <ChevronLeft className="size-4" />
+              {t("back")}
             </Button>
-          ) : (
-            <Button
-              variant="default"
-              disabled={!canDeploy || isDeploying}
-              isLoading={isDeploying}
-              onClick={onDeployClick}
-            >
-              {t("deployButton")}
-            </Button>
-          )}
+            {nextStep ? (
+              <Button
+                size="xs"
+                variant="ghost"
+                onClick={() => router.push(nextStep.path)}
+              >
+                {t("next")}
+                <ChevronRight className="size-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                disabled={!canDeploy || isDeploying}
+                isLoading={isDeploying}
+                onClick={onDeployClick}
+              >
+                {t("deployButton")}
+              </Button>
+            )}
+          </div>
         </div>
-      </nav>
-      {/* Main column splits into form (children) + sticky Preview panel at
-        * 2xl+. Below that breakpoint the preview stacks under the form so
-        * the cramped 3-sidebar global layout (left prices, this nav, right
-        * wallet) still has room. */}
-      <div className="flex min-w-0 flex-1 flex-col gap-4 2xl:flex-row 2xl:gap-6">
-        <div className="min-w-0 flex-1">{children}</div>
         <LaunchpadPreviewCard className="2xl:sticky 2xl:top-18 2xl:w-72 2xl:self-start" />
       </div>
     </div>

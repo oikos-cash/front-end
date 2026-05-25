@@ -1,5 +1,5 @@
 // Components
-import PageHeader from "@/components/molecules/page-header";
+import LaunchpadStepHeader from "@/components/molecules/launchpad/step-header";
 import LaunchpadTokenForm from "@/components/organism/form/launchpad-token";
 
 // Hooks
@@ -10,13 +10,12 @@ export default function LaunchpadTokenTemplate() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
+      <LaunchpadStepHeader
+        step={1}
+        totalSteps={4}
+        stepLabel={t("stepTokenInfo")}
         title={t("tokenPage.title")}
         description={t("tokenPage.description")}
-        breadcrumbs={[
-          { label: t("title"), href: "/launchpad/token" },
-          { label: t("stepTokenInfo") },
-        ]}
       />
       <LaunchpadTokenForm />
     </div>

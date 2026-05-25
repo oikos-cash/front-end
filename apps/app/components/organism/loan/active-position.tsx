@@ -67,9 +67,7 @@ function CompactAmountField({
       render={({ field }) => (
         <div className="flex flex-col gap-1.5 rounded-md border border-border/60 bg-card/40 px-3 py-2.5 transition-colors focus-within:border-primary/50 focus-within:bg-card/60">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
-              {label}
-            </span>
+            <span className="eyebrow">{label}</span>
             {description}
           </div>
           <div className="flex items-baseline justify-between gap-2">
@@ -81,7 +79,7 @@ function CompactAmountField({
               placeholder={placeholder}
               className="w-full bg-transparent font-mono text-xl font-semibold tabular-nums tracking-tight text-foreground outline-none placeholder:text-muted-foreground/40"
             />
-            <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="eyebrow-strong eyebrow-mono text-muted-foreground">
               {token}
             </span>
           </div>
@@ -125,7 +123,7 @@ function LtvGauge({ ltv }: { ltv: number }) {
           style={{ left: `${((1.5 - min) / (max - min)) * 100}%` }}
         />
       </div>
-      <div className="flex justify-between font-mono text-[9px] uppercase tracking-[0.06em] text-muted-foreground/60">
+      <div className="eyebrow eyebrow-mono flex justify-between text-muted-foreground/60">
         <span>liq</span>
         <span>safe</span>
       </div>
@@ -206,7 +204,7 @@ export default function LoanActivePosition({
             aria-hidden
             className="block size-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(245,200,67,0.6)]"
           />
-          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-foreground">
+          <span className="text-xs font-semibold uppercase tracking-[0.08em] text-foreground">
             {t("positionTitle")}
           </span>
         </span>
@@ -215,7 +213,7 @@ export default function LoanActivePosition({
       action={
         <span
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+            "eyebrow inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-semibold",
             statusTone.bg,
             statusTone.text,
             statusTone.ring,
@@ -229,9 +227,7 @@ export default function LoanActivePosition({
       <div className="flex flex-col gap-5">
         {/* Hero: borrowed amount + collateral + time */}
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/80">
-            {t("positionBorrowed")}
-          </span>
+          <span className="eyebrow-strong">{t("positionBorrowed")}</span>
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-3xl font-semibold tabular-nums tracking-tight text-foreground">
               {formatStakeNumber(loanData.borrowedAmount)}
@@ -244,21 +240,17 @@ export default function LoanActivePosition({
 
         <div className="grid grid-cols-3 gap-3 border-t border-border/40 pt-4">
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
-              {t("positionCollateral")}
-            </span>
+            <span className="eyebrow">{t("positionCollateral")}</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {formatStakeNumber(loanData.collateralAmount)}
             </span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+            <span className="eyebrow text-muted-foreground/60">
               {loanData.token}
             </span>
           </div>
 
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
-              {t("positionLtv")}
-            </span>
+            <span className="eyebrow">{t("positionLtv")}</span>
             <span
               className={cn(
                 "font-mono text-sm font-semibold tabular-nums",
@@ -271,9 +263,7 @@ export default function LoanActivePosition({
           </div>
 
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
-              {t("positionDaysLeft")}
-            </span>
+            <span className="eyebrow">{t("positionDaysLeft")}</span>
             <span
               className={cn(
                 "font-mono text-sm font-semibold tabular-nums",
@@ -287,9 +277,7 @@ export default function LoanActivePosition({
 
         {/* Manage section */}
         <div className="flex flex-col gap-4 border-t border-border/40 pt-4">
-          <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/70">
-            {t("positionActions")}
-          </span>
+          <span className="eyebrow">{t("positionActions")}</span>
 
           {/* Action selector — three full-width cards (icon + label),
             * mirroring the Pay-with pattern. Selected gets primary-tinted
@@ -317,9 +305,7 @@ export default function LoanActivePosition({
                       selected ? "text-primary" : "text-muted-foreground/80",
                     )}
                   />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.06em]">
-                    {tab.label}
-                  </span>
+                  <span className="eyebrow-strong">{tab.label}</span>
                 </button>
               );
             })}
@@ -336,7 +322,7 @@ export default function LoanActivePosition({
                   {/* Contextual prompt so the active surface explains what
                     * the user is about to do. */}
                   {TAB_PROMPTS[tab.key] && (
-                    <p className="text-[11px] leading-relaxed text-muted-foreground/80">
+                    <p className="text-xs leading-relaxed text-muted-foreground/80">
                       {TAB_PROMPTS[tab.key]}
                     </p>
                   )}
@@ -372,9 +358,7 @@ export default function LoanActivePosition({
                           key={row.label}
                           className="flex items-center justify-between gap-3"
                         >
-                          <span className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground/70">
-                            {row.label}
-                          </span>
+                          <span className="eyebrow">{row.label}</span>
                           <span
                             className={cn(
                               "font-mono tabular-nums",

@@ -177,24 +177,38 @@ export const launchpadTokenSchema = z.object({
  * `floorPrice` and `totalSupply` must be positive numbers.
  * Error messages are i18n keys resolved by the component via useTranslations.
  */
-export const launchpadPoolSchema = z.object({
-  floorPrice: z
-    .string()
-    .min(1, "errors.required")
-    .refine(
-      (v: string) => !isNaN(Number(v)) && Number(v) > 0,
-      "errors.mustBePositive",
-    ),
-  totalSupply: z
-    .string()
-    .min(1, "errors.required")
-    .refine(
-      (v: string) => !isNaN(Number(v)) && Number(v) > 0,
-      "errors.mustBePositive",
-    ),
-  reserveAsset: z.string().min(1, "errors.required"),
-  protocol: z.string().min(1, "errors.required"),
-});
+import { meetsMinTotalSupply } from "@/utils/launchpad-supply";
+
+export const launchpadPoolSchema = z
+  .object({
+    floorPrice: z
+      .string()
+      .min(1, "errors.required")
+      .refine(
+        (v: string) => !isNaN(Number(v)) && Number(v) > 0,
+        "errors.mustBePositive",
+      ),
+    totalSupply: z
+      .string()
+      .min(1, "errors.required")
+      .refine(
+        (v: string) => !isNaN(Number(v)) && Number(v) > 0,
+        "errors.mustBePositive",
+      ),
+    reserveAsset: z.string().min(1, "errors.required"),
+    protocol: z.string().min(1, "errors.required"),
+  })
+  // Mirror SupplyRules.enforceMinTotalSupply — the contract reverts with
+  // `TotalSupplyTooLow` when supply is below the price-derived tier.
+  .superRefine((data, ctx) => {
+    if (!meetsMinTotalSupply(data.floorPrice, data.totalSupply)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "errors.supplyBelowMin",
+        path: ["totalSupply"],
+      });
+    }
+  });
 
 /**
  * Schema for the launchpad presale form (Step 3).

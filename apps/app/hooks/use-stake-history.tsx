@@ -38,7 +38,7 @@ export function useStakeHistory(token: string = "OKS") {
         return (
           <Badge
             variant={type === "stake" ? "default" : "destructive"}
-            className="px-1.5 py-0 text-[10px]"
+            className="px-1.5 py-0 text-2xs"
           >
             {type === "stake" ? t("historyStake") : t("historyUnstake")}
           </Badge>

@@ -41,7 +41,12 @@ export const useLaunchpadStore = create<LaunchpadState>()(
       totalSupply: "",
       reserveAsset: "",
       protocol: "",
-      presaleDuration: "",
+      // Mirror the on-chain default the factory uses for fresh deploys
+      // (30 days). The form's <Select> overrides this when the user
+      // picks a different option, but seeding here means the deployVault
+      // call always carries a non-zero deadline — required by the
+      // contract even when presale is disabled.
+      presaleDuration: "2592000",
       softCapPercent: 30,
       completedSteps: [],
 
@@ -179,7 +184,7 @@ export const useLaunchpadStore = create<LaunchpadState>()(
           totalSupply: "",
           reserveAsset: "",
           protocol: "",
-          presaleDuration: "",
+          presaleDuration: "2592000",
           softCapPercent: 30,
           completedSteps: [],
         }),

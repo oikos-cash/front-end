@@ -5,14 +5,16 @@ import { useEffect, useMemo, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 // Components
-import Badge from "@/components/atoms/badge";
-import Card from "@/components/atoms/card";
 import Empty from "@/components/atoms/empty";
 import FieldRenderer from "@/components/molecules/field-renderer";
+import LaunchpadSection from "@/components/molecules/launchpad/section";
 
 // Hooks
 import { useTranslations } from "next-intl";
 import { useLaunchpadStore } from "@/stores/launchpad";
+
+// Utils
+import { formatStakeNumber } from "@/utils/number";
 
 // Types
 import { launchpadPresaleSchema } from "@/types/schemes";
@@ -97,41 +99,57 @@ export default function LaunchpadPresaleForm() {
 
   if (!store.enablePresale) {
     return (
-      <Card>
+      <div className="rounded-xl border border-border/60 bg-card/40 p-6">
         <Empty
           title=""
           description={t("presaleDisabled")}
           icon={<Info className="size-6 text-muted-foreground" />}
         />
-      </Card>
+      </div>
     );
   }
 
+  // Inline read-only metric row matching LaunchpadSection's plate look.
+  const Metric = ({
+    label,
+    value,
+  }: {
+    label: string;
+    value: string;
+  }) => (
+    <div className="flex items-baseline justify-between gap-3 rounded-xl border border-border/40 bg-card/40 px-4 py-3">
+      <span className="eyebrow">{label}</span>
+      <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+        {value}
+      </span>
+    </div>
+  );
+
   return (
-    <>
-      <Card title={t("presalePrice")}>
-        <span className="text-sm font-medium">
-          {store.floorPrice || "0"} BNB
-        </span>
-      </Card>
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Metric
+          label={t("presalePrice")}
+          value={`${formatStakeNumber(parseFloat(store.floorPrice) || 0, 7, true)} BNB`}
+        />
+        <Metric
+          label={t("hardCap")}
+          value={`${formatStakeNumber(hardCap, 4, true)} BNB`}
+        />
+        <Metric
+          label={t("softCap")}
+          value={`${formatStakeNumber(softCap, 4, true)} BNB · ${values.softCapPercent}%`}
+        />
+      </div>
 
       {cards.map((card, i) => (
-        <Card
+        <LaunchpadSection
           key={i}
+          index={i + 1}
           title={card.title}
           description={card.description}
-          action={
-            card.required && (
-              <Badge className="bg-blue-500/10 text-blue-500">
-                {t("required")}
-              </Badge>
-            )
-          }
-          footer={
-            card.help && (
-              <span className="text-xs text-muted-foreground">{card.help}</span>
-            )
-          }
+          help={card.help}
+          required={card.required}
         >
           <FieldRenderer
             control={form.control}
@@ -148,23 +166,8 @@ export default function LaunchpadPresaleForm() {
                 }) as FieldItem,
             )}
           />
-        </Card>
+        </LaunchpadSection>
       ))}
-
-      <Card title={t("hardCap")}>
-        <span className="text-sm font-medium">
-          {hardCap.toLocaleString()} BNB
-        </span>
-      </Card>
-
-      <Card>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">{t("softCap")}</span>
-          <span className="font-medium">
-            {softCap.toLocaleString()} BNB ({values.softCapPercent}%)
-          </span>
-        </div>
-      </Card>
-    </>
+    </div>
   );
 }

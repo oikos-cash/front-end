@@ -1,8 +1,7 @@
 "use client";
 
 // Components
-import Card from "@/components/atoms/card";
-import Badge from "@/components/atoms/badge";
+import LaunchpadSection from "@/components/molecules/launchpad/section";
 import FieldRenderer from "@/components/molecules/field-renderer";
 
 // Hooks
@@ -128,24 +127,15 @@ export default function LaunchpadTokenForm() {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-4">
       {cards.map((card, i) => (
-        <Card
+        <LaunchpadSection
           key={i}
+          index={i + 1}
           title={card.title}
           description={card.description}
-          action={
-            card.required && (
-              <Badge className="bg-blue-500/10 text-blue-500">
-                {t("required")}
-              </Badge>
-            )
-          }
-          footer={
-            card.help && (
-              <span className="text-xs text-muted-foreground">{card.help}</span>
-            )
-          }
+          help={card.help}
+          required={card.required}
         >
           <FieldRenderer
             control={form.control}
@@ -162,8 +152,8 @@ export default function LaunchpadTokenForm() {
                 }) as FieldItem,
             )}
           />
-        </Card>
+        </LaunchpadSection>
       ))}
-    </>
+    </div>
   );
 }
