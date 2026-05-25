@@ -10,12 +10,12 @@ function filterBlockedPools(pools: PoolConfig[]): PoolConfig[] {
   return pools.filter(
     (p) =>
       !isTokenBlocked({
-        symbol: p.token0.symbol,
-        addresses: [p.token0.address],
+        symbol: p.token0Symbol,
+        addresses: [p.token0Address],
       }) &&
       !isTokenBlocked({
-        symbol: p.token1.symbol,
-        addresses: [p.token1.address],
+        symbol: p.token1Symbol,
+        addresses: [p.token1Address],
       }),
   );
 }
