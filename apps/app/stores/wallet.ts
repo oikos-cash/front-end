@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { usePathname } from "next/navigation";
 import useSWR from "swr";
 import { useAccount, useDisconnect } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
@@ -18,11 +19,38 @@ import {
   WBNB_ADDRESS,
 } from "@/types/constants";
 
+/** Token-scoped routes carry the project token's symbol as the
+ *  trailing path segment (e.g. `/en/trade/dws`, `/en/borrow/oks`).
+ *  When the user navigates to one of these, the wallet sidebar should
+ *  show that token's balance — not whichever vault happened to land
+ *  first in the SWR response. */
+const TOKEN_SCOPED_ROUTES = [
+  "trade",
+  "borrow",
+  "liquidity",
+  "stake",
+  "presale",
+  "dividends",
+  "studio",
+];
+
+function tokenSlugFromPathname(pathname: string | null): string | null {
+  if (!pathname) return null;
+  // Pathname is locale-prefixed (e.g. /en/trade/dws). parts[0] = locale,
+  // parts[1] = route, parts[2] = token slug (when scoped).
+  const parts = pathname.split("/").filter(Boolean);
+  if (parts.length >= 3 && TOKEN_SCOPED_ROUTES.includes(parts[1])) {
+    return parts[2].toLowerCase();
+  }
+  return null;
+}
+
 export function useWallet(): WalletState {
   const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const { openConnectModal } = useConnectModal();
   const { bnbPrice } = useBnbPrice();
+  const pathname = usePathname();
 
   const isCorrectNetwork =
     chainId != null &&
@@ -38,7 +66,20 @@ export function useWallet(): WalletState {
     () => (rawVaults ? filterBlockedVaults(rawVaults) : rawVaults),
     [rawVaults],
   );
-  const activeVault = vaults?.[0] ?? null;
+  // Prefer the vault matching the current URL's token slug so the
+  // sidebar's pair-balance row tracks what the user is looking at.
+  // Falls back to the first vault on non-token pages (e.g. /markets).
+  const activeVault = useMemo(() => {
+    if (!vaults || vaults.length === 0) return null;
+    const slug = tokenSlugFromPathname(pathname);
+    if (slug) {
+      const match = vaults.find(
+        (v) => v.tokenSymbol?.toLowerCase() === slug,
+      );
+      if (match) return match;
+    }
+    return vaults[0];
+  }, [vaults, pathname]);
   const wbnbLower = WBNB_ADDRESS.toLowerCase();
 
   // Fetch WBNB + every vault token0 so any panel can look up its source token's balance.
