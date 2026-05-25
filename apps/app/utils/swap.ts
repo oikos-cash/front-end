@@ -4,7 +4,12 @@ import {
   filterBlockedTokenInfo,
   filterBlockedVaults,
 } from "@/utils/token-blocklist";
-import type { VaultInfo, TokenInfo, SwapToken } from "@/types/interfaces";
+import type {
+  PoolConfig,
+  VaultInfo,
+  TokenInfo,
+  SwapToken,
+} from "@/types/interfaces";
 
 /**
  * Fetch vaults + token metadata and merge into SwapToken[] for the Swap page (SSR).
@@ -12,13 +17,20 @@ import type { VaultInfo, TokenInfo, SwapToken } from "@/types/interfaces";
  */
 export async function fetchSwapTokens(): Promise<SwapToken[]> {
   try {
-    const [rawVaults, tokensRes] = await Promise.all([
+    const [rawVaults, tokensRes, poolsRes] = await Promise.all([
       fetchVaultServer<VaultInfo[]>("/vaults", {
         revalidate: SSR_REVALIDATE_DEFAULT,
       }),
       fetchServer<{ tokens: TokenInfo[] }>("/api/tokens", {
         revalidate: SSR_REVALIDATE_LONG,
       }),
+      // Pool catalogue carries the per-pool feeTier (Uniswap 3000 /
+      // Pancake 2500). Without it the Quoter call is locked to 3000
+      // and quotes for Pancake vaults silently revert. Optional —
+      // a backend hiccup must not break the swap page entirely.
+      fetchServer<PoolConfig[]>("/api/pools", {
+        revalidate: SSR_REVALIDATE_LONG,
+      }).catch(() => [] as PoolConfig[]),
     ]);
     const vaults = filterBlockedVaults(rawVaults);
 
@@ -27,11 +39,23 @@ export async function fetchSwapTokens(): Promise<SwapToken[]> {
       if (t.tokenSymbol) tokenMap.set(t.tokenSymbol.toLowerCase(), t);
     }
 
+    // pool address (lower-case) → feeTier. Same key the swap form will use
+    // when it builds the Quoter args.
+    const feeTierMap = new Map<string, number>();
+    for (const p of Array.isArray(poolsRes) ? poolsRes : []) {
+      if (p.address && typeof p.feeTier === "number") {
+        feeTierMap.set(p.address.toLowerCase(), p.feeTier);
+      }
+    }
+
     const tokens: SwapToken[] = vaults.map((vault) => {
       const info = tokenMap.get(vault.tokenSymbol.toLowerCase());
       const spotPriceX96 = BigInt(vault.spotPriceX96 || "0");
       const price =
         spotPriceX96 > BigInt(0) ? spotPriceToNumber(spotPriceX96) : 0;
+      const feeTier = vault.poolAddress
+        ? feeTierMap.get(vault.poolAddress.toLowerCase())
+        : undefined;
 
       return {
         symbol: vault.tokenSymbol,
@@ -43,6 +67,7 @@ export async function fetchSwapTokens(): Promise<SwapToken[]> {
         vaultAddress: vault.address,
         token0: vault.token0,
         spotPriceX96: vault.spotPriceX96,
+        feeTier,
       };
     });
 
