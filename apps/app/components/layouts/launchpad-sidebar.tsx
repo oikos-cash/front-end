@@ -183,10 +183,12 @@ export default function LaunchpadSidebar({
           vaultAddress: zeroAddress,
         },
       ],
-      // Factory test vectors: msg.value is zero on the no-presale path and
-      // 0.0001 BNB when the presale leg is enabled.
-      value: enablePresale ? DEPLOYMENT_FEE_BNB : 0n,
-      gas: 30_000_000n,
+      // Flat deployment fee on both paths.
+      value: DEPLOYMENT_FEE_BNB,
+      // Mirror the live frontend (2^24 = 16,777,216). The successful
+      // production tx consumed ~16.54M, so this is a tight-but-safe cap
+      // that keeps wallet gas estimates sane.
+      gas: 16_777_216n,
     });
   }
 
