@@ -1,8 +1,28 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { LaunchpadState, MissingField } from "@/types/interfaces";
+import type {
+  LaunchpadState,
+  MissingField,
+  TokenApiStatus,
+} from "@/types/interfaces";
 import { saveToken } from "@/services/token";
 import { savePool } from "@/services/pool-api";
+import {
+  WBNB_ADDRESS,
+  WBNB_DECIMALS,
+  DEFAULT_LAUNCHPAD_PROTOCOL,
+  DEFAULT_LAUNCHPAD_POOL_VERSION,
+  DEFAULT_POOL_FEE,
+} from "@/types/constants";
+
+function deriveStatus(args: {
+  contractAddress?: string;
+  transactionHash?: string;
+}): TokenApiStatus {
+  if (args.contractAddress) return "deployed";
+  if (args.transactionHash) return "pending";
+  return "pending";
+}
 
 export const useLaunchpadStore = create<LaunchpadState>()(
   persist(
@@ -40,10 +60,14 @@ export const useLaunchpadStore = create<LaunchpadState>()(
         const s = get();
         const missing: MissingField[] = [];
 
-        if (!s.tokenName.trim()) missing.push({ key: "tokenName", path: "/launchpad/token" });
-        if (!s.tokenSymbol.trim()) missing.push({ key: "tokenSymbol", path: "/launchpad/token" });
-        if (!s.floorPrice || Number(s.floorPrice) <= 0) missing.push({ key: "floorPrice", path: "/launchpad/pool" });
-        if (!s.totalSupply || Number(s.totalSupply) <= 0) missing.push({ key: "totalSupply", path: "/launchpad/pool" });
+        if (!s.tokenName.trim())
+          missing.push({ key: "tokenName", path: "/launchpad/token" });
+        if (!s.tokenSymbol.trim())
+          missing.push({ key: "tokenSymbol", path: "/launchpad/token" });
+        if (!s.floorPrice || Number(s.floorPrice) <= 0)
+          missing.push({ key: "floorPrice", path: "/launchpad/pool" });
+        if (!s.totalSupply || Number(s.totalSupply) <= 0)
+          missing.push({ key: "totalSupply", path: "/launchpad/pool" });
 
         return missing;
       },
@@ -52,52 +76,90 @@ export const useLaunchpadStore = create<LaunchpadState>()(
         return get().getMissingFields().length === 0;
       },
 
-      // The first arg is the EIP-191 auth header bundle the backend AuthGuard
-      // expects (`x-address`, `x-signature`, `x-message`). The store cannot
-      // invoke wagmi hooks itself, so the React caller signs and passes them in.
-      saveTokenMetadata: async (auth, deployerAddress, contractAddress, vaultAddress, poolAddress) => {
+      // `auth` is the EIP-191 header bundle the backend AuthGuard expects
+      // (`x-address`, `x-signature`, `x-message`). The store cannot invoke
+      // wagmi hooks itself, so the React caller signs and passes them in.
+      //
+      // Backend derives deployerAddress from the signature; we no longer
+      // send it in the body.
+      saveTokenMetadata: async ({
+        auth,
+        contractAddress,
+        vaultAddress,
+        poolAddress,
+        transactionHash,
+      }) => {
         const s = get();
+        if (!s.tokenSymbol) {
+          throw new Error("saveTokenMetadata: tokenSymbol is required");
+        }
+
+        // `tokenLogoUrl` actually holds a base64 data URL (FileUpload writes
+        // it that way). Keeping the state field name for compatibility but
+        // mapping to the API's `logoBase64` to match the DTO contract.
         await saveToken(
           {
             tokenName: s.tokenName,
             tokenSymbol: s.tokenSymbol,
             tokenDescription: s.tokenDescription,
-            tokenDecimals: String(s.tokenDecimals),
+            tokenDecimals: s.tokenDecimals,
             tokenSupply: s.totalSupply,
             price: s.floorPrice,
             floorPrice: s.floorPrice,
-            presalePrice: s.floorPrice,
-            token1: "WBNB",
-            selectedProtocol: s.protocol,
-            presale: s.enablePresale ? "true" : "false",
-            softCap: String(s.softCapPercent),
-            duration: s.presaleDuration,
-            deployerAddress,
+            protocol: s.protocol,
+            // Only persist presale config when the user actually enabled it.
+            // Avoids storing ghost defaults (softCapPercent=30, etc.) on
+            // tokens that never opted in.
+            ...(s.enablePresale && {
+              presaleEnabled: true,
+              presalePrice: s.floorPrice,
+              softCapPercent: s.softCapPercent,
+              presaleDuration: s.presaleDuration,
+            }),
             vaultAddress,
             poolAddress,
-            tokenAddress: contractAddress,
+            contractAddress,
+            transactionHash,
+            status: deriveStatus({ contractAddress, transactionHash }),
             websiteUrl: s.website,
             twitterHandle: s.twitter,
             discordInvite: s.discord,
-            logoPreview: s.tokenLogoUrl,
+            logoBase64: s.tokenLogoUrl,
           },
           auth,
         );
 
-        if (poolAddress) {
-          await savePool(
-            {
-              name: `${s.tokenSymbol}/WBNB`,
-              address: poolAddress,
-              protocol: s.protocol || "uniswap-v3",
-              version: "3",
-              token0: { symbol: s.tokenSymbol, address: contractAddress ?? "", decimals: s.tokenDecimals },
-              token1: { symbol: "WBNB", address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c", decimals: 18 },
-              feeTier: 3000,
-              enabled: true,
-            },
-            auth,
-          );
+        // savePool is best-effort: if it fails after saveToken succeeded, the
+        // token row already exists with status=deployed. We surface the
+        // failure to the caller so the wizard can offer a manual retry, but
+        // we don't roll back the token (would need a transactional endpoint).
+        if (poolAddress && contractAddress) {
+          try {
+            await savePool(
+              {
+                name: `${s.tokenSymbol}/WBNB`,
+                address: poolAddress,
+                protocol: s.protocol || DEFAULT_LAUNCHPAD_PROTOCOL,
+                version: DEFAULT_LAUNCHPAD_POOL_VERSION,
+                token0Address: contractAddress,
+                token0Symbol: s.tokenSymbol,
+                token0Decimals: s.tokenDecimals,
+                token1Address: WBNB_ADDRESS,
+                token1Symbol: "WBNB",
+                token1Decimals: WBNB_DECIMALS,
+                feeTier: DEFAULT_POOL_FEE,
+                vaultAddress,
+                enabled: true,
+              },
+              auth,
+            );
+          } catch (err) {
+            console.error(
+              "[launchpad] savePool failed after saveToken succeeded — pool row not persisted, retry needed",
+              { poolAddress, contractAddress, err },
+            );
+            throw err;
+          }
         }
       },
 
@@ -124,6 +186,7 @@ export const useLaunchpadStore = create<LaunchpadState>()(
     }),
     {
       name: "launchpad-store",
+      version: 1,
     },
   ),
 );

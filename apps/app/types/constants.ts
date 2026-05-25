@@ -65,6 +65,16 @@ export const QUOTER_V2_ADDRESS =
 /** Default pool fee tier (0.3%) */
 export const DEFAULT_POOL_FEE = 3000;
 
+// =================================================
+//               LAUNCHPAD DEFAULTS
+// =================================================
+/** WBNB decimals on BSC. */
+export const WBNB_DECIMALS = 18;
+/** Default DEX protocol used when the launchpad form leaves it blank. */
+export const DEFAULT_LAUNCHPAD_PROTOCOL = "uniswap" as const;
+/** Pool contract version paired with DEFAULT_LAUNCHPAD_PROTOCOL. */
+export const DEFAULT_LAUNCHPAD_POOL_VERSION = "3" as const;
+
 /** Zero address constant */
 export const ZERO_ADDRESS =
   "0x0000000000000000000000000000000000000000" as const;

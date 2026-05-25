@@ -274,6 +274,13 @@ export interface VaultInfo {
 }
 
 /** Raw token data from the Token API */
+/**
+ * @deprecated Use `TokenApiResponse` instead. This type predates the backend
+ * DTO alignment and contains fields the API never returned: `logoPreview`,
+ * `tokenAddress`, `softCap`, `selectedProtocol`, `presale`, `duration`,
+ * `token1`. Consumers fall back via `?? logoUrl` etc. — effectively reading
+ * `undefined`. Migrate consumers to `TokenApiResponse` and delete.
+ */
 export interface TokenInfo {
   id: string;
   tokenName: string;
@@ -1101,37 +1108,39 @@ export interface HedgeStats {
 // =================================================
 //                   TOKEN API
 // =================================================
+export type TokenApiStatus = "pending" | "deployed" | "success" | "failed";
+
 export interface TokenApiData {
   tokenName: string;
   tokenSymbol: string;
-  tokenDescription: string;
-  tokenDecimals: string;
-  tokenSupply: string;
-  logoPreview?: string;
-  price: string;
-  floorPrice: string;
-  presalePrice: string;
-  token1: string;
-  selectedProtocol: string;
-  presale: string;
-  softCap: string;
-  duration: string;
-  deployerAddress?: string;
-  chainId?: number;
+  tokenDescription?: string;
+  tokenDecimals?: number;
+  tokenSupply?: string;
+  logoBase64?: string;
+  price?: string;
+  floorPrice?: string;
+  presalePrice?: string;
+  protocol?: string;
+  presaleEnabled?: boolean;
+  softCapPercent?: number;
+  presaleDuration?: string;
   vaultAddress?: string;
   poolAddress?: string;
-  tokenAddress?: string;
+  contractAddress?: string;
+  transactionHash?: string;
+  status?: TokenApiStatus;
   websiteUrl?: string;
   twitterHandle?: string;
   discordInvite?: string;
 }
 
-export interface TokenApiResponse extends TokenApiData {
+// `deployerAddress` is set by the backend from the authenticated wallet, so
+// it's not in TokenApiData (POST body) but is on the response.
+export interface TokenApiResponse extends Omit<TokenApiData, "status"> {
   id: string;
-  timestamp: string;
-  status: "pending" | "success" | "failed" | "deployed";
-  transactionHash?: string;
-  contractAddress?: string;
+  deployerAddress: string;
+  timestamp?: string;
+  status: TokenApiStatus;
   updatedAt?: string;
   logoUrl?: string;
 }
@@ -1139,21 +1148,23 @@ export interface TokenApiResponse extends TokenApiData {
 // =================================================
 //                   POOL API
 // =================================================
-export interface PoolConfigToken {
-  symbol: string;
-  address: string;
-  decimals: number;
-}
-
 export interface PoolConfig {
-  name: string;
   address: string;
-  protocol: string;
-  version: string;
-  token0: PoolConfigToken;
-  token1: PoolConfigToken;
-  feeTier: number;
-  enabled: boolean;
+  name?: string;
+  protocol?: string;
+  version?: string;
+  token0Address: string;
+  token0Symbol?: string;
+  token0Name?: string;
+  token0Decimals?: number;
+  token1Address: string;
+  token1Symbol?: string;
+  token1Name?: string;
+  token1Decimals?: number;
+  feeTier?: number;
+  vaultAddress?: string;
+  autoRegistered?: boolean;
+  enabled?: boolean;
   createdAt?: string;
 }
 
@@ -1217,13 +1228,13 @@ export interface LaunchpadState {
   markStepCompleted: (step: number) => void;
   getMissingFields: () => MissingField[];
   isReadyToDeploy: () => boolean;
-  saveTokenMetadata: (
-    auth: Record<string, string>,
-    deployerAddress: string,
-    contractAddress?: string,
-    vaultAddress?: string,
-    poolAddress?: string,
-  ) => Promise<void>;
+  saveTokenMetadata: (args: {
+    auth: Record<string, string>;
+    contractAddress?: string;
+    vaultAddress?: string;
+    poolAddress?: string;
+    transactionHash?: string;
+  }) => Promise<void>;
   reset: () => void;
 }
 
