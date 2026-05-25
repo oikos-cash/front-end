@@ -425,3 +425,34 @@ export const DYNAMIC_ROUTE_PREFIXES = [
   "/dividends",
   "/studio",
 ] as const;
+
+// =================================================
+//               TOKEN BLOCKLIST
+// =================================================
+/**
+ * Frontend-only blocklist for tokens that must never surface anywhere
+ * (Markets, Exchange/Swap, Studio, direct /trade/<symbol> routes, pool
+ * lists, etc.). Filtering happens at the service layer in
+ * `services/token.ts` and `services/pool-api.ts`, so every downstream
+ * consumer inherits it without per-page changes.
+ *
+ * Each entry can carry a symbol, an address (token / vault / pool), or
+ * both. Matching is case-insensitive; supplying either is sufficient to
+ * block. Address matching covers `tokenAddress`, `contractAddress`,
+ * `vaultAddress`, `poolAddress`, and pool token0/token1 addresses.
+ *
+ * Add entries here to retire a token from the UI without touching the
+ * backend or having to redeploy the indexer.
+ */
+export interface BlockedTokenEntry {
+  symbol?: string;
+  address?: string;
+  /** Optional free-text note — never rendered, only for code review. */
+  reason?: string;
+}
+
+export const BLOCKED_TOKENS: ReadonlyArray<BlockedTokenEntry> = [
+  // Example:
+  // { symbol: "SCAM", reason: "Reported phishing token" },
+  // { address: "0x0000000000000000000000000000000000000000", reason: "Test deploy" },
+] as const;
