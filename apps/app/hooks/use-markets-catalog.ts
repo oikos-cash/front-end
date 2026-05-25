@@ -108,6 +108,17 @@ export function useMarketsCatalog(initialTokens: MarketToken[] = []) {
     () => processed.filter((tk) => tk.status === "graduated"),
     [processed],
   );
+  // Everything that isn't an active presale and isn't yet graduated —
+  // live-trading tokens (status "finalized" / "preparing"). Without
+  // this bucket those tokens drop out of the default sectioned view
+  // entirely.
+  const liveTokens = useMemo(
+    () =>
+      processed.filter(
+        (tk) => !tk.isPresale && tk.status !== "graduated",
+      ),
+    [processed],
+  );
 
   const showSections =
     filter === "all" && !search.trim() && sort === "default";
@@ -124,6 +135,7 @@ export function useMarketsCatalog(initialTokens: MarketToken[] = []) {
     processed,
     presaleTokens,
     graduatedTokens,
+    liveTokens,
     showSections,
     bnbPrice,
     balanceMap,
