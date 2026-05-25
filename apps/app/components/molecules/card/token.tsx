@@ -41,12 +41,7 @@ export default function TokenCard({ token }: TokenCardProps) {
         </div>
       }
       footer={
-        <div className="flex gap-2 w-full justify-end">
-          <Button variant="outline" size="sm" asChild>
-            <Link href={`/liquidity/${token.symbol.toLowerCase()}`}>
-              {t("viewDividends")}
-            </Link>
-          </Button>
+        <div className="flex w-full justify-end">
           <Button variant="default" size="sm" asChild>
             <Link
               href={
