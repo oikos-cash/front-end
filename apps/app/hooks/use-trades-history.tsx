@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useSWR from "swr";
 import { ColumnDef } from "@tanstack/react-table";
 
 // Components
@@ -13,11 +14,12 @@ import { useBnbPrice } from "@/hooks/use-bnb-price";
 import { useWallet } from "@/stores/wallet";
 import { getWebSocketService } from "@/services/websocket";
 
-// Services
-import { fetchPools } from "@/services/pool-api";
-
 // Types
-import { Trade, WSBlockchainEvent } from "@/types/interfaces";
+import {
+  Trade,
+  VaultInfo,
+  WSBlockchainEvent,
+} from "@/types/interfaces";
 
 // Icons
 import { ArrowUpRight } from "lucide-react";
@@ -25,9 +27,11 @@ import { ArrowUpRight } from "lucide-react";
 // Utils
 import { timeAgo } from "@/utils/date";
 import { truncateAddress } from "@/utils/string";
+import { swrFetcher } from "@/utils/fetcher";
+import { filterBlockedVaults } from "@/utils/token-blocklist";
 
 // Constants
-import { TRADES_MAX_TRADES } from "@/types/constants";
+import { TRADES_MAX_TRADES, VAULT_API_URL } from "@/types/constants";
 
 /**
  * Trades history hook — listens for real Swap events via WebSocket.
@@ -46,10 +50,96 @@ export function useTradesHistory(
   const [view, setView] = useState("global");
   const [tokenFilter, setTokenFilter] = useState("all");
 
+  // Source of truth for "what symbol belongs to what pool" is the vault
+  // feed (`/vaults`) — it always carries a real `tokenSymbol` alongside
+  // its `poolAddress`. `/api/pools` currently returns `[]` on the
+  // backend, so the prior pool-based map stayed empty and the hook
+  // silently fell through to the hook's `token` prop — which on the
+  // global view is whatever vault landed first after filtering, i.e.
+  // the wrong label for every other pool's trades.
+  //
+  // Same SWR key the wallet store uses, so this rides the existing
+  // request and dedupes for free.
+  const { data: rawVaults } = useSWR<VaultInfo[]>(
+    `${VAULT_API_URL}/vaults`,
+    swrFetcher,
+    { errorRetryCount: 0, revalidateOnFocus: false },
+  );
+  const vaults = useMemo(
+    () => (rawVaults ? filterBlockedVaults(rawVaults) : undefined),
+    [rawVaults],
+  );
+
+  // poolAddress (lower-case) → project-token symbol.
+  const poolSymbolMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const v of vaults ?? []) {
+      if (v.poolAddress && v.tokenSymbol) {
+        m.set(v.poolAddress.toLowerCase(), v.tokenSymbol);
+      }
+    }
+    return m;
+  }, [vaults]);
+
+  // Mirror `poolSymbolMap` into a ref so callbacks that run inside other
+  // effects (e.g. the historical-seed loader, which resolves via WS
+  // *after* SWR may have already populated the map and bumped the
+  // closure-captured copy out of date) always read the current value.
+  const poolSymbolMapRef = useRef(poolSymbolMap);
+  useEffect(() => {
+    poolSymbolMapRef.current = poolSymbolMap;
+  }, [poolSymbolMap]);
+
+  /** Resolve the best symbol for a swap event: pool map → event-supplied
+   *  symbol (if not the "UNKNOWN" placeholder) → hook's `token` prop. */
+  function resolveTradeSymbol(event: WSBlockchainEvent): string {
+    const fromMap = event.poolAddress
+      ? poolSymbolMapRef.current.get(event.poolAddress.toLowerCase())
+      : undefined;
+    if (fromMap) return fromMap;
+    if (event.tokenSymbol && event.tokenSymbol !== "UNKNOWN") {
+      return event.tokenSymbol;
+    }
+    return token;
+  }
+
+  // Re-label already-rendered trades when the pool→symbol map lands or
+  // changes. Without this the historical seed (loaded immediately at
+  // mount, before `/vaults` resolves) stays labelled with the prop
+  // `token` fallback forever.
+  // Re-label whenever the map changes OR the trades list lands (the
+  // historical seed can arrive AFTER the map resolves, in which case
+  // mapping-on-map-change alone would miss it). Keyed by `trades.length`
+  // — we don't want to chase per-row mutations because those originate
+  // from this very effect.
+  useEffect(() => {
+    if (poolSymbolMap.size === 0) return;
+    setTrades((prev) => {
+      let changed = false;
+      const next = prev.map((t) => {
+        const want = t.poolAddress
+          ? poolSymbolMap.get(t.poolAddress.toLowerCase())
+          : undefined;
+        if (want && want !== t.token) {
+          changed = true;
+          return { ...t, token: want };
+        }
+        return t;
+      });
+      return changed ? next : prev;
+    });
+  }, [poolSymbolMap, trades.length]);
+
   // Listen for Swap events via WS
   const onEvent = useCallback(
     (event: WSBlockchainEvent) => {
       if (event.eventName !== "Swap") return;
+      // Per-pool mode: ignore live pushes from other pools.
+      if (
+        poolAddress &&
+        event.poolAddress?.toLowerCase() !== poolAddress.toLowerCase()
+      )
+        return;
 
       const raw0 = parseFloat(event.args.amount0 ?? "0");
       const raw1 = parseFloat(event.args.amount1 ?? "0");
@@ -75,11 +165,10 @@ export function useTradesHistory(
       const trade: Trade = {
         id: event.id ?? `${event.transactionHash}-${event.logIndex ?? event.blockNumber}`,
         type: isBuy ? "buy" : "sell",
-        // Prefer the event's tokenSymbol so global-view rows show the
-        // right ticker per pool; fall back to the hook's `token` prop.
-        token: event.tokenSymbol && event.tokenSymbol !== "UNKNOWN"
-          ? event.tokenSymbol
-          : token,
+        // Resolve per-trade symbol from the pool-address map first; see
+        // `resolveTradeSymbol` for the fallback order.
+        token: resolveTradeSymbol(event),
+        poolAddress: event.poolAddress,
         amount,
         price,
         bnbAmount,
@@ -111,7 +200,11 @@ export function useTradesHistory(
         return [trade, ...prev].slice(0, TRADES_MAX_TRADES);
       });
     },
-    [token, bnbPrice],
+    // `resolveTradeSymbol` closes over the current `poolSymbolMap` /
+    // `token`, so include them here to invalidate the callback when the
+    // pool catalogue resolves (one tick after mount on the global view).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [token, bnbPrice, poolSymbolMap, poolAddress],
   );
 
   // Always enable the WS hook so the GLOBAL `onEvent` callback registers
@@ -128,48 +221,50 @@ export function useTradesHistory(
 
   // Global-view subscription fan-out. The backend only pushes events for
   // pools the client has explicitly registered, so for "all trades"
-  // (poolAddress undefined) we fetch the pool catalogue once and emit a
-  // subscribe for each address. Refs counts inside the WS service mean
-  // the per-pool subscriptions cleanly coexist with any single-pool
-  // subscribers (chart panels, swap form, etc.) — they share refs.
+  // (poolAddress undefined) we subscribe to every vault's poolAddress.
+  // Drives off the same `/vaults` SWR data as the symbol map so both
+  // come up together (and so we don't fire a redundant request).
+  const subscribablePools = useMemo(
+    () =>
+      (vaults ?? [])
+        .map((v) => v.poolAddress)
+        .filter((a): a is string => !!a),
+    [vaults],
+  );
+  const subscribablePoolsKey = subscribablePools.join(",");
+
   useEffect(() => {
     if (poolAddress) return; // per-pool mode already subscribed by useWebSocket
+    if (subscribablePools.length === 0) return;
     let cancelled = false;
     let subscribed: string[] = [];
     const ws = getWebSocketService();
 
-    function subscribeAll(addresses: string[]) {
+    function subscribeAll() {
       if (cancelled) return;
-      subscribed = addresses;
-      for (const a of addresses) ws.subscribe("event", a);
+      subscribed = subscribablePools.slice();
+      for (const a of subscribed) ws.subscribe("event", a);
     }
 
-    fetchPools()
-      .then((pools) => {
-        if (cancelled) return;
-        const addresses = pools
-          .filter((p) => p.enabled !== false)
-          .map((p) => p.address);
-        if (addresses.length === 0) return;
-        if (ws.isConnected()) {
-          subscribeAll(addresses);
-        } else {
-          ws.connect()
-            .then(() => subscribeAll(addresses))
-            .catch((err) =>
-              console.error("[useTradesHistory] WS connect failed:", err),
-            );
-        }
-      })
-      .catch((err) =>
-        console.error("[useTradesHistory] fetchPools failed:", err),
-      );
+    if (ws.isConnected()) {
+      subscribeAll();
+    } else {
+      ws.connect()
+        .then(subscribeAll)
+        .catch((err) =>
+          console.error("[useTradesHistory] WS connect failed:", err),
+        );
+    }
 
     return () => {
       cancelled = true;
       for (const a of subscribed) ws.unsubscribe("event", a);
     };
-  }, [poolAddress]);
+    // `subscribablePools` itself is a fresh array reference on each
+    // render; key off the stable joined string so we re-subscribe only
+    // when the pool set actually changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poolAddress, subscribablePoolsKey]);
 
   // Load historical trades via WS getGlobalTrades
   useEffect(() => {
@@ -194,7 +289,8 @@ export function useTradesHistory(
       return {
         id: event.id ?? `${event.transactionHash}-${event.logIndex ?? event.blockNumber}`,
         type: (isBuy ? "buy" : "sell") as Trade["type"],
-        token: event.tokenSymbol ?? token,
+        token: resolveTradeSymbol(event),
+        poolAddress: event.poolAddress,
         amount,
         price,
         bnbAmount,
@@ -212,12 +308,21 @@ export function useTradesHistory(
       };
     }
 
+    // Per-pool mode: only keep events that belong to the page's pool.
+    // Without this guard the per-pool view (e.g. /trade/dws) inherits the
+    // global seed and lists trades from every market.
+    const poolFilter = poolAddress?.toLowerCase();
+
     function loadTrades() {
       if (cancelled) return;
       ws.getGlobalTrades(100)
         .then((events) => {
           if (cancelled) return;
-          const swapEvents = events.filter((e) => e.eventName === "Swap");
+          const swapEvents = events.filter(
+            (e) =>
+              e.eventName === "Swap" &&
+              (!poolFilter || e.poolAddress?.toLowerCase() === poolFilter),
+          );
           const historical = swapEvents.map(parseSwapEvent);
           setTrades(historical.slice(0, TRADES_MAX_TRADES));
           setIsLoading(false);
@@ -239,7 +344,7 @@ export function useTradesHistory(
     }
 
     return () => { cancelled = true; };
-  }, [token, bnbPrice]);
+  }, [token, bnbPrice, poolAddress]);
 
   const columns: ColumnDef<Trade>[] = useMemo(
     () => [

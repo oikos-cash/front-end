@@ -611,6 +611,11 @@ export interface Trade {
   id: string;
   type: "buy" | "sell";
   token: string;
+  /** Pool address the swap occurred in. Kept on the row so the trades
+   *  hook can re-label `token` when the pool→symbol map resolves
+   *  asynchronously (the symbol-source `/vaults` SWR can land after the
+   *  historical seed has already been loaded). */
+  poolAddress?: string;
   amount: number;
   price: number;
   bnbAmount: number;
