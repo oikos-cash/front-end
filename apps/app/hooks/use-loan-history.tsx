@@ -226,7 +226,7 @@ export function useLoanHistory(vaultAddress?: string) {
           roll: t("historyRoll"),
         };
         return (
-          <Badge variant={variantMap[type]} className="px-1.5 py-0 text-[10px]">
+          <Badge variant={variantMap[type]} className="px-1.5 py-0 text-2xs">
             {labelMap[type]}
           </Badge>
         );

@@ -4,6 +4,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  /* Canonical micro-type tokens. The "2xs" / "mini" tier covers the
+   * eyebrow / badge / micro-label sizes that previously littered the
+   * codebase as `text-[10px]` / `text-[11px]` one-offs. */
+  --text-2xs: 0.625rem;          /* 10px */
+  --text-2xs--line-height: 0.875rem; /* 14px */
+  --text-mini: 0.6875rem;        /* 11px */
+  --text-mini--line-height: 1rem;     /* 16px */
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -177,5 +187,42 @@
   .chart-reset a[href*="tradingview"] {
     opacity: 0 !important;
     pointer-events: none !important;
+  }
+}
+
+@layer utilities {
+  /* Canonical "eyebrow" label — used for micro caps above values, table
+   * headers, badge-ish ticker labels, and tile captions. Replaces ~40
+   * one-off combinations of text-[10px] uppercase tracking-[0.06–0.1em]
+   * text-muted-foreground/{60,70,80} that had accumulated across the app.
+   * Variants:
+   *   .eyebrow         — default (10px, medium, muted/70)
+   *   .eyebrow-strong  — stronger (11px, semibold, muted/80)
+   *   .eyebrow-mono    — adds JetBrains Mono + tabular numerals */
+  .eyebrow {
+    font-size: var(--text-2xs);
+    line-height: var(--text-2xs--line-height);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: color-mix(in oklab, var(--muted-foreground) 75%, transparent);
+  }
+  .eyebrow-strong {
+    font-size: var(--text-mini);
+    line-height: var(--text-mini--line-height);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: color-mix(in oklab, var(--muted-foreground) 85%, transparent);
+  }
+  .eyebrow-mono {
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+    font-feature-settings: "tnum", "ss02", "cv02";
+  }
+  /* Display numerics — paired with `font-mono` and `font-semibold` for
+   * the hero figures (balances, prices). Centralises tracking + nums. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 }

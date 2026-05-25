@@ -148,10 +148,17 @@ async function fetchBnbPrice(): Promise<number> {
  * const usdValue = tokenAmount * bnbPrice;
  */
 export function useBnbPrice() {
+  // `fallbackData` must be identical on SSR and the first client render —
+  // otherwise downstream `bnbPrice * x` calculations (market caps, USD
+  // values, …) diverge and React aborts hydration. Reading the
+  // localStorage cache here breaks that contract: it's `null` on the
+  // server and a real number on the client. The SWR fetcher *itself*
+  // reads the cache as its first step, so the live price still
+  // populates without a network round-trip after mount.
   const { data, error, isLoading } = useSWR("bnb-price", fetchBnbPrice, {
     refreshInterval: BNB_PRICE_REFRESH_INTERVAL,
     dedupingInterval: BNB_PRICE_REFRESH_INTERVAL,
-    fallbackData: getCachedPrice() ?? BNB_PRICE_FALLBACK,
+    fallbackData: BNB_PRICE_FALLBACK,
     revalidateOnFocus: false,
     errorRetryCount: 1,
   });

@@ -1,8 +1,7 @@
 "use client";
 
 // Components
-import Card from "@/components/atoms/card";
-import Badge from "@/components/atoms/badge";
+import LaunchpadSection from "@/components/molecules/launchpad/section";
 import FieldRenderer from "@/components/molecules/field-renderer";
 
 // Hooks
@@ -24,6 +23,10 @@ import {
   LAUNCHPAD_POOL_FIELD_OVERRIDES,
 } from "@/types/constants";
 
+// Utils
+import { minTotalSupplyTokensForFloor } from "@/utils/launchpad-supply";
+import { formatCompactNumber } from "@/utils/number";
+
 export default function LaunchpadPoolForm() {
   const t = useTranslations("launchpad");
   const store = useLaunchpadStore();
@@ -41,12 +44,6 @@ export default function LaunchpadPoolForm() {
 
   const values = form.watch();
   const hydrated = useRef(false);
-
-  const fdv = useMemo(() => {
-    const price = parseFloat(values.floorPrice) || 0;
-    const supply = parseFloat(values.totalSupply) || 0;
-    return price * supply;
-  }, [values.floorPrice, values.totalSupply]);
 
   useEffect(() => {
     if (hydrated.current) return;
@@ -87,56 +84,70 @@ export default function LaunchpadPoolForm() {
     form.formState.isValid,
   ]);
 
-  return (
-    <>
-      {cards.map((card, i) => (
-        <Card
-          key={i}
-          title={card.title}
-          description={card.description}
-          action={
-            card.required && (
-              <Badge className="bg-blue-500/10 text-blue-500">
-                {t("required")}
-              </Badge>
-            )
-          }
-          footer={
-            card.help && (
-              <span className="text-xs text-muted-foreground">{card.help}</span>
-            )
-          }
-        >
-          <FieldRenderer
-            control={form.control}
-            t={t}
-            fields={card.fields.map(
-              (f) =>
-                ({
-                  ...f,
-                  ...(f.type === "select" && {
-                    items: LAUNCHPAD_POOL_SELECT_ITEMS[f.name] ?? [],
-                    defaultValue: store[f.name as keyof typeof store] as string,
-                  }),
-                  ...LAUNCHPAD_POOL_FIELD_OVERRIDES[f.name],
-                }) as FieldItem,
-            )}
-          />
-        </Card>
-      ))}
+  // Min total supply required by SupplyRules.enforceMinTotalSupply for
+  // the user's current floor price. Mirrored client-side so the user
+  // can't sign a tx that the factory will revert.
+  const minSupplyTokens = useMemo(
+    () => minTotalSupplyTokensForFloor(values.floorPrice),
+    [values.floorPrice],
+  );
 
-      <Card title={t("summaryTitle")} description={t("summaryDesc")}>
-        <div className="flex flex-col gap-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">{t("floorPrice")}</span>
-            <span className="font-medium">{values.floorPrice || "0"} BNB</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">{t("calculatedFdv")}</span>
-            <span className="font-medium">{fdv.toLocaleString()} BNB</span>
-          </div>
-        </div>
-      </Card>
-    </>
+  function applyMinSupply() {
+    if (minSupplyTokens === null) return;
+    form.setValue("totalSupply", minSupplyTokens.toString(), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {cards.map((card, i) => {
+        const hasTotalSupply = card.fields.some((f) => f.name === "totalSupply");
+        return (
+          <LaunchpadSection
+            key={i}
+            index={i + 1}
+            title={card.title}
+            description={card.description}
+            help={card.help}
+            required={card.required}
+          >
+            <FieldRenderer
+              control={form.control}
+              t={t}
+              fields={card.fields.map(
+                (f) =>
+                  ({
+                    ...f,
+                    ...(f.type === "select" && {
+                      items: LAUNCHPAD_POOL_SELECT_ITEMS[f.name] ?? [],
+                      defaultValue: store[f.name as keyof typeof store] as string,
+                    }),
+                    ...LAUNCHPAD_POOL_FIELD_OVERRIDES[f.name],
+                  }) as FieldItem,
+              )}
+            />
+            {hasTotalSupply && minSupplyTokens !== null && (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-border/50 bg-background/40 px-3 py-2">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="eyebrow">{t("supplyHint")}</span>
+                  <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                    {formatCompactNumber(Number(minSupplyTokens))} tokens
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={applyMinSupply}
+                  className="rounded border border-primary/35 bg-primary/10 px-2 py-1 text-2xs font-semibold uppercase tracking-[0.08em] text-primary transition-colors hover:bg-primary/15"
+                >
+                  {t("supplyApplyMin")}
+                </button>
+              </div>
+            )}
+          </LaunchpadSection>
+        );
+      })}
+    </div>
   );
 }

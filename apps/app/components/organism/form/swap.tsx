@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,16 +8,12 @@ import { parseEther, formatEther, maxUint256 } from "viem";
 import { toast } from "sonner";
 
 // Components
-import Card from "@/components/atoms/card";
 import Input from "@/components/atoms/input";
-import Field from "@/components/atoms/field";
 import Button from "@/components/atoms/button";
 import ButtonGroup from "@/components/atoms/button-group";
 import Avatar from "@/components/atoms/avatar";
-import Badge from "@/components/atoms/badge";
 import Checkbox from "@/components/atoms/checkbox";
 import Sheet from "@/components/atoms/sheet";
-import KeyValueCard from "@/components/molecules/card/key-value";
 import TxFlowStatus from "@/components/molecules/tx-flow-status";
 
 // Hooks
@@ -32,6 +29,7 @@ import type { SwapFormValues, SwapToken } from "@/types/interfaces";
 
 // Utils
 import { formatCompactNumber } from "@/utils/number";
+import { cn } from "@/utils/object";
 
 // Services
 import {
@@ -43,7 +41,6 @@ import {
 // Constants (contract addresses)
 import {
   SWAP_SLIPPAGE_OPTIONS,
-  SWAP_ROUTES,
   WBNB_ADDRESS,
   QUOTER_V2_ADDRESS,
   EXCHANGE_HELPER_ADDRESS,
@@ -51,7 +48,18 @@ import {
 } from "@/types/constants";
 
 // Icons
-import { Settings, Search, ChevronDown } from "lucide-react";
+import {
+  Settings,
+  Search,
+  ChevronDown,
+  ArrowDown,
+  ShieldCheck,
+  AlertTriangle,
+} from "lucide-react";
+
+// ─────────────────────────────────────────────────────────────────────
+//                            Token picker
+// ─────────────────────────────────────────────────────────────────────
 
 function TokenSearchList({
   tokens,
@@ -75,26 +83,30 @@ function TokenSearchList({
         startIcon={<Search className="size-3.5 text-muted-foreground" />}
         autoFocus
       />
-      <div className="flex flex-col gap-0">
+      <div className="-mx-1 flex max-h-[60vh] flex-col gap-0.5 overflow-y-auto px-1">
         {tokens.map((tk) => (
           <button
             key={tk.symbol}
             type="button"
             onClick={() => onSelect(tk)}
-            className="flex w-full items-center justify-between rounded-md px-3 py-2.5 text-sm hover:bg-accent"
+            className="flex w-full items-center justify-between gap-3 rounded-md border border-transparent px-3 py-2.5 text-left transition-colors hover:border-border/60 hover:bg-accent/40"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <Avatar name={tk.symbol} src={tk.iconUrl} size="default" />
-              <div className="flex flex-col items-start">
-                <span className="font-medium">{tk.symbol}</span>
-                <span className="text-xs text-muted-foreground">{tk.name}</span>
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-semibold tracking-tight text-foreground">
+                  {tk.symbol}
+                </span>
+                <span className="truncate text-xs text-muted-foreground">
+                  {tk.name}
+                </span>
               </div>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-sm font-medium">
+            <div className="flex flex-col items-end shrink-0">
+              <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
                 {formatCompactNumber(tk.balance)}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="font-mono text-mini tabular-nums text-muted-foreground/70">
                 ${formatCompactNumber(tk.balance * tk.price)}
               </span>
             </div>
@@ -109,6 +121,157 @@ function TokenSearchList({
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────
+//                            Token pill
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * The dominant control inside each swap leg — opens the picker sheet.
+ * When empty, reads as a brand-tinted call-to-action; once selected it
+ * collapses to a compact pill displaying the avatar + ticker.
+ */
+const TokenPill = React.forwardRef<
+  HTMLButtonElement,
+  {
+    token: SwapToken | undefined;
+    placeholder: string;
+  } & React.ButtonHTMLAttributes<HTMLButtonElement>
+>(function TokenPill({ token, placeholder, className, ...props }, ref) {
+  return (
+    <button
+      ref={ref}
+      type="button"
+      {...props}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-2 rounded-full border px-2.5 py-1.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        token
+          ? "border-border/70 bg-card text-foreground hover:border-border-strong hover:bg-card/80"
+          : "border-primary/40 bg-primary/15 text-primary hover:bg-primary/20",
+        className,
+      )}
+    >
+      {token ? (
+        <>
+          <Avatar name={token.symbol} src={token.iconUrl} size="sm" />
+          <span className="tracking-tight">{token.symbol}</span>
+          <ChevronDown className="size-3.5 text-muted-foreground" />
+        </>
+      ) : (
+        <>
+          <span>{placeholder}</span>
+          <ChevronDown className="size-3.5" />
+        </>
+      )}
+    </button>
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────
+//                       Per-leg swap panel
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * One leg of the swap (From or To). Visually a single inset plate with
+ * the eyebrow label top-left, balance/max top-right, a large numeric
+ * value lined up against the token pill picker, and a dollar estimate
+ * underneath. Both legs share the exact same layout so they read as a
+ * matched pair flanking the flip arrow.
+ */
+function SwapLeg({
+  side,
+  token,
+  picker,
+  value,
+  onValueChange,
+  readOnly,
+  balance,
+  showMax,
+  onMax,
+  usd,
+  emphasis,
+  t,
+}: {
+  side: "from" | "to";
+  token: SwapToken | undefined;
+  picker: React.ReactNode;
+  value: string;
+  onValueChange?: (v: string) => void;
+  readOnly?: boolean;
+  balance?: number;
+  showMax?: boolean;
+  onMax?: () => void;
+  usd?: number;
+  emphasis?: boolean;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+}) {
+  return (
+    <div
+      className={cn(
+        "relative flex flex-col gap-3 rounded-xl border border-border/60 bg-background/40 p-4",
+        "transition-[border-color,box-shadow] focus-within:border-primary/45",
+        "focus-within:shadow-[0_0_0_1px_rgba(245,200,67,0.18)_inset,0_8px_24px_-14px_rgba(245,200,67,0.22)]",
+        emphasis && "bg-card/60",
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="eyebrow">{side === "from" ? t("from") : t("to")}</span>
+        {balance != null && token && (
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-mini tabular-nums text-muted-foreground/85">
+              {t("balance", { amount: formatCompactNumber(balance) })}
+            </span>
+            {showMax && onMax && balance > 0 && (
+              <button
+                type="button"
+                onClick={onMax}
+                className="rounded border border-primary/35 bg-primary/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-[0.08em] text-primary transition-colors hover:bg-primary/15"
+              >
+                {t("max")}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3">
+        <input
+          type="number"
+          inputMode="decimal"
+          step="any"
+          min="0"
+          placeholder="0.00"
+          value={value}
+          readOnly={readOnly}
+          onChange={(e) => onValueChange?.(e.target.value)}
+          className={cn(
+            "min-w-0 flex-1 bg-transparent font-mono text-2xl font-semibold tracking-tight tabular-nums text-foreground outline-none placeholder:text-muted-foreground/35",
+            readOnly && "pointer-events-none",
+            "sm:text-3xl",
+          )}
+        />
+        {picker}
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-xs tabular-nums text-muted-foreground/70">
+          {usd && usd > 0 ? `≈ $${formatCompactNumber(usd)}` : "≈ $0.00"}
+        </span>
+        {token ? (
+          <span className="eyebrow text-muted-foreground/55">{token.name}</span>
+        ) : (
+          <span className="eyebrow text-muted-foreground/45">
+            {t("selectToken")}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//                            Swap form
+// ─────────────────────────────────────────────────────────────────────
 
 export default function SwapForm({
   initialTokens,
@@ -140,6 +303,7 @@ export default function SwapForm({
       return { ...tk, balance: parseFloat(formatted) || 0 };
     });
   }, [initialTokens, tokenBalances, balances]);
+
   const form = useForm<SwapFormValues>({
     resolver: zodResolver(swapSchema),
     defaultValues: { fromToken: "", toToken: "", fromAmount: "" },
@@ -148,7 +312,8 @@ export default function SwapForm({
 
   const fromToken = form.watch("fromToken");
   const toToken = form.watch("toToken");
-  const fromAmount = parseFloat(form.watch("fromAmount")) || 0;
+  const fromAmountRaw = form.watch("fromAmount");
+  const fromAmount = parseFloat(fromAmountRaw) || 0;
 
   // Settings state
   const [showSettings, setShowSettings] = useState(false);
@@ -214,9 +379,8 @@ export default function SwapForm({
     toTokenData?.token0 ||
     (toTokenData?.symbol === "WBNB" || toIsNative ? WBNB_ADDRESS : undefined);
 
-  const amountInWei = fromAmount > 0
-    ? parseEther(fromAmount.toString())
-    : undefined;
+  const amountInWei =
+    fromAmount > 0 ? parseEther(fromAmount.toString()) : undefined;
 
   const {
     submit: submitSwap,
@@ -227,7 +391,7 @@ export default function SwapForm({
   } = useSwap(
     address as Address | undefined,
     // tokenIn = undefined for native BNB so no ERC20 approval is attempted.
-    (fromIsNative ? undefined : (fromAddr as Address | undefined)),
+    fromIsNative ? undefined : (fromAddr as Address | undefined),
     EXCHANGE_HELPER_ADDRESS,
     amountInWei,
   );
@@ -242,7 +406,8 @@ export default function SwapForm({
       toast.success(t("toastSwapSuccess"), {
         action: {
           label: t("viewTx"),
-          onClick: () => window.open(`https://bscscan.com/tx/${hash}`, "_blank"),
+          onClick: () =>
+            window.open(`https://bscscan.com/tx/${hash}`, "_blank"),
         },
       });
       form.reset({ fromToken: "", toToken: "", fromAmount: "" });
@@ -261,9 +426,11 @@ export default function SwapForm({
     }
 
     const tokenIn =
-      fromTokenData.token0 || (fromTokenData.symbol === "WBNB" ? WBNB_ADDRESS : "");
+      fromTokenData.token0 ||
+      (fromTokenData.symbol === "WBNB" ? WBNB_ADDRESS : "");
     const tokenOut =
-      toTokenData.token0 || (toTokenData.symbol === "WBNB" ? WBNB_ADDRESS : "");
+      toTokenData.token0 ||
+      (toTokenData.symbol === "WBNB" ? WBNB_ADDRESS : "");
 
     if (!tokenIn || !tokenOut) {
       setQuote(null);
@@ -272,10 +439,6 @@ export default function SwapForm({
 
     let cancelled = false;
 
-    // Don't ask simulateTrade for priceImpact — vault.spotPriceX96 is a
-    // wei-denominated BNB price (≈10^14), not a real Uniswap V3
-    // sqrtPriceX96. Mixing the two produces nonsense (~e+69%). Price impact
-    // is computed below from executed rate vs spot rate.
     simulateTrade({
       quoterAddress: QUOTER_V2_ADDRESS,
       tokenIn: tokenIn as `0x${string}`,
@@ -295,9 +458,7 @@ export default function SwapForm({
     };
   }, [fromTokenData, toTokenData, fromAmount]);
 
-  const estimatedOutput = quote
-    ? Number(formatEther(quote.amountOut))
-    : 0;
+  const estimatedOutput = quote ? Number(formatEther(quote.amountOut)) : 0;
 
   const exchangeRate = useMemo(() => {
     if (!fromTokenData || !toTokenData) return "";
@@ -309,16 +470,14 @@ export default function SwapForm({
     return `1 ${fromToken} ≈ ${formatCompactNumber(rate)} ${toToken}`;
   }, [fromToken, toToken, fromTokenData, toTokenData, estimatedOutput, fromAmount]);
 
-  // Price impact from executed rate vs spot rate. Whichever leg is the vault
-  // token carries the spotPriceX96 (wei-denominated BNB-per-token); the
-  // other leg is the base pair (BNB/WBNB at 1:1 to BNB).
+  // Price impact from executed rate vs spot rate.
   const priceImpact = (() => {
     if (!quote || fromAmount <= 0 || estimatedOutput <= 0) return 0;
-    const vaultSource = fromTokenData?.spotPriceX96 || toTokenData?.spotPriceX96;
+    const vaultSource =
+      fromTokenData?.spotPriceX96 || toTokenData?.spotPriceX96;
     if (!vaultSource) return 0;
     const priceBnb = Number(BigInt(vaultSource)) / 1e18;
     if (priceBnb <= 0) return 0;
-    // expected output if there were zero slippage and zero fees
     const fromIsBaseLeg =
       fromTokenData?.symbol === "WBNB" || fromTokenData?.symbol === "BNB";
     const expected = fromIsBaseLeg
@@ -358,39 +517,55 @@ export default function SwapForm({
     });
   }
 
+  function handleFlipTokens() {
+    if (!fromTokenData && !toTokenData) return;
+    const prevFrom = fromToken;
+    const prevTo = toToken;
+    form.setValue("fromToken", prevTo, { shouldValidate: true });
+    form.setValue("toToken", prevFrom, { shouldValidate: true });
+    // Carry the estimated output into the new fromAmount when it exists,
+    // otherwise blank it so the form gates the submit until the user types.
+    if (estimatedOutput > 0) {
+      form.setValue("fromAmount", estimatedOutput.toString(), {
+        shouldValidate: true,
+      });
+    } else {
+      form.setValue("fromAmount", "", { shouldValidate: true });
+    }
+  }
+
   // ExchangeHelper routes against a single vault. One leg has to be the
-  // base pair (BNB or WBNB), the other is the vault token. The mode
-  // changes whether the base leg is native BNB or wrapped:
-  //   BNB  → vault   = buyTokens       (msg.value)
-  //   WBNB → vault   = buyTokensWETH   (ERC20 approve + transferFrom)
-  //   vault → BNB    = sellTokensETH   (returns native BNB)
-  //   vault → WBNB   = sellTokens      (returns WBNB)
-  // BNB↔WBNB and vault↔vault aren't supported here — wrap/unwrap lives in
-  // the header modal and multi-hop routing isn't implemented yet.
+  // base pair (BNB or WBNB), the other is the vault token.
   const fromIsWbnb = fromTokenData?.symbol === "WBNB";
   const toIsWbnb = toTokenData?.symbol === "WBNB";
   const fromIsBase = fromIsNative || fromIsWbnb;
   const toIsBase = toIsNative || toIsWbnb;
-  const vaultSide = fromIsBase && !toIsBase
-    ? toTokenData
-    : !fromIsBase && toIsBase
-      ? fromTokenData
-      : null;
+  const vaultSide =
+    fromIsBase && !toIsBase
+      ? toTokenData
+      : !fromIsBase && toIsBase
+        ? fromTokenData
+        : null;
   const swapMode: SwapMode | null =
     fromIsBase && !toIsBase
-      ? (fromIsNative ? "buyTokens" : "buyTokensWETH")
+      ? fromIsNative
+        ? "buyTokens"
+        : "buyTokensWETH"
       : !fromIsBase && toIsBase
-        ? (toIsNative ? "sellTokensETH" : "sellTokens")
+        ? toIsNative
+          ? "sellTokensETH"
+          : "sellTokens"
         : null;
   const isUnsupportedPair =
     !!fromTokenData && !!toTokenData && swapMode === null;
 
   async function onSubmit() {
     if (!fromAddr || !toAddr || !address || !quote) return;
-    if (!swapMode || !vaultSide?.vaultAddress || !vaultSide?.poolAddress) return;
+    if (!swapMode || !vaultSide?.vaultAddress || !vaultSide?.poolAddress)
+      return;
 
-    // Reset prior terminal state so the new attempt starts clean.
-    if (flowState.step === "success" || flowState.step === "error") resetSwap();
+    if (flowState.step === "success" || flowState.step === "error")
+      resetSwap();
 
     const amountIn = parseEther(fromAmount.toString());
     const slippageBps = Math.round(activeSlippage * 100);
@@ -427,97 +602,156 @@ export default function SwapForm({
     dismiss: t("dismiss"),
   };
 
+  const fromUsd =
+    fromTokenData && fromAmount > 0 ? fromAmount * fromTokenData.price : 0;
+  const toUsd =
+    toTokenData && estimatedOutput > 0
+      ? estimatedOutput * toTokenData.price
+      : 0;
+
+  const submitLabel = (() => {
+    if (isUnsupportedPair) return t("unsupportedPair");
+    switch (flowState.step) {
+      case "approve-wallet":
+        return t("awaitingApproveSignature", { token: fromToken || "Token" });
+      case "approve-pending":
+        return t("approvingOnChain", { token: fromToken || "Token" });
+      case "approve-confirmed":
+        return t("submittingSwap");
+      case "action-wallet":
+        return t("awaitingSwapSignature");
+      case "action-pending":
+        return t("swapPending");
+      default:
+        return needsApproval
+          ? t("approveAndSwap", { token: fromToken || "Token" })
+          : t("swapAction");
+    }
+  })();
+
+  // Compact pre-trade detail row — only renders once a quote exists.
+  const showDetails = !!(fromToken && toToken && fromAmount > 0);
+
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit)}
-      className="flex flex-col gap-4"
+      className="mx-auto flex w-full max-w-xl flex-col gap-4"
     >
-      {/* Settings sheet */}
-      <div className="flex justify-end">
-        <Sheet
-          title={t("settingsTitle")}
-          description={t("settingsDescription")}
-          side="right"
-          open={showSettings}
-          onOpenChange={setShowSettings}
-          submitLabel={t("saveSettings")}
-          cancelLabel={t("cancel")}
-          content={
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">
-                  {t("slippageTolerance")}
-                </span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <ButtonGroup>
-                    {SWAP_SLIPPAGE_OPTIONS.map((opt) => (
-                      <Button
-                        key={opt}
-                        type="button"
-                        size="sm"
-                        variant={slippage === opt ? "default" : "outline"}
-                        onClick={() => {
-                          setSlippage(opt);
-                          setCustomSlippage("");
-                        }}
-                      >
-                        {opt}%
-                      </Button>
-                    ))}
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={slippage === "custom" ? "default" : "outline"}
-                      onClick={() => setSlippage("custom")}
-                    >
-                      {t("custom")}
-                    </Button>
-                  </ButtonGroup>
-                  {slippage === "custom" && (
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="50"
-                      placeholder="0.5"
-                      value={customSlippage}
-                      onChange={(e) => setCustomSlippage(e.target.value)}
-                      className="h-8 w-20 text-xs"
-                    />
-                  )}
+      {/* Card chrome: a single tall plate. Header has the section eyebrow,
+       * current slippage chip, and the settings entrypoint. */}
+      <section
+        className={cn(
+          "relative isolate flex flex-col gap-3 overflow-hidden rounded-2xl border border-border/60 bg-card p-4",
+          "shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_18px_50px_-24px_rgba(0,0,0,0.75)]",
+          // Subtle warm top sheen so the card has presence on the page.
+          "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:-z-10 before:h-32",
+          "before:bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgba(245,200,67,0.08),transparent_70%)]",
+        )}
+      >
+        <header className="flex items-center justify-between gap-2 px-1">
+          <span className="inline-flex items-center gap-2">
+            <span
+              aria-hidden
+              className="block size-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(245,200,67,0.7)]"
+            />
+            <span className="eyebrow-strong">Swap</span>
+          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="hidden items-center gap-1 rounded-full border border-border/60 bg-card/40 px-2 py-0.5 font-mono text-mini tabular-nums tracking-tight text-muted-foreground sm:inline-flex">
+              <span className="eyebrow text-muted-foreground/60">Slip</span>
+              <span className="text-foreground">{activeSlippage}%</span>
+            </span>
+            <Sheet
+              title={t("settingsTitle")}
+              description={t("settingsDescription")}
+              side="right"
+              open={showSettings}
+              onOpenChange={setShowSettings}
+              submitLabel={t("saveSettings")}
+              cancelLabel={t("cancel")}
+              content={
+                <div className="flex flex-col gap-6">
+                  <div className="flex flex-col gap-2">
+                    <span className="eyebrow-strong">
+                      {t("slippageTolerance")}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ButtonGroup>
+                        {SWAP_SLIPPAGE_OPTIONS.map((opt) => (
+                          <Button
+                            key={opt}
+                            type="button"
+                            size="sm"
+                            variant={slippage === opt ? "default" : "outline"}
+                            onClick={() => {
+                              setSlippage(opt);
+                              setCustomSlippage("");
+                            }}
+                          >
+                            {opt}%
+                          </Button>
+                        ))}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={
+                            slippage === "custom" ? "default" : "outline"
+                          }
+                          onClick={() => setSlippage("custom")}
+                        >
+                          {t("custom")}
+                        </Button>
+                      </ButtonGroup>
+                      {slippage === "custom" && (
+                        <Input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="50"
+                          placeholder="0.5"
+                          value={customSlippage}
+                          onChange={(e) => setCustomSlippage(e.target.value)}
+                          className="h-8 w-20 text-xs"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <Checkbox
+                    checked={mevProtection}
+                    onCheckedChange={(v) => setMevProtection(v as boolean)}
+                    label={t("mevProtection")}
+                    description={t("mevProtectionDesc")}
+                  />
+
+                  <Checkbox
+                    checked={approveMax}
+                    onCheckedChange={(v) => setApproveMax(v as boolean)}
+                    label={t("approveMax")}
+                    description={t("approveMaxDesc")}
+                  />
                 </div>
-              </div>
+              }
+            >
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                aria-label={t("settingsTitle")}
+              >
+                <Settings className="size-4" />
+              </Button>
+            </Sheet>
+          </div>
+        </header>
 
-              <Checkbox
-                checked={mevProtection}
-                onCheckedChange={(v) => setMevProtection(v as boolean)}
-                label={t("mevProtection")}
-                description={t("mevProtectionDesc")}
-              />
-
-              <Checkbox
-                checked={approveMax}
-                onCheckedChange={(v) => setApproveMax(v as boolean)}
-                label={t("approveMax")}
-                description={t("approveMaxDesc")}
-              />
-            </div>
-          }
-        >
-          <Button type="button" variant="ghost" size="icon-xs">
-            <Settings className="size-4" />
-          </Button>
-        </Sheet>
-      </div>
-
-      <div className="flex flex-col items-stretch gap-3 lg:flex-row">
-        {/* From */}
-        <Card title={t("from")} className="w-full flex-1">
-          <div className="flex items-start gap-3">
-            <div className="flex-1">
-              <span className="mb-1 block text-sm font-medium">
-                {t("selectToken")}
-              </span>
+        {/* From / flip / To stack. The arrow button overlays the gap so the
+          * two panels read as a single swap action. */}
+        <div className="relative flex flex-col gap-1.5">
+          <SwapLeg
+            side="from"
+            token={fromTokenData}
+            picker={
               <Sheet
                 title={t("selectToken")}
                 description={t("searchToken")}
@@ -535,71 +769,43 @@ export default function SwapForm({
                   />
                 }
               >
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-accent"
-                >
-                  {fromTokenData ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar
-                        name={fromTokenData.symbol}
-                        src={fromTokenData.iconUrl}
-                        size="sm"
-                      />
-                      <span className="font-medium">
-                        {fromTokenData.symbol}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      {t("selectToken")}
-                    </span>
-                  )}
-                  <ChevronDown className="size-3.5 text-muted-foreground" />
-                </button>
+                <TokenPill
+                  token={fromTokenData}
+                  placeholder={t("selectToken")}
+                />
               </Sheet>
-            </div>
-            <div className="flex-1">
-              <Field
-                name="fromAmount"
-                control={form.control}
-                label={t("amount")}
-                t={t}
-                description={
-                  fromTokenData ? (
-                    <button
-                      type="button"
-                      onClick={handleUseMax}
-                      className="text-xs text-primary hover:underline"
-                    >
-                      {t("useMax", {
-                        amount: formatCompactNumber(fromTokenData.balance),
-                      })}
-                    </button>
-                  ) : undefined
-                }
-              >
-                {(field) => (
-                  <Input
-                    {...field}
-                    type="number"
-                    step="any"
-                    min="0"
-                    placeholder="0.00"
-                  />
-                )}
-              </Field>
-            </div>
-          </div>
-        </Card>
+            }
+            value={fromAmountRaw}
+            onValueChange={(v) =>
+              form.setValue("fromAmount", v, { shouldValidate: true })
+            }
+            balance={fromTokenData?.balance}
+            showMax
+            onMax={handleUseMax}
+            usd={fromUsd}
+            emphasis
+            t={t}
+          />
 
-        {/* To */}
-        <Card title={t("to")} className="w-full flex-1">
-          <div className="flex items-start gap-3">
-            <div className="flex-1">
-              <span className="mb-1 block text-sm font-medium">
-                {t("selectToken")}
-              </span>
+          <div className="pointer-events-none absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 justify-center">
+            <button
+              type="button"
+              onClick={handleFlipTokens}
+              aria-label={t("flipTokens")}
+              className={cn(
+                "pointer-events-auto inline-flex size-8 items-center justify-center rounded-full border border-border/70 bg-card text-foreground transition-all",
+                "shadow-[0_1px_0_rgba(255,255,255,0.05)_inset,0_4px_12px_-4px_rgba(0,0,0,0.6)]",
+                "hover:rotate-180 hover:border-primary/50 hover:text-primary",
+              )}
+            >
+              <ArrowDown className="size-3.5" strokeWidth={2.5} />
+            </button>
+          </div>
+
+          <SwapLeg
+            side="to"
+            token={toTokenData}
+            picker={
               <Sheet
                 title={t("selectToken")}
                 description={t("searchToken")}
@@ -617,118 +823,92 @@ export default function SwapForm({
                   />
                 }
               >
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm hover:bg-accent"
-                >
-                  {toTokenData ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar
-                        name={toTokenData.symbol}
-                        src={toTokenData.iconUrl}
-                        size="sm"
-                      />
-                      <span className="font-medium">{toTokenData.symbol}</span>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      {t("selectToken")}
-                    </span>
-                  )}
-                  <ChevronDown className="size-3.5 text-muted-foreground" />
-                </button>
+                <TokenPill
+                  token={toTokenData}
+                  placeholder={t("selectToken")}
+                />
               </Sheet>
-            </div>
-            <div className="flex-1">
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-medium">
-                  {t("estimatedOutput")}
-                </span>
-                <span className="text-lg font-semibold">
-                  {estimatedOutput > 0
-                    ? `${formatCompactNumber(estimatedOutput)} ${toToken}`
-                    : "0.00"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {fromToken && toToken && (
-        <>
-          <KeyValueCard
-            rows={[
-              { label: t("exchangeRate"), value: exchangeRate },
-              {
-                label: t("priceImpact"),
-                value: `${priceImpact.toFixed(2)}%`,
-                variant: priceImpact > 1 ? "destructive" : "success",
-              },
-              {
-                label: t("minReceived"),
-                value:
-                  minReceived > 0
-                    ? `${formatCompactNumber(minReceived)} ${toToken}`
-                    : "--",
-              },
-              {
-                label: t("slippageTolerance"),
-                value: `${activeSlippage}%`,
-              },
-            ]}
+            }
+            value={
+              estimatedOutput > 0 ? formatCompactNumber(estimatedOutput) : ""
+            }
+            readOnly
+            usd={toUsd}
+            t={t}
           />
+        </div>
 
-          {/* Routing info */}
-          <Card
-            title={t("routingTitle")}
-            description={t("routingDescription")}
-          >
-            <div className="flex flex-col gap-2">
-              {SWAP_ROUTES.map((route) => (
-                <div
-                  key={route.dex}
-                  className="flex items-center justify-between"
-                >
-                  <span className="text-sm">{route.dex}</span>
-                  <Badge variant="outline">{route.share}%</Badge>
-                </div>
-              ))}
+        {/* Pre-trade detail — compact label/value rows in a divided list.
+          * Only mounts once both legs are picked and an amount is set. */}
+        {showDetails && (
+          <dl className="mt-1 flex flex-col divide-y divide-border/40 overflow-hidden rounded-md border border-border/40 bg-background/30 text-sm">
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <dt className="eyebrow">{t("exchangeRate")}</dt>
+              <dd className="font-mono text-xs tabular-nums text-foreground">
+                {exchangeRate}
+              </dd>
             </div>
-          </Card>
-        </>
-      )}
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <dt className="eyebrow">{t("priceImpact")}</dt>
+              <dd
+                className={cn(
+                  "inline-flex items-center gap-1 font-mono text-xs tabular-nums",
+                  priceImpact > 1
+                    ? "text-destructive"
+                    : priceImpact > 0.3
+                      ? "text-warning"
+                      : "text-success",
+                )}
+              >
+                {priceImpact > 1 && (
+                  <AlertTriangle className="size-3" strokeWidth={2.5} />
+                )}
+                {priceImpact.toFixed(2)}%
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <dt className="eyebrow">{t("minReceived")}</dt>
+              <dd className="font-mono text-xs tabular-nums text-foreground">
+                {minReceived > 0
+                  ? `${formatCompactNumber(minReceived)} ${toToken}`
+                  : "—"}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <dt className="eyebrow">{t("slippageTolerance")}</dt>
+              <dd className="inline-flex items-center gap-2">
+                <span className="font-mono text-xs tabular-nums text-foreground">
+                  {activeSlippage}%
+                </span>
+                {mevProtection && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-success/30 bg-success/10 px-1.5 py-0.5 text-2xs font-semibold uppercase tracking-[0.08em] text-success">
+                    <ShieldCheck className="size-3" />
+                    MEV
+                  </span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        )}
 
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={
-          !form.formState.isValid || isSwapPending || isUnsupportedPair
-        }
-        isLoading={isSwapPending}
-      >
-        {(() => {
-          if (isUnsupportedPair) return t("unsupportedPair");
-          switch (flowState.step) {
-            case "approve-wallet":
-              return t("awaitingApproveSignature", { token: fromToken || "Token" });
-            case "approve-pending":
-              return t("approvingOnChain", { token: fromToken || "Token" });
-            case "approve-confirmed":
-              return t("submittingSwap");
-            case "action-wallet":
-              return t("awaitingSwapSignature");
-            case "action-pending":
-              return t("swapPending");
-            default:
-              return needsApproval
-                ? t("approveAndSwap", { token: fromToken || "Token" })
-                : t("swapAction");
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={
+            !form.formState.isValid || isSwapPending || isUnsupportedPair
           }
-        })()}
-      </Button>
+          isLoading={isSwapPending}
+        >
+          {submitLabel}
+        </Button>
 
-      <TxFlowStatus state={flowState} labels={flowLabels} onDismiss={resetSwap} />
+        <TxFlowStatus
+          state={flowState}
+          labels={flowLabels}
+          onDismiss={resetSwap}
+        />
+      </section>
     </form>
   );
 }

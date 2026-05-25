@@ -1,5 +1,26 @@
 import { fetchApi } from "@/utils/fetcher";
 import type { TokenApiData, TokenApiResponse } from "@/types/interfaces";
+import { isTokenBlocked } from "@/utils/token-blocklist";
+
+/**
+ * Filter out any token matching the frontend blocklist
+ * (see types/constants.ts → BLOCKED_TOKENS). Runs at the service layer
+ * so Markets, Exchange, Studio, and direct symbol routes all inherit it.
+ */
+function filterBlocked(tokens: TokenApiResponse[]): TokenApiResponse[] {
+  return tokens.filter(
+    (t) =>
+      !isTokenBlocked({
+        symbol: t.tokenSymbol,
+        addresses: [
+          t.tokenAddress,
+          t.contractAddress,
+          t.vaultAddress,
+          t.poolAddress,
+        ],
+      }),
+  );
+}
 
 /**
  * Fetch the catalog of tokens.
@@ -16,9 +37,10 @@ export async function fetchTokens(options?: {
     if (options?.chainId) params.set("chainId", options.chainId.toString());
 
     const qs = params.toString();
-    return await fetchApi<TokenApiResponse[]>(
+    const tokens = await fetchApi<TokenApiResponse[]>(
       `/api/tokens${qs ? `?${qs}` : ""}`,
     );
+    return filterBlocked(tokens);
   } catch (error) {
     console.error("[TokenService] fetchTokens:", error);
     return [];
@@ -36,7 +58,8 @@ export async function fetchTokenBySymbol(
     const tokens = await fetchApi<TokenApiResponse[]>(
       `/api/tokens/by-symbol/${symbol}`,
     );
-    return tokens?.[0] ?? null;
+    const filtered = filterBlocked(tokens ?? []);
+    return filtered[0] ?? null;
   } catch (error) {
     console.error("[TokenService] fetchTokenBySymbol:", error);
     return null;
@@ -65,7 +88,10 @@ export async function fetchTokensByDeployer(
   address: string,
 ): Promise<TokenApiResponse[]> {
   try {
-    return await fetchApi<TokenApiResponse[]>(`/api/tokens/deployer/${address}`);
+    const tokens = await fetchApi<TokenApiResponse[]>(
+      `/api/tokens/deployer/${address}`,
+    );
+    return filterBlocked(tokens);
   } catch (error) {
     console.error("[TokenService] fetchTokensByDeployer:", error);
     return [];

@@ -101,27 +101,19 @@ export default function WalletPanel() {
 
                 <div className="flex items-center justify-between">
                   {balance.token === "BNB" ? (
-                    <button
-                      type="button"
-                      onClick={() => openWrap("wrap")}
-                      className="text-[10px]"
-                    >
+                    <button type="button" onClick={() => openWrap("wrap")}>
                       <Badge
                         variant="outline"
-                        className="cursor-pointer px-1.5 py-0 text-[10px] leading-none transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                        className="cursor-pointer px-1.5 py-0 text-2xs leading-none transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
                       >
                         {t("wrap")}
                       </Badge>
                     </button>
                   ) : balance.token === "WBNB" ? (
-                    <button
-                      type="button"
-                      onClick={() => openWrap("unwrap")}
-                      className="text-[10px]"
-                    >
+                    <button type="button" onClick={() => openWrap("unwrap")}>
                       <Badge
                         variant="outline"
-                        className="cursor-pointer px-1.5 py-0 text-[10px] leading-none transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                        className="cursor-pointer px-1.5 py-0 text-2xs leading-none transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
                       >
                         {t("unwrap")}
                       </Badge>
@@ -129,7 +121,7 @@ export default function WalletPanel() {
                   ) : (
                     <span />
                   )}
-                  <span className="text-[10px] leading-none text-muted-foreground">
+                  <span className="text-2xs leading-none text-muted-foreground">
                     ≈ {balance.usd}
                   </span>
                 </div>

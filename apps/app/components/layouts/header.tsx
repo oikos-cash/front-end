@@ -71,11 +71,11 @@ export default function Header() {
               <path d="M136.6,63.5c2.5,0,5,0,7.5,0c0,24.3,0,48.5,0,72.8c-2.5,0-4.9,0-7.5,0C136.6,112.1,136.6,87.9,136.6,63.5z" />
             </svg>
           </Link>
-          <Badge variant="default" className="font-mono text-[10px] uppercase tracking-wider">{t("beta")}</Badge>
+          <Badge variant="default" className="font-mono text-2xs uppercase tracking-[0.08em]">{t("beta")}</Badge>
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Badge variant="outline" className="font-mono tabular-nums text-[11px]">
+          <Badge variant="outline" className="font-mono tabular-nums text-mini">
             BNB/USD{" "}
             <span className="ml-1.5 text-foreground" suppressHydrationWarning>
               {mounted ? `$${bnbPrice.toFixed(4)}` : "—"}

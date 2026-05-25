@@ -1,7 +1,6 @@
 // Components
-import PageHeader from "@/components/molecules/page-header";
+import LaunchpadStepHeader from "@/components/molecules/launchpad/step-header";
 import LaunchpadPresaleForm from "@/components/organism/form/launchpad-presale";
-import LaunchpadSummary from "@/components/molecules/launchpad/summary";
 
 // Hooks
 import { useTranslations } from "next-intl";
@@ -11,16 +10,14 @@ export default function LaunchpadPresaleTemplate() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
+      <LaunchpadStepHeader
+        step={3}
+        totalSteps={4}
+        stepLabel={t("stepPresale")}
         title={t("presalePage.title")}
         description={t("presalePage.description")}
-        breadcrumbs={[
-          { label: t("title"), href: "/launchpad/token" },
-          { label: t("stepPresale") },
-        ]}
       />
       <LaunchpadPresaleForm />
-      <LaunchpadSummary variant="presale" />
     </div>
   );
 }
