@@ -1,5 +1,6 @@
 import { fetchVaultServer } from "@/utils/fetcher";
 import { SSR_REVALIDATE_DEFAULT } from "@/types/constants";
+import { filterBlockedVaults } from "@/utils/token-blocklist";
 import type { VaultInfo } from "@/types/interfaces";
 
 /**
@@ -10,9 +11,10 @@ export async function fetchVaultByToken(
   tokenSlug: string,
 ): Promise<VaultInfo | null> {
   try {
-    const vaults = await fetchVaultServer<VaultInfo[]>("/vaults", {
+    const rawVaults = await fetchVaultServer<VaultInfo[]>("/vaults", {
       revalidate: SSR_REVALIDATE_DEFAULT,
     });
+    const vaults = filterBlockedVaults(rawVaults);
 
     const slug = tokenSlug.toLowerCase();
     return (
