@@ -32,9 +32,10 @@ import { FACTORY_ABI, FACTORY_ADDRESS } from "@/lib/oikos-addresses";
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
 
 /**
- * Native BNB attached to the deployVault transaction. The Factory's
- * deployVault entrypoint is `payable`; this value covers whatever fee /
- * funding the factory requires for a fresh deploy.
+ * Native BNB attached to the deployVault transaction when the user
+ * enables the presale leg. Per the factory's test vectors:
+ *   • presale OFF → msg.value = 0
+ *   • presale ON  → msg.value = 0.0001 BNB (1e14 wei)
  */
 const DEPLOYMENT_FEE_BNB = parseEther("0.0001");
 
@@ -122,9 +123,20 @@ export default function LaunchpadSidebar({
     if (writeError || receiptError) resetDeployWrite();
 
     const useUniswap = protocol === "uniswap";
-    const presaleSeconds = enablePresale ? safeBigInt(presaleDuration) : 0n;
     const supplyWei = safeParseEther(totalSupply);
-    const priceWei = safeParseEther(floorPrice);
+    const floorPriceWei = safeParseEther(floorPrice);
+    // Legacy launchpad: the on-chain IDOPrice is the user's floor price
+    // marked up 25% (the "sale price"). Keep BigInt arithmetic to avoid
+    // float drift on small values.
+    const idoPriceWei = (floorPriceWei * 125n) / 100n;
+    // Hardcap (in BNB wei) = floorPrice × totalSupply × 10% =
+    //   (floorPriceWei × supplyWei) / 1e18 / 10 = / 1e19.
+    // Soft cap is `softCapPercent` of the hardcap.
+    const hardcapWei = (floorPriceWei * supplyWei) / 10n ** 19n;
+    const softCapWei = (hardcapWei * BigInt(softCapPercent)) / 100n;
+    // Deadline is required > 0 even on the no-presale path; the store seeds
+    // a 30-day default so this is always safe.
+    const deadlineSec = safeBigInt(presaleDuration);
 
     writeContract({
       address: FACTORY_ADDRESS,
@@ -132,8 +144,8 @@ export default function LaunchpadSidebar({
       functionName: "deployVault",
       args: [
         {
-          softCap: safeParseEther(softCapPercent),
-          deadline: presaleSeconds,
+          softCap: softCapWei,
+          deadline: deadlineSec,
         },
         {
           name: tokenName,
@@ -141,8 +153,8 @@ export default function LaunchpadSidebar({
           decimals: tokenDecimals,
           initialSupply: supplyWei,
           maxTotalSupply: supplyWei,
-          IDOPrice: priceWei,
-          floorPrice: priceWei,
+          IDOPrice: idoPriceWei,
+          floorPrice: floorPriceWei,
           token1: WBNB_ADDRESS as Address,
           feeTier: feeTierFor(protocol),
           // tokenConfig.presale is a uint8 flag (0 = no presale, 1 = enabled),
@@ -157,7 +169,9 @@ export default function LaunchpadSidebar({
           vaultAddress: zeroAddress,
         },
       ],
-      value: DEPLOYMENT_FEE_BNB,
+      // Factory test vectors: msg.value is zero on the no-presale path and
+      // 0.0001 BNB when the presale leg is enabled.
+      value: enablePresale ? DEPLOYMENT_FEE_BNB : 0n,
       gas: 30_000_000n,
     });
   }
