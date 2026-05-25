@@ -7,18 +7,21 @@ import { parseEther } from "viem";
  * before they sign — otherwise they hit a wallet pop-up only to watch
  * the tx revert.
  *
- * The ladder maps IDOPrice (in wei) to a minimum total supply (in plain
- * tokens, not wei):
+ * Live `basePriceDecimals` on the production factory is `1e13` (the
+ * deploy script's `1e14` literal was superseded by a later
+ * `setProtocolParameters` call). The ladder maps IDOPrice (in wei) to a
+ * minimum total supply (in plain tokens, not wei) using strict `>`
+ * boundaries:
  *
- *   IDOPrice  > 1e14   → 1M
- *   IDOPrice  > 1e13   → 10M
- *   IDOPrice  > 1e12   → 1B
- *   IDOPrice  > 1e11   → 10B
- *   IDOPrice  > 1e10   → 100B
- *   IDOPrice  > 1e9    → 1T
- *   IDOPrice  > 1e8    → 10T
- *   IDOPrice  > 1e7    → 100T
- *   IDOPrice ≤ 1e7     → 1M (floor)
+ *   IDOPrice  > 1e13   → 1M
+ *   IDOPrice  > 1e12   → 10M
+ *   IDOPrice  > 1e11   → 1B
+ *   IDOPrice  > 1e10   → 10B
+ *   IDOPrice  > 1e9    → 100B
+ *   IDOPrice  > 1e8    → 1T
+ *   IDOPrice  > 1e7    → 10T
+ *   IDOPrice  > 1e6    → 100T
+ *   IDOPrice ≤ 1e6     → 1000T (floor)
  *
  * The contract's WAD scaling (× 1e18) is applied by the caller when it
  * needs the value in wei — this helper returns plain tokens so the UI
@@ -42,15 +45,15 @@ export function idoPriceFromFloorWei(floorPriceWei: bigint): bigint {
  * Mirrors `SupplyRules.enforceMinTotalSupply`.
  */
 export function minTotalSupplyTokensForIdoPrice(idoPriceWei: bigint): bigint {
-  if (idoPriceWei > 10n ** 14n) return 1_000_000n;
-  if (idoPriceWei > 10n ** 13n) return 10_000_000n;
-  if (idoPriceWei > 10n ** 12n) return 1_000_000_000n;
-  if (idoPriceWei > 10n ** 11n) return 10_000_000_000n;
-  if (idoPriceWei > 10n ** 10n) return 100_000_000_000n;
-  if (idoPriceWei > 10n ** 9n) return 1_000_000_000_000n;
-  if (idoPriceWei > 10n ** 8n) return 10_000_000_000_000n;
-  if (idoPriceWei > 10n ** 7n) return 100_000_000_000_000n;
-  return 1_000_000n;
+  if (idoPriceWei > 10n ** 13n) return 1_000_000n;
+  if (idoPriceWei > 10n ** 12n) return 10_000_000n;
+  if (idoPriceWei > 10n ** 11n) return 1_000_000_000n;
+  if (idoPriceWei > 10n ** 10n) return 10_000_000_000n;
+  if (idoPriceWei > 10n ** 9n) return 100_000_000_000n;
+  if (idoPriceWei > 10n ** 8n) return 1_000_000_000_000n;
+  if (idoPriceWei > 10n ** 7n) return 10_000_000_000_000n;
+  if (idoPriceWei > 10n ** 6n) return 100_000_000_000_000n;
+  return 1_000_000_000_000_000n;
 }
 
 /**
