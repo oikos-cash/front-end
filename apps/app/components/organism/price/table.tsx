@@ -134,8 +134,12 @@ export default function PriceTable() {
 
   const tokens = data ?? [];
 
-  // Get live price from WS for the first token's pool
+  // Get live price from WS for the first token's pool. Only ever applies
+  // to the row that owns this pool — applying it globally (as the cell
+  // renderer used to) overwrote every other row's price with the WS
+  // pool's value, so OKS, DWS, etc. all displayed the same number.
   const firstPool = tokens[0]?.poolAddress;
+  const firstPoolKey = firstPool?.toLowerCase();
   const { livePrice } = useExchangeWS(firstPool);
 
   // Sidebar variant: drop FDV (lives in the dedicated Markets table) and pack
@@ -163,7 +167,16 @@ export default function PriceTable() {
         accessorKey: "price",
         header: () => <div className="text-right">{t("price")}</div>,
         cell: ({ row }) => {
-          const priceBnb = livePrice ?? (row.getValue("price") as number);
+          // Live price applies only to the row whose pool we've
+          // actually subscribed to — every other row uses the static
+          // price the SSR pipeline merged from the vault feed.
+          const isLivePool =
+            firstPoolKey != null &&
+            row.original.poolAddress?.toLowerCase() === firstPoolKey;
+          const priceBnb =
+            isLivePool && livePrice != null
+              ? livePrice
+              : (row.getValue("price") as number);
           const priceUsd = priceBnb * bnbPrice;
           const display =
             priceUsd >= 1
@@ -194,7 +207,7 @@ export default function PriceTable() {
         },
       },
     ],
-    [t, bnbPrice, livePrice],
+    [t, bnbPrice, livePrice, firstPoolKey],
   );
 
   return (
