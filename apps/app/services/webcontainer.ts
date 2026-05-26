@@ -64,7 +64,10 @@ interface PendingRequest {
   reject: (err: Error) => void;
 }
 
-const REQUEST_TIMEOUT_MS = 10_000;
+// First `node` spawn in a fresh kernel session triggers wc-patches
+// (`L8x=APPLIED count=16 dirs=16`) which can take 15–30 s — well past
+// the old 10 s timeout. Subsequent spawns are fast.
+const REQUEST_TIMEOUT_MS = 120_000;
 
 /**
  * Open a WebSocket against a server-resident webcontainer-oss instance
@@ -227,8 +230,17 @@ export function connectWebContainer(
   return {
     isReady: () => ready,
     spawn: async (opts) => {
+      // Wire protocol expects `command: string` + `args: string[]`
+      // separately (see remote-protocol.ts). The local SpawnOptions
+      // shape combines them into a single argv array for ergonomics,
+      // so split here at the boundary.
+      const [command, ...args] = opts.command;
+      if (!command) {
+        throw new Error("spawn: SpawnOptions.command must be a non-empty argv");
+      }
       const result = await call<{ pid: number }>("spawn", {
-        command: opts.command,
+        command,
+        args,
         cols: opts.cols,
         rows: opts.rows,
         cwd: opts.cwd,

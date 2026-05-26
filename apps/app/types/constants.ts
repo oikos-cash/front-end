@@ -43,7 +43,7 @@ export const WALLETCONNECT_PROJECT_ID =
  * (`tsx server.ts`) which listens on `ws://localhost:8902`.
  */
 export const WEBCONTAINER_WS_URL =
-  process.env.NEXT_PUBLIC_WEBCONTAINER_WS_URL ?? "";
+  process.env.NEXT_PUBLIC_WEBCONTAINER_WS_URL ?? "ws://localhost:8902/";
 
 export const SUPPORTED_CHAIN_IDS = [56] as const;
 
