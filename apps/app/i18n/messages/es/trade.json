@@ -1,7 +1,7 @@
 {
   "trade": {
-    "title": "Operar OKS",
-    "description": "Compra y vende tokens OKS al instante con bajas comisiones",
+    "title": "Operar {token}",
+    "description": "Compra y vende tokens {token} al instante con bajas comisiones",
     "buying": "COMPRANDO",
     "selling": "VENDIENDO",
     "buy": "Comprar",
@@ -21,8 +21,8 @@
     "approve": "Aprobar Token",
     "approveMax": "Aprobar Max",
     "approveMaxDescription": "Aprobar gasto ilimitado para evitar futuras aprobaciones",
-    "buyOks": "Comprar OKS",
-    "sellOks": "Vender OKS",
+    "buyOks": "Comprar {token}",
+    "sellOks": "Vender {token}",
     "buyAction": "Comprar",
     "sellAction": "Vender",
     "approveAndTrade": "Aprobar {token} y {action}",
@@ -38,7 +38,7 @@
     "viewTx": "Ver tx",
     "dismiss": "Cerrar",
     "connectTitle": "Conecta tu Billetera",
-    "connectDescription": "Conecta tu billetera para comprar y vender tokens OKS",
+    "connectDescription": "Conecta tu billetera para comprar y vender tokens {token}",
     "connectButton": "Conectar Billetera",
     "errors": {
       "required": "La cantidad es requerida",

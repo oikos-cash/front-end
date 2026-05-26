@@ -1,7 +1,7 @@
 {
   "trade": {
-    "title": "Trade OKS",
-    "description": "Buy and sell OKS tokens instantly with low fees",
+    "title": "Trade {token}",
+    "description": "Buy and sell {token} tokens instantly with low fees",
     "buying": "BUYING",
     "selling": "SELLING",
     "buy": "Buy",
@@ -21,8 +21,8 @@
     "approve": "Approve Token",
     "approveMax": "Approve Max",
     "approveMaxDescription": "Approve unlimited spending to avoid future approvals",
-    "buyOks": "Buy OKS",
-    "sellOks": "Sell OKS",
+    "buyOks": "Buy {token}",
+    "sellOks": "Sell {token}",
     "buyAction": "Buy",
     "sellAction": "Sell",
     "approveAndTrade": "Approve {token} & {action}",
@@ -38,7 +38,7 @@
     "viewTx": "View tx",
     "dismiss": "Dismiss",
     "connectTitle": "Connect Wallet to Trade",
-    "connectDescription": "Connect your wallet to start buying and selling OKS tokens",
+    "connectDescription": "Connect your wallet to start buying and selling {token} tokens",
     "connectButton": "Connect Wallet",
     "errors": {
       "required": "Amount is required",
