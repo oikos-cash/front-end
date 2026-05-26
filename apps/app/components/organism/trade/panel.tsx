@@ -208,8 +208,8 @@ export default function TradePanel() {
 
   return (
     <Card
-      title={t("title")}
-      description={t("description")}
+      title={t("title", { token: tokenSymbol })}
+      description={t("description", { token: tokenSymbol })}
       action={
         hasVault && isConnected ? (
           <Badge
@@ -230,7 +230,7 @@ export default function TradePanel() {
       ) : !isConnected ? (
         <Empty
           title={t("connectTitle")}
-          description={t("connectDescription")}
+          description={t("connectDescription", { token: tokenSymbol })}
           icon={<Lock className="size-6 text-muted-foreground" />}
         >
           <Button variant="default" size="sm" onClick={handleConnect}>
@@ -464,8 +464,8 @@ export default function TradePanel() {
                           action: side === "buy" ? t("buyAction") : t("sellAction"),
                         })
                       : side === "buy"
-                        ? t("buyOks")
-                        : t("sellOks");
+                        ? t("buyOks", { token: tokenSymbol })
+                        : t("sellOks", { token: tokenSymbol });
                 }
               })()}
             </Button>

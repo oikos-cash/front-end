@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 // Hooks
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
 import { useGasPrice } from "wagmi";
 import { useWallet } from "@/stores/wallet";
 import { useBnbPrice } from "@/hooks/use-bnb-price";
@@ -33,6 +34,8 @@ import Button from "@/components/atoms/button";
 // Utils
 import { formatCompactNumber } from "@/utils/number";
 import { swrFetcher } from "@/utils/fetcher";
+import { filterBlockedVaults } from "@/utils/token-blocklist";
+import { tokenSlugFromPathname } from "@/utils/route-token";
 
 // Services
 import {
@@ -63,6 +66,7 @@ export function useTradePanel() {
     useWallet();
   const { data: networkGasPriceWei } = useGasPrice();
   const { bnbPrice } = useBnbPrice();
+  const pathname = usePathname();
 
   // null = follow the network gas price; a positive number means the user has
   // overridden gas price via the Network Fee modal, value in *gwei*.
@@ -72,13 +76,31 @@ export function useTradePanel() {
     : networkGasPriceWei;
 
   // Check if backend has vaults
-  const { data: vaults, isLoading: isLoadingVaults } = useSWR<VaultInfo[]>(
+  const { data: rawVaults, isLoading: isLoadingVaults } = useSWR<VaultInfo[]>(
     `${VAULT_API_URL}/vaults`,
     swrFetcher,
     { errorRetryCount: 0, revalidateOnFocus: false },
   );
+  const vaults = useMemo(
+    () => (rawVaults ? filterBlockedVaults(rawVaults) : rawVaults),
+    [rawVaults],
+  );
   const hasVault = (vaults?.length ?? 0) > 0;
-  const vault = vaults?.[0] ?? null;
+  // Follow the URL: on /trade/dws, /borrow/dws, /liquidity/dws … the
+  // panel should buy/sell that vault's token, not whichever happened to
+  // land first in the SWR feed. Falls back to the first vault on
+  // non-token pages (e.g. /, /markets).
+  const vault = useMemo(() => {
+    if (!vaults || vaults.length === 0) return null;
+    const slug = tokenSlugFromPathname(pathname);
+    if (slug) {
+      const match = vaults.find(
+        (v) => v.tokenSymbol?.toLowerCase() === slug,
+      );
+      if (match) return match;
+    }
+    return vaults[0];
+  }, [vaults, pathname]);
 
   const [side, setSide] = useState<TradeSide>("buy");
   const [slippage, setSlippage] = useState<SlippageOption>("0.5");
