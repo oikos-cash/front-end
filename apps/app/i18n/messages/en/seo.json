@@ -17,6 +17,10 @@
       "title": "Swap",
       "description": "Swap tokens instantly with minimal slippage on the Oikos decentralized exchange"
     },
+    "terminal": {
+      "title": "Terminal",
+      "description": "Open a bash-style session against an Oikos webcontainer"
+    },
     "trade": {
       "title": "Trade {token}",
       "description": "Trade {token} on Oikos — live charts, market depth, and instant execution"

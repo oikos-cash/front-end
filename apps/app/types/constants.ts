@@ -32,6 +32,19 @@ export const WS_URL =
 export const WALLETCONNECT_PROJECT_ID =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 
+/**
+ * WebSocket URL for the webcontainer-oss server-resident RPC. Empty
+ * by default — the /terminal route gates on this being set so a
+ * misconfigured environment surfaces a clear "not configured" empty
+ * state instead of a dangling connection attempt.
+ *
+ * For local dev, start the reference server from
+ * `/data4/ex-cc/webcontainer-oss/examples/server-resident-container/`
+ * (`tsx server.ts`) which listens on `ws://localhost:8902`.
+ */
+export const WEBCONTAINER_WS_URL =
+  process.env.NEXT_PUBLIC_WEBCONTAINER_WS_URL ?? "";
+
 export const SUPPORTED_CHAIN_IDS = [56] as const;
 
 // =================================================
