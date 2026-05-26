@@ -15,6 +15,17 @@ import type {
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 /**
+ * Fallback creation dates for vaults the backend's `/api/tokens` feed
+ * isn't populating with a real `timestamp` yet. Looked up by upper-
+ * cased `tokenSymbol`. Remove entries here as the backend starts
+ * persisting metadata on deploy.
+ */
+const HARDCODED_CREATED_AT: Record<string, Date | undefined> = {
+  OKS: new Date("2025-06-17T00:00:00.000Z"),
+  DWS: new Date("2026-05-25T00:00:00.000Z"),
+};
+
+/**
  * Fetch vaults + token metadata from the API and merge into MarketToken[].
  * Called from the Markets page Server Component.
  */
@@ -87,11 +98,13 @@ function mergeVaultToken(
     marketCap,
     totalSupply,
     circulatingSupply,
+    // Hardcoded fallback creation dates for vaults the backend's
+    // /api/tokens feed currently returns nothing for. Drop each entry
+    // here once the backend starts persisting real `timestamp` values
+    // on `saveToken`.
     createdAt: tokenInfo?.timestamp
       ? new Date(tokenInfo.timestamp)
-      : vault.tokenSymbol?.toUpperCase() === "OKS"
-        ? new Date("2025-06-17T00:00:00.000Z")
-        : undefined,
+      : HARDCODED_CREATED_AT[vault.tokenSymbol?.toUpperCase() ?? ""],
     raised: undefined, // Populated client-side from presale contract reads
     hardCap: tokenInfo?.softCap ? parseFloat(tokenInfo.softCap) : undefined,
     vaultAddress: vault.address,
