@@ -75,7 +75,7 @@ export default function TerminalTemplate() {
           </Button>
         </Empty>
       ) : (
-        <TerminalShell />
+        <TerminalShell command={["node", "./agent-entry-server.mjs"]} />
       )}
     </div>
   );
