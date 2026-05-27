@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Terminal, type ITheme } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -11,7 +11,8 @@ import "@xterm/xterm/css/xterm.css";
 import Button from "@/components/atoms/button";
 
 import { useWebContainer } from "@/hooks/use-webcontainer";
-import { WEBCONTAINER_HOST_TUNNEL } from "@/types/constants";
+import { useWalletBridge } from "@/hooks/use-wallet-bridge";
+import { API_BASE_URL, WEBCONTAINER_HOST_TUNNEL } from "@/types/constants";
 
 import type { SpawnHandle, WebContainerClient } from "@/services/webcontainer";
 
@@ -98,6 +99,17 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
   const [statusMsg, setStatusMsg] = useState<string>("booting kernel…");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // One bridge session per AgentShell mount. The agent process gets
+  // ${tunnel}/api/wallet-bridge/<sessionId> in its env; useWalletBridge
+  // subscribes to the same id from this React tree, so signing
+  // requests from the in-container ethers Signer round-trip back here
+  // and pop MetaMask via wagmi.
+  const bridgeSessionId = useMemo(
+    () => `bridge_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`,
+    [],
+  );
+  useWalletBridge({ sessionId: bridgeSessionId });
+
   const { client, isConnected } = useWebContainer({
     backend: "stackblitz",
     workdirName: WORKDIR_NAME,
@@ -178,7 +190,7 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
         command: ["node", "./agent-entry.mjs", ...args],
         cols: term.cols,
         rows: term.rows,
-        env: agentEnv(),
+        env: agentEnv(bridgeSessionId),
       });
       handleRef.current = handle;
 
@@ -218,7 +230,7 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
       handleRef.current = null;
       return { code, output: captureRef.current };
     },
-    [],
+    [bridgeSessionId],
   );
 
   // Drive the boot → mount → spawn pipeline once the client is live.
@@ -437,13 +449,23 @@ function statusKindFor(phase: Phase): "" | "ok" | "warn" | "err" {
   }
 }
 
-function agentEnv(): Record<string, string> {
+function agentEnv(bridgeSessionId: string): Record<string, string> {
   return {
     OIKOS_AGENT_PROVIDER: "dyspel",
     OIKOS_MCP_COMMAND: "node",
     OIKOS_MCP_ARGS: "./mcp-server.bundle.mjs",
     OIKOS_CHAIN_ID: "56",
-    OIKOS_DRY_RUN: "true",
+    // OIKOS_DRY_RUN intentionally set to "false" in remote-signer mode:
+    // the user's MetaMask is the per-transaction gatekeeper, and
+    // dry-run short-circuits the SDK before it ever reaches the
+    // signer (so MetaMask would never pop). The user can still reject
+    // any tx in the wallet UI.
+    OIKOS_DRY_RUN: WEBCONTAINER_HOST_TUNNEL ? "false" : "true",
+    // Point the SDK at the same Oikos backend the page uses for
+    // /vaults, /api/tokens, etc. The SDK's hardcoded default is a
+    // different host that doesn't expose those endpoints, which is
+    // why `oikos_get_all_markets` was coming back empty.
+    ...(API_BASE_URL ? { OIKOS_API_URL: API_BASE_URL } : {}),
     DYSPEL_BACKEND_URL: "https://stg-app.dyspel.xyz",
     DYSPEL_NO_BROWSER: "1",
     HOME: HOME_DIR,
@@ -460,7 +482,13 @@ function agentEnv(): Record<string, string> {
     // Set NEXT_PUBLIC_WEBCONTAINER_HOST_TUNNEL to e.g.
     // `https://abc-123.ngrok-free.app` to enable.
     ...(WEBCONTAINER_HOST_TUNNEL
-      ? { OIKOS_HOST_ORIGIN: WEBCONTAINER_HOST_TUNNEL }
+      ? {
+          OIKOS_HOST_ORIGIN: WEBCONTAINER_HOST_TUNNEL,
+          // Bridge URL the agent's mcp-sdk RemoteSigner posts to. Same
+          // tunnel hostname, different path. See use-wallet-bridge.ts
+          // for the host-side handler.
+          OIKOS_REMOTE_SIGNER_URL: `${WEBCONTAINER_HOST_TUNNEL}/api/wallet-bridge/${bridgeSessionId}`,
+        }
       : {}),
   };
 }
