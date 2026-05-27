@@ -186,6 +186,29 @@ export default function AgentDrawer(): React.ReactElement {
     };
   }, [onDragEnd, onDragMove]);
 
+  // Escape gives the user a guaranteed way back: first press exits
+  // maximized, second press closes the drawer. Without this, if the
+  // header buttons ever get covered (e.g. by a modal or future layout
+  // change) the user is stuck.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      const s = useAgentDrawerStore.getState();
+      if (!s.open && !s.peeked) return;
+      if (s.maximized) {
+        s.setMaximized(false);
+        event.preventDefault();
+        return;
+      }
+      if (!s.autoHide) {
+        s.setOpen(false);
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // Keep the drawer rendered (even when hidden) once mountedEver is true,
   // so the iframe never unmounts. translate-y, not display:none — vaul-
   // style display removal kills the iframe paint context.
@@ -199,16 +222,20 @@ export default function AgentDrawer(): React.ReactElement {
     <div
       aria-hidden={!visible}
       className={[
-        "fixed inset-x-0 bottom-0 z-40 flex flex-col",
+        // z-50 keeps the drawer above the site header (also z-50, but the
+        // drawer is later in DOM order so it wins ties). Without this the
+        // drag handle and Restore/Close buttons get covered when
+        // maximized, leaving no way to bring the drawer back down.
+        "fixed inset-x-0 bottom-0 z-50 flex flex-col",
         "border-t border-border/60 bg-background shadow-2xl",
         visible ? "translate-y-0" : "translate-y-full pointer-events-none",
       ].join(" ")}
       style={{
         height: maximized ? "100vh" : `${height}px`,
-        // iOS-sheet easing: slow start, smooth glide, gentle landing.
-        // 360ms feels intentional for a dock-style entrance/exit without
-        // being slow enough to feel laggy.
-        transition: "transform 360ms cubic-bezier(0.32, 0.72, 0, 1)",
+        // OutExpo easing: barely moves at first, accelerates through
+        // the middle, then floats to a stop. 520ms is slow enough to
+        // read the motion without dragging the user back to wait.
+        transition: "transform 520ms cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
       <div
