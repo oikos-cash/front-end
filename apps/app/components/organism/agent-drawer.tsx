@@ -226,30 +226,29 @@ export default function AgentDrawer(): React.ReactElement {
   // the user's explicit open/close intent.
   const visible = autoHide ? peeked : open;
 
-  // Cinematic asymmetric animation.
+  // Cinematic asymmetric animation, take three.
   //
-  // Open: 1240ms easeOutQuint — barely-perceptible start, a long
-  // gliding middle, and a slow gentle landing. Removed the overshoot
-  // so the motion reads as deliberate rather than springy (and so
-  // there's no gap between drawer bottom and viewport during the
-  // overshoot peak). Opacity rides a slower curve so the fade-in
-  // continues even after the slide settles.
+  // Previous take used easeOutQuint, which front-loads motion: ~68% of
+  // the distance is covered in the first 20% of duration. On a 480px
+  // drawer that's a quick 326px flash plus a long invisible tail,
+  // hence "looks like no animation." On maximized it works because the
+  // distance scales with the drawer.
   //
-  // Close: 720ms easeIn-quart — slow start, decisive fall. Slower
-  // than before so the close also feels intentional, not snappy.
+  // Switch to easeInOutQuint — slow start, fast middle, slow end.
+  // Visible motion is concentrated in the middle phase regardless of
+  // height, so small drawer and fullscreen drawer feel like the same
+  // animation. Also extend the closed start position by +35vh so the
+  // total travel distance is more uniform across heights and the
+  // visible slide phase reads as a deliberate sweep.
   //
-  // Height (maximize/restore): 680ms easeOutQuint, matched to the
-  // open curve so growing/shrinking feels like the same family of
-  // motion.
-  //
-  // During pointer drag, transitions are killed so resize tracks the
-  // cursor without easing curves fighting it.
+  // Close: easeIn-quart, slow start then decisive fall. Slightly
+  // faster than open so the close still feels like dropping back.
   const openTransition =
-    "transform 1240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 760ms cubic-bezier(0.22, 1, 0.36, 1)";
+    "transform 1500ms cubic-bezier(0.83, 0, 0.17, 1), opacity 900ms cubic-bezier(0.65, 0, 0.35, 1)";
   const closeTransition =
-    "transform 720ms cubic-bezier(0.5, 0, 0.75, 0), opacity 480ms cubic-bezier(0.5, 0, 0.75, 0)";
+    "transform 760ms cubic-bezier(0.5, 0, 0.75, 0), opacity 460ms cubic-bezier(0.5, 0, 0.75, 0)";
   const heightTransition =
-    "height 680ms cubic-bezier(0.22, 1, 0.36, 1)";
+    "height 700ms cubic-bezier(0.22, 1, 0.36, 1)";
   const transition = dragging
     ? "none"
     : `${visible ? openTransition : closeTransition}, ${heightTransition}`;
@@ -269,14 +268,19 @@ export default function AgentDrawer(): React.ReactElement {
         maximized
           ? "inset-x-0 bottom-0 border-t border-border/60"
           : "inset-x-4 bottom-4 rounded-xl border border-border/60",
-        visible ? "translate-y-0" : "translate-y-full pointer-events-none",
+        visible ? "" : "pointer-events-none",
       ].join(" ")}
       style={{
         height: maximized ? "100vh" : `${height}px`,
         transition,
-        // Opacity layered onto the existing transform so the open/close
-        // motion is unmistakable even at small drawer heights where the
-        // slide distance is short.
+        // translateY past 100% adds a uniform +35vh of off-screen travel
+        // so a 480px drawer and a 100vh drawer have similar total slide
+        // distance. Combined with easeInOutQuint, the visible middle
+        // phase of the curve does the heavy lifting and reads as the
+        // same animation regardless of height.
+        transform: visible
+          ? "translateY(0)"
+          : "translateY(calc(100% + 35vh))",
         opacity: visible ? 1 : 0,
         willChange: "transform, height, opacity",
       }}
