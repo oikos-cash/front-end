@@ -262,8 +262,13 @@ export default function AgentDrawer(): React.ReactElement {
         // drawer is later in DOM order so it wins ties). Without this the
         // drag handle and Restore/Close buttons get covered when
         // maximized, leaving no way to bring the drawer back down.
-        "fixed inset-x-0 bottom-0 z-50 flex flex-col",
-        "border-t border-border/60 bg-background shadow-2xl",
+        "fixed z-50 flex flex-col bg-background shadow-2xl overflow-hidden",
+        // Float with breathing room when at default size; collapse the
+        // gaps and lose the rounding when maximized so fullscreen is
+        // truly fullscreen.
+        maximized
+          ? "inset-x-0 bottom-0 border-t border-border/60"
+          : "inset-x-4 bottom-4 rounded-xl border border-border/60",
         visible ? "translate-y-0" : "translate-y-full pointer-events-none",
       ].join(" ")}
       style={{
