@@ -401,6 +401,26 @@ export default function AgentShell({
       term.writeln("\x1b[32m✓ signed in\x1b[0m");
       setPhase("running");
       setStatusMsg("agent running");
+
+      // The post-sign-in banner (provider/network/wallet/mode/tools) is
+      // taller than what fits above the visible fold on the default
+      // drawer height, and xterm's own scroll-on-write can't help
+      // because the lines streamed before the user's first interaction.
+      // Push two newlines into the REPL stdin once it's accepting
+      // input — each one echoes a fresh "you ›" prompt, triggering our
+      // onLineFeed scroll handler and bringing the input to the
+      // bottom.
+      setTimeout(() => {
+        const h = handleRef.current;
+        if (!h) return;
+        try {
+          h.writeStdin("\r");
+          h.writeStdin("\r");
+        } catch {
+          /* handle disposed before kick — fine */
+        }
+      }, 2000);
+
       const repl = await runAgent(client, []);
       setPhase("exited");
       setStatusMsg(repl.code === 0 ? "agent exited" : `exited ${repl.code}`);
