@@ -5,6 +5,7 @@ import Toaster from "@/components/atoms/toaster";
 import ErrorBoundary from "@/components/atoms/error-boundary";
 import SWRProvider from "@/components/atoms/swr-provider";
 import Web3Provider from "@/components/atoms/web3-provider";
+import UiMcpProvider from "@/components/atoms/ui-mcp-provider";
 import RoleSelectorModal from "@/components/organism/role-selector-modal";
 
 // Styles
@@ -117,12 +118,14 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Web3Provider>
             <SWRProvider>
-              <Header />
-              <SideBar>
-                <ErrorBoundary>{children}</ErrorBoundary>
-              </SideBar>
-              <Toaster />
-              <RoleSelectorModal />
+              <UiMcpProvider>
+                <Header />
+                <SideBar>
+                  <ErrorBoundary>{children}</ErrorBoundary>
+                </SideBar>
+                <Toaster />
+                <RoleSelectorModal />
+              </UiMcpProvider>
             </SWRProvider>
           </Web3Provider>
         </NextIntlClientProvider>
