@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAccount, useChainId } from "wagmi";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
 
 import {
   createUiMcpServer,
@@ -10,22 +11,29 @@ import {
   type UiContext,
   type ModalName,
   type SwapFormState,
-  type VisibleMarket,
 } from "@oikos/ui-mcp";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+
+import { useUiBridgeStore } from "@/stores/ui-bridge";
 
 /**
  * Mounts an in-page MCP server bound to the React tree's router /
  * wagmi / modal / form state, exposing it over the /api/ui-mcp/<sid>
  * bridge to the in-WebContainer agent.
  *
- * Surface is driven by `UiContext`. The hook builds that context once
- * per render with ref-stable handles — handlers always see the latest
- * React state without re-registering tools.
+ * UiContext is bound to two layers:
  *
- * Phase 1 wires router + account + minimal stubs for modals/swap/markets
- * (so the read tools can return at least an empty/null shape). Phase 2
- * will plug those stubs into the real form/modal stores.
+ *   1. Globally-addressable surfaces (router, wagmi, rainbow-kit
+ *      connect modal) — direct calls.
+ *
+ *   2. Page-local surfaces (modals, swap form, markets) — routed
+ *      through the ui-bridge Zustand store. The hook writes a
+ *      request; page-side consumers (HedgeModal owner, swap form,
+ *      MarketsCatalog) subscribe to the relevant slice and react.
+ *
+ * Refs hold the latest external state (router, wagmi) so the
+ * long-lived MCP handlers always see current values without
+ * re-registering tools across renders.
  */
 
 export interface UseUiMcpServerOptions {
@@ -41,43 +49,7 @@ interface UiMcpDeps {
   address: string | null;
   chainId: number | null;
   isConnected: boolean;
-}
-
-function noopContextExtensions(): Pick<UiContext, "modals" | "swap" | "markets"> {
-  // Phase-1 stubs: the read tools have to return *something*, so we
-  // hand back the dormant shape. Phase 2 swaps these for real store
-  // wiring (modals slice, swap form atoms, markets selector).
-  return {
-    modals: {
-      getActive: () => null as ModalName | null,
-      open: () => {
-        throw new Error("ui-mcp: modal control lands in Phase 2");
-      },
-      close: () => {
-        throw new Error("ui-mcp: modal control lands in Phase 2");
-      },
-    },
-    swap: {
-      getState: (): SwapFormState => ({
-        sellToken: null,
-        buyToken: null,
-        amount: null,
-        slippageBps: null,
-      }),
-      set: () => {
-        throw new Error("ui-mcp: swap form writes land in Phase 2");
-      },
-      submit: () => {
-        throw new Error("ui-mcp: swap submit lands in Phase 3");
-      },
-    },
-    markets: {
-      getVisible: (): VisibleMarket[] => [],
-      select: async () => {
-        throw new Error("ui-mcp: market select lands in Phase 2");
-      },
-    },
-  };
+  openConnectModal: (() => void) | undefined;
 }
 
 export function useUiMcpServer({
@@ -88,6 +60,7 @@ export function useUiMcpServer({
   const pathname = usePathname();
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
+  const { openConnectModal } = useConnectModal();
 
   // Refs that the long-lived MCP handlers read at call time, so we
   // never need to tear down + re-register the server on every render.
@@ -97,6 +70,7 @@ export function useUiMcpServer({
     address: (address as string | undefined) ?? null,
     chainId: chainId ?? null,
     isConnected,
+    openConnectModal,
   });
 
   useEffect(() => {
@@ -106,23 +80,23 @@ export function useUiMcpServer({
       address: (address as string | undefined) ?? null,
       chainId: chainId ?? null,
       isConnected,
+      openConnectModal,
     };
-  }, [pathname, router, address, chainId, isConnected]);
+  }, [pathname, router, address, chainId, isConnected, openConnectModal]);
 
-  // Build the UiContext once. Each accessor closes over depsRef so it
-  // always sees current state.
+  // Build the UiContext once. Each accessor closes over depsRef
+  // (current external state) and / or the ui-bridge store (page-local
+  // state via Zustand). Store reads use `.getState()` so we don't tie
+  // tool handlers to render cycles.
   const context = useMemo<UiContext>(() => {
     return {
       router: {
         getPath: () => depsRef.current.pathname,
         push: async (path) => {
           await depsRef.current.push(path);
-          // next/navigation's router.push is fire-and-forget; we can't
-          // synchronously confirm the route landed. The pathname will
-          // update on the next render — we settle by awaiting one
-          // microtask so a subsequent get_route call from the agent
-          // sees the new value in the common case. (For SPA-internal
-          // pushes the layout swap happens within a few ms.)
+          // next/navigation's router.push is fire-and-forget; settle
+          // by awaiting one microtask so a subsequent get_route call
+          // sees the new pathname in the common case.
           await new Promise((res) => setTimeout(res, 0));
         },
       },
@@ -131,13 +105,44 @@ export function useUiMcpServer({
         getChainId: () => depsRef.current.chainId,
         isConnected: () => depsRef.current.isConnected,
         promptConnect: async () => {
-          // The wallet panel is opened via the existing wallet store
-          // elsewhere; Phase-2 wiring will route through there. For now
-          // a no-op is safer than guessing the API.
-          throw new Error("ui-mcp: promptConnect lands in Phase 2");
+          const open = depsRef.current.openConnectModal;
+          if (!open) {
+            throw new Error(
+              "promptConnect: rainbow-kit connect modal not available " +
+                "(already connected, or wallet UI not yet mounted)",
+            );
+          }
+          open();
+          // The connect modal is fire-and-forget — rainbow-kit doesn't
+          // surface a settle promise. Tool returns immediately;
+          // subsequent `get_connected_account` calls will reflect the
+          // outcome once the user closes the modal.
         },
       },
-      ...noopContextExtensions(),
+      modals: {
+        getActive: (): ModalName | null =>
+          useUiBridgeStore.getState().activeModal,
+        open: (name, props) =>
+          useUiBridgeStore.getState().requestModal(name, props),
+        close: () => useUiBridgeStore.getState().requestCloseModal(),
+      },
+      swap: {
+        getState: (): SwapFormState =>
+          useUiBridgeStore.getState().swapFormState ?? {
+            sellToken: null,
+            buyToken: null,
+            amount: null,
+            slippageBps: null,
+          },
+        set: (partial) =>
+          useUiBridgeStore.getState().requestSetSwapForm(partial),
+        submit: () => useUiBridgeStore.getState().requestSubmitSwap(),
+      },
+      markets: {
+        getVisible: () => useUiBridgeStore.getState().visibleMarkets,
+        select: (symbol) =>
+          useUiBridgeStore.getState().requestSelectMarket(symbol),
+      },
     };
   }, []);
 
