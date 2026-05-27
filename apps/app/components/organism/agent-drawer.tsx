@@ -226,28 +226,31 @@ export default function AgentDrawer(): React.ReactElement {
   // the user's explicit open/close intent.
   const visible = autoHide ? peeked : open;
 
-  // iPhone-style asymmetric easing.
+  // iPhone-style asymmetric animation.
   //
-  // Open: 720ms with a back-out curve that briefly overshoots ~8% past
-  // the rest position before settling. That tiny rebound is what makes
-  // iOS sheets feel physical instead of computed.
+  // Open: 780ms back-out with strong overshoot (~18% past target) so
+  // the rebound is unmistakable even when the drawer is only 480px
+  // tall. Opacity 0 -> 1 is layered on with a slower exp curve so the
+  // motion stays legible regardless of how much travel distance the
+  // current height provides.
   //
-  // Close: 340ms with a strong ease-in — the drawer accelerates as it
-  // falls, like dropping back into its dock instead of being dragged.
+  // Close: 320ms strong ease-in, transform + opacity together — the
+  // drawer accelerates and fades as it drops back into the dock.
   //
-  // Height (maximize/restore): 520ms ease-out-quint, so growing the
-  // drawer feels like it expands rather than snaps.
+  // Height (maximize/restore): 520ms ease-out-quint so growing the
+  // drawer reads as expansion.
   //
-  // During drag, transitions are killed so resize tracks the cursor.
-  const openTransform =
-    "transform 720ms cubic-bezier(0.34, 1.35, 0.64, 1)";
-  const closeTransform =
-    "transform 340ms cubic-bezier(0.64, 0, 0.78, 0)";
+  // During pointer drag, transitions are killed so resize tracks the
+  // cursor without any easing curve fighting it.
+  const openTransition =
+    "transform 780ms cubic-bezier(0.34, 1.65, 0.5, 1), opacity 420ms cubic-bezier(0.16, 1, 0.3, 1)";
+  const closeTransition =
+    "transform 320ms cubic-bezier(0.64, 0, 0.78, 0), opacity 220ms cubic-bezier(0.64, 0, 0.78, 0)";
   const heightTransition =
     "height 520ms cubic-bezier(0.22, 1, 0.36, 1)";
   const transition = dragging
     ? "none"
-    : `${visible ? openTransform : closeTransform}, ${heightTransition}`;
+    : `${visible ? openTransition : closeTransition}, ${heightTransition}`;
 
   return (
     <div
@@ -264,7 +267,11 @@ export default function AgentDrawer(): React.ReactElement {
       style={{
         height: maximized ? "100vh" : `${height}px`,
         transition,
-        willChange: "transform, height",
+        // Opacity layered onto the existing transform so the open/close
+        // motion is unmistakable even at small drawer heights where the
+        // slide distance is short.
+        opacity: visible ? 1 : 0,
+        willChange: "transform, height, opacity",
       }}
     >
       <div
