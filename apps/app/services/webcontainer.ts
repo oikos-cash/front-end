@@ -25,6 +25,12 @@ export interface SpawnOptions {
   rows?: number;
   /** Optional cwd inside the container. */
   cwd?: string;
+  /**
+   * Process environment. Honored by the StackBlitz backend; the OSS
+   * backend's wire protocol currently ignores it (the server-resident
+   * container exports its own env).
+   */
+  env?: Record<string, string>;
 }
 
 export interface SpawnHandle {
@@ -43,6 +49,14 @@ export interface WebContainerClient {
   readonly isReady: () => boolean;
   /** Spawn a process inside the container. */
   spawn: (opts: SpawnOptions) => Promise<SpawnHandle>;
+  /**
+   * Write a file inside the container. Implemented by the StackBlitz
+   * backend; the OSS backend rejects (the server-resident container
+   * already has its files on disk).
+   */
+  writeFile: (path: string, contents: string | Uint8Array) => Promise<void>;
+  /** Create a directory inside the container. */
+  mkdir: (path: string, opts?: { recursive?: boolean }) => Promise<void>;
   /** Subscribe to a process's stdout/stderr stream. */
   onOutput: (
     pid: number,
@@ -229,6 +243,21 @@ export function connectWebContainer(
 
   return {
     isReady: () => ready,
+    writeFile: () => {
+      return Promise.reject(
+        new Error(
+          "OSS backend doesn't expose fs.writeFile in this client — " +
+            "the server-resident container ships its own files.",
+        ),
+      );
+    },
+    mkdir: () => {
+      return Promise.reject(
+        new Error(
+          "OSS backend doesn't expose fs.mkdir in this client.",
+        ),
+      );
+    },
     spawn: async (opts) => {
       // Wire protocol expects `command: string` + `args: string[]`
       // separately (see remote-protocol.ts). The local SpawnOptions
@@ -244,6 +273,7 @@ export function connectWebContainer(
         cols: opts.cols,
         rows: opts.rows,
         cwd: opts.cwd,
+        env: opts.env,
       });
       const pid = result.pid;
       return {

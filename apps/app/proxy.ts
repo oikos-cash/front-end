@@ -4,5 +4,6 @@ import { routing } from "./i18n/routing";
 export default createMiddleware(routing);
 
 export const config = {
-  matcher: ["/((?!api|_next|_vercel|.*\\..*).*)"],
+  // /dyspel/* is the agent-wasm backend proxy and must NOT be locale-rewritten.
+  matcher: ["/((?!api|dyspel|_next|_vercel|.*\\..*).*)"],
 };
