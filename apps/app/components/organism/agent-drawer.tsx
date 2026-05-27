@@ -201,10 +201,15 @@ export default function AgentDrawer(): React.ReactElement {
       className={[
         "fixed inset-x-0 bottom-0 z-40 flex flex-col",
         "border-t border-border/60 bg-background shadow-2xl",
-        "transition-transform duration-200 ease-out",
         visible ? "translate-y-0" : "translate-y-full pointer-events-none",
       ].join(" ")}
-      style={{ height: maximized ? "100vh" : `${height}px` }}
+      style={{
+        height: maximized ? "100vh" : `${height}px`,
+        // iOS-sheet easing: slow start, smooth glide, gentle landing.
+        // 360ms feels intentional for a dock-style entrance/exit without
+        // being slow enough to feel laggy.
+        transition: "transform 360ms cubic-bezier(0.32, 0.72, 0, 1)",
+      }}
     >
       <div
         role="separator"
