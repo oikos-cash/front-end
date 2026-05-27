@@ -1,0 +1,14 @@
+{
+  "terminal": {
+    "title": "Terminal",
+    "description": "Run a bash-style session against an Oikos webcontainer.",
+    "connectTitle": "Connect Wallet to Continue",
+    "connectDescription": "Connect your wallet to open a terminal session.",
+    "connectButton": "Connect Wallet",
+    "notConfiguredTitle": "Terminal not configured",
+    "notConfiguredDescription": "Set NEXT_PUBLIC_WEBCONTAINER_WS_URL in your environment to enable the terminal.",
+    "connecting": "Connecting to webcontainer…",
+    "connectionLost": "Disconnected from webcontainer. Refresh to retry.",
+    "promptShell": "Starting shell…"
+  }
+}

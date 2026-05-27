@@ -32,6 +32,46 @@ export const WS_URL =
 export const WALLETCONNECT_PROJECT_ID =
   process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 
+/**
+ * WebSocket URL for the webcontainer-oss server-resident RPC. Only
+ * consulted when `WEBCONTAINER_BACKEND === "oss"`; the StackBlitz
+ * backend boots in-browser and ignores this.
+ *
+ * For local dev, start the reference server from
+ * `/data4/ex-cc/webcontainer-oss/examples/server-resident-container/`
+ * (`tsx server.ts`) which listens on `ws://localhost:8902`.
+ */
+export const WEBCONTAINER_WS_URL =
+  process.env.NEXT_PUBLIC_WEBCONTAINER_WS_URL ?? "ws://localhost:8902/";
+
+/**
+ * Which WebContainer implementation backs /terminal.
+ *   • `oss`        — webcontainer-oss server-resident RPC over WS
+ *   • `stackblitz` — @webcontainer/api booted in this browser tab
+ *                    (needs COOP/COEP isolation; see next.config.ts).
+ */
+export type WebContainerBackend = "oss" | "stackblitz";
+
+export const WEBCONTAINER_BACKEND: WebContainerBackend =
+  process.env.NEXT_PUBLIC_WEBCONTAINER_BACKEND === "stackblitz"
+    ? "stackblitz"
+    : "oss";
+
+/**
+ * Publicly-reachable origin pointing at this dev server (e.g. an
+ * `ngrok http 3001` or `cloudflared tunnel` URL). Required for the
+ * StackBlitz backend to complete the Dyspel auth flow: StackBlitz's
+ * container outbound proxy is bot-flagged by Cloudflare on POST, so
+ * the agent has to route its backend calls through `/dyspel/*` here
+ * instead — but the container's network namespace can't see the
+ * host's `localhost`, hence the need for a public tunnel.
+ *
+ * Empty by default — the agent then hits dyspel.xyz directly, which
+ * works for GETs (token-poll path) but fails POST (device/code).
+ */
+export const WEBCONTAINER_HOST_TUNNEL =
+  process.env.NEXT_PUBLIC_WEBCONTAINER_HOST_TUNNEL ?? "";
+
 export const SUPPORTED_CHAIN_IDS = [56] as const;
 
 // =================================================

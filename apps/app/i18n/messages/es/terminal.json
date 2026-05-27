@@ -1,0 +1,14 @@
+{
+  "terminal": {
+    "title": "Terminal",
+    "description": "Abre una sesión estilo bash contra un webcontainer de Oikos.",
+    "connectTitle": "Conecta tu billetera para continuar",
+    "connectDescription": "Conecta tu billetera para abrir una sesión de terminal.",
+    "connectButton": "Conectar Billetera",
+    "notConfiguredTitle": "Terminal no configurado",
+    "notConfiguredDescription": "Define NEXT_PUBLIC_WEBCONTAINER_WS_URL en tu entorno para habilitar la terminal.",
+    "connecting": "Conectando al webcontainer…",
+    "connectionLost": "Desconectado del webcontainer. Recarga para reintentar.",
+    "promptShell": "Iniciando shell…"
+  }
+}

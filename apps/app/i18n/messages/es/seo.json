@@ -17,6 +17,10 @@
       "title": "Intercambio",
       "description": "Intercambia tokens al instante con deslizamiento minimo en el exchange descentralizado Oikos"
     },
+    "terminal": {
+      "title": "Terminal",
+      "description": "Abre una sesion estilo bash contra un webcontainer de Oikos"
+    },
     "trade": {
       "title": "Operar {token}",
       "description": "Opera {token} en Oikos — graficos en vivo, profundidad de mercado y ejecucion instantanea"
