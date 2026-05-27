@@ -12,6 +12,7 @@ import Button from "@/components/atoms/button";
 
 import { useWebContainer } from "@/hooks/use-webcontainer";
 import { useWalletBridge } from "@/hooks/use-wallet-bridge";
+import { useUiMcpSession } from "@/components/atoms/ui-mcp-provider";
 import { API_BASE_URL, WEBCONTAINER_HOST_TUNNEL } from "@/types/constants";
 
 import type { SpawnHandle, WebContainerClient } from "@/services/webcontainer";
@@ -70,6 +71,10 @@ type Phase =
 interface AgentShellProps {
   /** Status banner label override; defaults to "Agent". */
   label?: string;
+  /** When true, the shell fills its parent (no rounded card chrome,
+   * no fixed height). The bottom-bar drawer uses this so its own
+   * frame governs the dimensions. */
+  embedded?: boolean;
 }
 
 /**
@@ -85,7 +90,10 @@ interface AgentShellProps {
  * `/data2/code/Oikos/agent-wasm/src/host/main.ts`; this is the same
  * choreography ported into the React shape.
  */
-export default function AgentShell({ label = "Agent" }: AgentShellProps) {
+export default function AgentShell({
+  label = "Agent",
+  embedded = false,
+}: AgentShellProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -109,6 +117,13 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
     [],
   );
   useWalletBridge({ sessionId: bridgeSessionId });
+
+  // UI-MCP session lives at the root layout (UiMcpProvider) so the
+  // server survives across route changes — the agent will navigate
+  // the user to /swap, /markets, etc., and the bridge has to keep
+  // talking. AgentShell only needs the id here to plumb it into the
+  // agent's env so both sides agree on the same queue.
+  const uiMcpSessionId = useUiMcpSession();
 
   const { client, isConnected } = useWebContainer({
     backend: "stackblitz",
@@ -145,14 +160,29 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
         fit.fit();
         const h = handleRef.current;
         if (h && term.cols && term.rows) h.resize(term.cols, term.rows);
+        // After fit() the row count may have changed under the cursor.
+        // If the user wasn't scrolling around, snap the viewport back
+        // to the latest line so the drawer never lands on a stale view
+        // when it animates open or is resized.
+        term.scrollToBottom();
       } catch {
         /* size 0 during teardown is fine */
       }
     });
     ro.observe(hostRef.current);
 
+    // Universal scroll-snap: fires for every linefeed regardless of
+    // whether it came from term.write() (subprocess output) or
+    // term.writeln() (the boot banner + auth flow announcements).
+    // Defer one frame so xterm's renderer has positioned the new row
+    // before we ask the viewport to follow.
+    const lf = term.onLineFeed(() => {
+      requestAnimationFrame(() => term.scrollToBottom());
+    });
+
     return () => {
       ro.disconnect();
+      lf.dispose();
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
@@ -190,7 +220,7 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
         command: ["node", "./agent-entry.mjs", ...args],
         cols: term.cols,
         rows: term.rows,
-        env: agentEnv(bridgeSessionId),
+        env: agentEnv(bridgeSessionId, uiMcpSessionId),
       });
       handleRef.current = handle;
 
@@ -207,10 +237,24 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
       cleanups.push(
         c.onOutput(handle.pid, (chunk) => {
           const text = decoder.decode(chunk, { stream: true });
-          term.write(text);
+          term.write(text, () => {
+            // The write is async — schedule the scroll in its callback
+            // so the buffer pointer is past the new content before we
+            // snap the viewport. Without this, fast output streams
+            // (signing-in banner, tool calls) can leave the last row
+            // permanently below the visible fold.
+            term.scrollToBottom();
+          });
           captureRef.current = (captureRef.current + text).slice(
             -CAPTURE_CAP_BYTES,
           );
+          // Auto-open the Dyspel device-grant URL on first sighting.
+          // The terminal can clip its bottom rows on smaller windows
+          // (Windows taskbar etc.), making WebLinksAddon's hit-test
+          // useless because the line is below the fold. Detect the
+          // URL ourselves and window.open() so the user never has to
+          // hunt for it.
+          maybeOpenDeviceGrantUrl(text);
         }),
       );
 
@@ -230,7 +274,7 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
       handleRef.current = null;
       return { code, output: captureRef.current };
     },
-    [bridgeSessionId],
+    [bridgeSessionId, uiMcpSessionId],
   );
 
   // Drive the boot → mount → spawn pipeline once the client is live.
@@ -357,6 +401,26 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
       term.writeln("\x1b[32m✓ signed in\x1b[0m");
       setPhase("running");
       setStatusMsg("agent running");
+
+      // The post-sign-in banner (provider/network/wallet/mode/tools) is
+      // taller than what fits above the visible fold on the default
+      // drawer height, and xterm's own scroll-on-write can't help
+      // because the lines streamed before the user's first interaction.
+      // Push two newlines into the REPL stdin once it's accepting
+      // input — each one echoes a fresh "you ›" prompt, triggering our
+      // onLineFeed scroll handler and bringing the input to the
+      // bottom.
+      setTimeout(() => {
+        const h = handleRef.current;
+        if (!h) return;
+        try {
+          h.writeStdin("\r");
+          h.writeStdin("\r");
+        } catch {
+          /* handle disposed before kick — fine */
+        }
+      }, 2000);
+
       const repl = await runAgent(client, []);
       setPhase("exited");
       setStatusMsg(repl.code === 0 ? "agent exited" : `exited ${repl.code}`);
@@ -373,9 +437,10 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
   return (
     <div
       className={[
-        "relative flex h-[min(70vh,640px)] w-full flex-col overflow-hidden",
-        "rounded-xl border border-border/60 bg-card",
-        "shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_18px_50px_-24px_rgba(0,0,0,0.75)]",
+        "relative flex w-full flex-col overflow-hidden bg-card",
+        embedded
+          ? "h-full"
+          : "h-[min(60vh,640px)] min-h-[320px] rounded-xl border border-border/60 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_18px_50px_-24px_rgba(0,0,0,0.75)]",
       ].join(" ")}
     >
       <header className="flex items-center justify-between gap-3 border-b border-border/40 px-3 py-2">
@@ -431,6 +496,33 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
   );
 }
 
+// Tracks user_codes we've already popped a tab for in this page lifetime
+// so a redraw / repeated stdout chunk doesn't open the same URL twice.
+const openedDeviceCodes = new Set<string>();
+
+/**
+ * Scan a stdout chunk for the Dyspel device-grant URL and open it in
+ * a new tab on first sighting. Matches user_codes of the shape
+ * `XXXX-XXXX` (uppercase alphanumerics + hyphen).
+ *
+ * Why: the terminal's fixed height (h-[min(70vh,640px)]) can clip its
+ * bottom rows on smaller windows / when the OS taskbar takes vertical
+ * space, dropping the URL below the visible viewport. WebLinksAddon
+ * makes it clickable but you have to find it first.
+ */
+function maybeOpenDeviceGrantUrl(text: string): void {
+  if (typeof window === "undefined") return;
+  const re = /https?:\/\/[^\s]*\/auth\/device\.html\?user_code=([A-Z0-9-]+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    const code = match[1];
+    if (openedDeviceCodes.has(code)) continue;
+    openedDeviceCodes.add(code);
+    // noopener so the new tab can't reach back into our page.
+    window.open(match[0], "_blank", "noopener,noreferrer");
+  }
+}
+
 function statusKindFor(phase: Phase): "" | "ok" | "warn" | "err" {
   switch (phase) {
     case "running":
@@ -449,7 +541,10 @@ function statusKindFor(phase: Phase): "" | "ok" | "warn" | "err" {
   }
 }
 
-function agentEnv(bridgeSessionId: string): Record<string, string> {
+function agentEnv(
+  bridgeSessionId: string,
+  uiMcpSessionId: string,
+): Record<string, string> {
   return {
     OIKOS_AGENT_PROVIDER: "dyspel",
     OIKOS_MCP_COMMAND: "node",
@@ -488,6 +583,10 @@ function agentEnv(bridgeSessionId: string): Record<string, string> {
           // tunnel hostname, different path. See use-wallet-bridge.ts
           // for the host-side handler.
           OIKOS_REMOTE_SIGNER_URL: `${WEBCONTAINER_HOST_TUNNEL}/api/wallet-bridge/${bridgeSessionId}`,
+          // Bridge URL for the in-process UI MCP server. The agent's
+          // MCPRegistry picks this up via cli.ts and registers an `ui`
+          // server backed by MCPHttpClient. See use-ui-mcp-server.ts.
+          OIKOS_UI_MCP_URL: `${WEBCONTAINER_HOST_TUNNEL}/api/ui-mcp/${uiMcpSessionId}`,
         }
       : {}),
   };

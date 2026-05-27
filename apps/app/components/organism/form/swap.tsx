@@ -20,6 +20,7 @@ import TxFlowStatus from "@/components/molecules/tx-flow-status";
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
 import { useSwap, type SwapMode } from "@/hooks/use-swap";
+import { useSwapFormUiBridge } from "@/hooks/use-swap-form-ui-bridge";
 import type { Address } from "viem";
 import type { TxFlowStep } from "@/hooks/types/tx-flow";
 
@@ -614,6 +615,21 @@ export default function SwapForm({
       approveMax ? maxUint256 : amountIn,
     );
   }
+
+  // Mirror form + slippage state into the ui-bridge store so the
+  // in-process MCP server's `ui__get_swap_state` returns live values,
+  // and route `ui__set_swap_form` / `ui__submit_swap` requests back
+  // through onSubmit / setSlippage here. Idle when the form isn't
+  // mounted (i.e., when the user isn't on /swap).
+  useSwapFormUiBridge({
+    form,
+    slippage,
+    customSlippage,
+    setSlippage,
+    setCustomSlippage,
+    flowState,
+    onSubmit,
+  });
 
   const flowLabels = {
     title: t("flowStatusTitle"),

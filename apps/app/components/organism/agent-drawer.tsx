@@ -1,0 +1,349 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Maximize2, Minimize2, Pin, PinOff, X } from "lucide-react";
+
+import { useAgentDrawerStore } from "@/lib/agent-drawer-store";
+import { useWallet } from "@/stores/wallet";
+import { WEBCONTAINER_BACKEND, WEBCONTAINER_WS_URL } from "@/types/constants";
+
+// Mirrors TerminalTemplate: xterm touches window at module load, so we
+// keep both shells client-only.
+const SHELL_LOADER = (
+  <div className="size-full animate-pulse bg-card/60" />
+);
+
+const AgentShell = dynamic(
+  () => import("@/components/organism/agent-shell"),
+  { ssr: false, loading: () => SHELL_LOADER },
+);
+
+const TerminalShell = dynamic(
+  () => import("@/components/organism/terminal-shell"),
+  { ssr: false, loading: () => SHELL_LOADER },
+);
+
+const OSS_DEFAULT_COMMAND = [
+  "node",
+  "./agent-entry-server.mjs",
+  "auth",
+  "status",
+];
+
+// Hot strip at the very bottom of the viewport that triggers a peek
+// when in auto-hide mode. 6px is wide enough to hit reliably without
+// catching incidental cursor passes.
+const HOT_STRIP_PX = 6;
+// Once the drawer is peeked, the area that keeps it peeked widens to
+// (drawer height + this buffer). Lets the user move the cursor a touch
+// above the drawer top edge without it snapping shut.
+const PEEK_KEEP_BUFFER_PX = 40;
+// Grace period before the drawer slides back down once the cursor
+// leaves the hot zone. Tuned to ignore brief mouse-overshoots.
+const PEEK_CLOSE_DELAY_MS = 300;
+
+function DrawerBody(): React.ReactElement {
+  const { isConnected } = useWallet();
+  const configured =
+    WEBCONTAINER_BACKEND === "stackblitz" ? true : !!WEBCONTAINER_WS_URL;
+
+  if (!configured) {
+    return (
+      <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
+        Terminal backend isn&apos;t configured for this build.
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex h-full items-center justify-center px-6 text-center text-sm text-muted-foreground">
+        Connect your wallet from the header to use the agent.
+      </div>
+    );
+  }
+
+  return WEBCONTAINER_BACKEND === "stackblitz" ? (
+    <AgentShell embedded />
+  ) : (
+    <TerminalShell command={OSS_DEFAULT_COMMAND} />
+  );
+}
+
+/** Track the cursor's vertical position and flip `peeked` whenever the
+ * cursor sits in the bottom edge (closed) or within the drawer + buffer
+ * (already peeked). Only active when auto-hide is on. */
+function useDockPeek(): void {
+  const autoHide = useAgentDrawerStore((s) => s.autoHide);
+  const setPeeked = useAgentDrawerStore((s) => s.setPeeked);
+  // Read height/peeked via a ref so changing them doesn't tear down the
+  // listener — we want one persistent mousemove across the whole session.
+  const heightRef = useRef(useAgentDrawerStore.getState().height);
+  const peekedRef = useRef(useAgentDrawerStore.getState().peeked);
+
+  useEffect(() => {
+    const unsub = useAgentDrawerStore.subscribe((s) => {
+      heightRef.current = s.height;
+      peekedRef.current = s.peeked;
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!autoHide) {
+      setPeeked(false);
+      return;
+    }
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    const onMove = (event: MouseEvent): void => {
+      const fromBottom = window.innerHeight - event.clientY;
+      const inZone = peekedRef.current
+        ? fromBottom < heightRef.current + PEEK_KEEP_BUFFER_PX
+        : fromBottom < HOT_STRIP_PX;
+      if (inZone) {
+        if (hideTimer) {
+          clearTimeout(hideTimer);
+          hideTimer = undefined;
+        }
+        if (!peekedRef.current) setPeeked(true);
+      } else if (peekedRef.current && !hideTimer) {
+        hideTimer = setTimeout(() => {
+          setPeeked(false);
+          hideTimer = undefined;
+        }, PEEK_CLOSE_DELAY_MS);
+      }
+    };
+    document.addEventListener("mousemove", onMove);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
+  }, [autoHide, setPeeked]);
+}
+
+export default function AgentDrawer(): React.ReactElement {
+  const open = useAgentDrawerStore((s) => s.open);
+  const height = useAgentDrawerStore((s) => s.height);
+  const maximized = useAgentDrawerStore((s) => s.maximized);
+  const mountedEver = useAgentDrawerStore((s) => s.mountedEver);
+  const autoHide = useAgentDrawerStore((s) => s.autoHide);
+  const peeked = useAgentDrawerStore((s) => s.peeked);
+  const setOpen = useAgentDrawerStore((s) => s.setOpen);
+  const setHeight = useAgentDrawerStore((s) => s.setHeight);
+  const setMaximized = useAgentDrawerStore((s) => s.setMaximized);
+  const setAutoHide = useAgentDrawerStore((s) => s.setAutoHide);
+
+  useDockPeek();
+
+  // Tracks whether the user is currently mid-drag on the top edge.
+  // While true we kill all transitions so height tracks the cursor
+  // instantly; otherwise the iOS-style curves would lag behind every
+  // pointermove and turn the resize into a sluggish jelly.
+  const [dragging, setDragging] = useState(false);
+
+  const dragStateRef = useRef<{ startY: number; startHeight: number } | null>(
+    null,
+  );
+
+  const onDragMove = useCallback(
+    (event: PointerEvent) => {
+      const state = dragStateRef.current;
+      if (!state) return;
+      const delta = state.startY - event.clientY;
+      setHeight(state.startHeight + delta);
+    },
+    [setHeight],
+  );
+
+  const onDragEnd = useCallback(() => {
+    dragStateRef.current = null;
+    setDragging(false);
+    window.removeEventListener("pointermove", onDragMove);
+    window.removeEventListener("pointerup", onDragEnd);
+    document.body.style.userSelect = "";
+    document.body.style.cursor = "";
+  }, [onDragMove]);
+
+  const onDragStart = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      // Dragging from maximized exits maximized: anchor the drag at the
+      // current viewport height, then drop fullscreen. setHeight clamps
+      // to 0.9 * innerHeight, so there's a small one-time snap (~10vh),
+      // after which the user's pointer drives the height directly.
+      const startHeight = maximized ? window.innerHeight : height;
+      dragStateRef.current = { startY: event.clientY, startHeight };
+      setDragging(true);
+      if (maximized) {
+        setHeight(window.innerHeight);
+        setMaximized(false);
+      }
+      window.addEventListener("pointermove", onDragMove);
+      window.addEventListener("pointerup", onDragEnd);
+      document.body.style.userSelect = "none";
+      document.body.style.cursor = "ns-resize";
+    },
+    [height, maximized, onDragEnd, onDragMove, setHeight, setMaximized],
+  );
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener("pointermove", onDragMove);
+      window.removeEventListener("pointerup", onDragEnd);
+    };
+  }, [onDragEnd, onDragMove]);
+
+  // Escape gives the user a guaranteed way back: first press exits
+  // maximized, second press closes the drawer. Without this, if the
+  // header buttons ever get covered (e.g. by a modal or future layout
+  // change) the user is stuck.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== "Escape") return;
+      const s = useAgentDrawerStore.getState();
+      if (!s.open && !s.peeked) return;
+      if (s.maximized) {
+        s.setMaximized(false);
+        event.preventDefault();
+        return;
+      }
+      if (!s.autoHide) {
+        s.setOpen(false);
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // Keep the drawer rendered (even when hidden) once mountedEver is true,
+  // so the iframe never unmounts. translate-y, not display:none — vaul-
+  // style display removal kills the iframe paint context.
+  const renderBody = mountedEver;
+  // In auto-hide mode visibility is dock-style: only show when the
+  // cursor is peeking the bottom edge. Otherwise the drawer follows
+  // the user's explicit open/close intent.
+  const visible = autoHide ? peeked : open;
+
+  // Cinematic asymmetric animation, take three.
+  //
+  // Previous take used easeOutQuint, which front-loads motion: ~68% of
+  // the distance is covered in the first 20% of duration. On a 480px
+  // drawer that's a quick 326px flash plus a long invisible tail,
+  // hence "looks like no animation." On maximized it works because the
+  // distance scales with the drawer.
+  //
+  // Switch to easeInOutQuint — slow start, fast middle, slow end.
+  // Visible motion is concentrated in the middle phase regardless of
+  // height, so small drawer and fullscreen drawer feel like the same
+  // animation. Also extend the closed start position by +35vh so the
+  // total travel distance is more uniform across heights and the
+  // visible slide phase reads as a deliberate sweep.
+  //
+  // Close: easeIn-quart, slow start then decisive fall. Slightly
+  // faster than open so the close still feels like dropping back.
+  const openTransition =
+    "transform 1500ms cubic-bezier(0.83, 0, 0.17, 1), opacity 900ms cubic-bezier(0.65, 0, 0.35, 1)";
+  const closeTransition =
+    "transform 760ms cubic-bezier(0.5, 0, 0.75, 0), opacity 460ms cubic-bezier(0.5, 0, 0.75, 0)";
+  const heightTransition =
+    "height 700ms cubic-bezier(0.22, 1, 0.36, 1)";
+  const transition = dragging
+    ? "none"
+    : `${visible ? openTransition : closeTransition}, ${heightTransition}`;
+
+  return (
+    <div
+      aria-hidden={!visible}
+      className={[
+        // z-50 keeps the drawer above the site header (also z-50, but the
+        // drawer is later in DOM order so it wins ties). Without this the
+        // drag handle and Restore/Close buttons get covered when
+        // maximized, leaving no way to bring the drawer back down.
+        "fixed z-50 flex flex-col bg-background shadow-2xl overflow-hidden",
+        // Float with breathing room when at default size; collapse the
+        // gaps and lose the rounding when maximized so fullscreen is
+        // truly fullscreen.
+        maximized
+          ? "inset-x-0 bottom-0 border-t border-border/60"
+          : "inset-x-4 bottom-4 rounded-xl border border-border/60",
+        visible ? "" : "pointer-events-none",
+      ].join(" ")}
+      style={{
+        height: maximized ? "100vh" : `${height}px`,
+        transition,
+        // translateY past 100% adds a uniform +35vh of off-screen travel
+        // so a 480px drawer and a 100vh drawer have similar total slide
+        // distance. Combined with easeInOutQuint, the visible middle
+        // phase of the curve does the heavy lifting and reads as the
+        // same animation regardless of height.
+        transform: visible
+          ? "translateY(0)"
+          : "translateY(calc(100% + 35vh))",
+        opacity: visible ? 1 : 0,
+        willChange: "transform, height, opacity",
+      }}
+    >
+      <div
+        role="separator"
+        aria-orientation="horizontal"
+        onPointerDown={onDragStart}
+        className="group relative h-2 w-full shrink-0 cursor-ns-resize"
+      >
+        <span className="absolute left-1/2 top-1 h-1 w-12 -translate-x-1/2 rounded-full bg-border/60 transition-colors group-hover:bg-border" />
+      </div>
+
+      <header className="flex items-center justify-between gap-3 border-b border-border/40 px-3 py-1.5">
+        <span className="inline-flex items-center gap-2">
+          <span
+            aria-hidden
+            className="block size-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(245,200,67,0.7)]"
+          />
+          <span className="eyebrow-strong text-xs">Agent</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setAutoHide(!autoHide)}
+            aria-label={autoHide ? "Pin drawer (disable auto-hide)" : "Enable dock auto-hide"}
+            title={autoHide ? "Pin drawer" : "Auto-hide (dock mode)"}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          >
+            {autoHide ? (
+              <PinOff className="size-3.5" />
+            ) : (
+              <Pin className="size-3.5" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMaximized(!maximized)}
+            aria-label={maximized ? "Restore drawer" : "Maximize drawer"}
+            disabled={autoHide}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+          >
+            {maximized ? (
+              <Minimize2 className="size-3.5" />
+            ) : (
+              <Maximize2 className="size-3.5" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close drawer"
+            disabled={autoHide}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+          >
+            <X className="size-3.5" />
+          </button>
+        </span>
+      </header>
+
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {renderBody ? <DrawerBody /> : null}
+      </div>
+    </div>
+  );
+}

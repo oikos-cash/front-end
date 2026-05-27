@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // OIKOS_REQUIRE_SHIM — installs a module-scope require so esbuild's
-// __require shim (which checks `typeof require !== "undefined"`) finds it
-// when this bundle is evaluated under StackBlitz's ESM Node runtime.
-import { createRequire as __oikosCR } from "node:module";
+// __require shim (which checks `typeof require !== "undefined"`)
+// finds one when this bundle is evaluated under StackBlitz's ESM Node
+// runtime. Harmless on kernels that already expose require.
+import { createRequire as __oikosCR } from 'node:module';
 const require = __oikosCR(import.meta.url);
 // bundled by agent-wasm/scripts/bundle-guest.mjs
 var __create = Object.create;

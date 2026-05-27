@@ -5,6 +5,9 @@ import Toaster from "@/components/atoms/toaster";
 import ErrorBoundary from "@/components/atoms/error-boundary";
 import SWRProvider from "@/components/atoms/swr-provider";
 import Web3Provider from "@/components/atoms/web3-provider";
+import UiMcpProvider from "@/components/atoms/ui-mcp-provider";
+import AgentDrawer from "@/components/organism/agent-drawer";
+import AgentDrawerChip from "@/components/organism/agent-drawer-chip";
 import RoleSelectorModal from "@/components/organism/role-selector-modal";
 
 // Styles
@@ -117,12 +120,20 @@ export default async function RootLayout({
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Web3Provider>
             <SWRProvider>
-              <Header />
-              <SideBar>
-                <ErrorBoundary>{children}</ErrorBoundary>
-              </SideBar>
-              <Toaster />
-              <RoleSelectorModal />
+              <UiMcpProvider>
+                <Header />
+                <SideBar>
+                  <ErrorBoundary>{children}</ErrorBoundary>
+                </SideBar>
+                <Toaster />
+                <RoleSelectorModal />
+                {/* Drawer + chip are siblings of {children}, not wrappers,
+                    so they stay mounted across route changes — that's
+                    what keeps the WebContainer iframe alive when the
+                    agent navigates the user around the app. */}
+                <AgentDrawer />
+                <AgentDrawerChip />
+              </UiMcpProvider>
             </SWRProvider>
           </Web3Provider>
         </NextIntlClientProvider>
