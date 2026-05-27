@@ -12,7 +12,7 @@ import Button from "@/components/atoms/button";
 
 import { useWebContainer } from "@/hooks/use-webcontainer";
 import { useWalletBridge } from "@/hooks/use-wallet-bridge";
-import { useUiMcpServer } from "@/hooks/use-ui-mcp-server";
+import { useUiMcpSession } from "@/components/atoms/ui-mcp-provider";
 import { API_BASE_URL, WEBCONTAINER_HOST_TUNNEL } from "@/types/constants";
 
 import type { SpawnHandle, WebContainerClient } from "@/services/webcontainer";
@@ -111,16 +111,12 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
   );
   useWalletBridge({ sessionId: bridgeSessionId });
 
-  // Separate session for the UI-MCP bridge. The agent's MCPRegistry
-  // registers an `ui` server backed by an HTTP transport pointed at
-  // ${tunnel}/api/ui-mcp/<sessionId>; useUiMcpServer hosts the actual
-  // MCP server on this side of the bridge, bound to wagmi + router +
-  // form state via UiContext.
-  const uiMcpSessionId = useMemo(
-    () => `uimcp_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`,
-    [],
-  );
-  useUiMcpServer({ sessionId: uiMcpSessionId });
+  // UI-MCP session lives at the root layout (UiMcpProvider) so the
+  // server survives across route changes — the agent will navigate
+  // the user to /swap, /markets, etc., and the bridge has to keep
+  // talking. AgentShell only needs the id here to plumb it into the
+  // agent's env so both sides agree on the same queue.
+  const uiMcpSessionId = useUiMcpSession();
 
   const { client, isConnected } = useWebContainer({
     backend: "stackblitz",
@@ -223,6 +219,13 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
           captureRef.current = (captureRef.current + text).slice(
             -CAPTURE_CAP_BYTES,
           );
+          // Auto-open the Dyspel device-grant URL on first sighting.
+          // The terminal can clip its bottom rows on smaller windows
+          // (Windows taskbar etc.), making WebLinksAddon's hit-test
+          // useless because the line is below the fold. Detect the
+          // URL ourselves and window.open() so the user never has to
+          // hunt for it.
+          maybeOpenDeviceGrantUrl(text);
         }),
       );
 
@@ -385,7 +388,7 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
   return (
     <div
       className={[
-        "relative flex h-[min(70vh,640px)] w-full flex-col overflow-hidden",
+        "relative flex h-[min(60vh,640px)] min-h-[320px] w-full flex-col overflow-hidden",
         "rounded-xl border border-border/60 bg-card",
         "shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_18px_50px_-24px_rgba(0,0,0,0.75)]",
       ].join(" ")}
@@ -441,6 +444,33 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
       )}
     </div>
   );
+}
+
+// Tracks user_codes we've already popped a tab for in this page lifetime
+// so a redraw / repeated stdout chunk doesn't open the same URL twice.
+const openedDeviceCodes = new Set<string>();
+
+/**
+ * Scan a stdout chunk for the Dyspel device-grant URL and open it in
+ * a new tab on first sighting. Matches user_codes of the shape
+ * `XXXX-XXXX` (uppercase alphanumerics + hyphen).
+ *
+ * Why: the terminal's fixed height (h-[min(70vh,640px)]) can clip its
+ * bottom rows on smaller windows / when the OS taskbar takes vertical
+ * space, dropping the URL below the visible viewport. WebLinksAddon
+ * makes it clickable but you have to find it first.
+ */
+function maybeOpenDeviceGrantUrl(text: string): void {
+  if (typeof window === "undefined") return;
+  const re = /https?:\/\/[^\s]*\/auth\/device\.html\?user_code=([A-Z0-9-]+)/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    const code = match[1];
+    if (openedDeviceCodes.has(code)) continue;
+    openedDeviceCodes.add(code);
+    // noopener so the new tab can't reach back into our page.
+    window.open(match[0], "_blank", "noopener,noreferrer");
+  }
 }
 
 function statusKindFor(phase: Phase): "" | "ok" | "warn" | "err" {
