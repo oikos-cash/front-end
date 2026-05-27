@@ -226,28 +226,30 @@ export default function AgentDrawer(): React.ReactElement {
   // the user's explicit open/close intent.
   const visible = autoHide ? peeked : open;
 
-  // iPhone-style asymmetric animation.
+  // Cinematic asymmetric animation.
   //
-  // Open: 780ms back-out with strong overshoot (~18% past target) so
-  // the rebound is unmistakable even when the drawer is only 480px
-  // tall. Opacity 0 -> 1 is layered on with a slower exp curve so the
-  // motion stays legible regardless of how much travel distance the
-  // current height provides.
+  // Open: 1240ms easeOutQuint — barely-perceptible start, a long
+  // gliding middle, and a slow gentle landing. Removed the overshoot
+  // so the motion reads as deliberate rather than springy (and so
+  // there's no gap between drawer bottom and viewport during the
+  // overshoot peak). Opacity rides a slower curve so the fade-in
+  // continues even after the slide settles.
   //
-  // Close: 320ms strong ease-in, transform + opacity together — the
-  // drawer accelerates and fades as it drops back into the dock.
+  // Close: 720ms easeIn-quart — slow start, decisive fall. Slower
+  // than before so the close also feels intentional, not snappy.
   //
-  // Height (maximize/restore): 520ms ease-out-quint so growing the
-  // drawer reads as expansion.
+  // Height (maximize/restore): 680ms easeOutQuint, matched to the
+  // open curve so growing/shrinking feels like the same family of
+  // motion.
   //
   // During pointer drag, transitions are killed so resize tracks the
-  // cursor without any easing curve fighting it.
+  // cursor without easing curves fighting it.
   const openTransition =
-    "transform 780ms cubic-bezier(0.34, 1.65, 0.5, 1), opacity 420ms cubic-bezier(0.16, 1, 0.3, 1)";
+    "transform 1240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 760ms cubic-bezier(0.22, 1, 0.36, 1)";
   const closeTransition =
-    "transform 320ms cubic-bezier(0.64, 0, 0.78, 0), opacity 220ms cubic-bezier(0.64, 0, 0.78, 0)";
+    "transform 720ms cubic-bezier(0.5, 0, 0.75, 0), opacity 480ms cubic-bezier(0.5, 0, 0.75, 0)";
   const heightTransition =
-    "height 520ms cubic-bezier(0.22, 1, 0.36, 1)";
+    "height 680ms cubic-bezier(0.22, 1, 0.36, 1)";
   const transition = dragging
     ? "none"
     : `${visible ? openTransition : closeTransition}, ${heightTransition}`;
