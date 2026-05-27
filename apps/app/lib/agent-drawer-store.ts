@@ -16,6 +16,13 @@ interface State {
   open: boolean;
   height: number;
   maximized: boolean;
+  // Mac-Dock-style mode. When true the drawer hides itself and only
+  // slides up while the cursor sits in a hot strip at the bottom of
+  // the viewport (peeked). Persisted across sessions.
+  autoHide: boolean;
+  // Transient — true only while the cursor is in the hot zone. Drives
+  // visibility when autoHide is on; ignored otherwise.
+  peeked: boolean;
 }
 
 interface Actions {
@@ -23,6 +30,8 @@ interface Actions {
   setOpen: (open: boolean) => void;
   setHeight: (height: number) => void;
   setMaximized: (maximized: boolean) => void;
+  setAutoHide: (autoHide: boolean) => void;
+  setPeeked: (peeked: boolean) => void;
 }
 
 const clampHeight = (px: number): number => {
@@ -40,6 +49,8 @@ export const useAgentDrawerStore = create<State & Actions>()(
       open: false,
       height: DEFAULT_HEIGHT,
       maximized: false,
+      autoHide: false,
+      peeked: false,
       toggle: () => {
         const next = !get().open;
         set({ open: next, mountedEver: get().mountedEver || next });
@@ -51,14 +62,32 @@ export const useAgentDrawerStore = create<State & Actions>()(
         set({ height: clampHeight(height) });
       },
       setMaximized: (maximized) => set({ maximized }),
+      setAutoHide: (autoHide) => {
+        // Switching INTO dock mode: drop any peek state so we start clean.
+        // Maximized + autoHide doesn't make sense — peeking a fullscreen
+        // overlay would constantly hijack the page — so clear it too.
+        set({
+          autoHide,
+          peeked: false,
+          maximized: autoHide ? false : get().maximized,
+          // mountedEver must already be true to even show the toggle,
+          // so we don't touch it here.
+        });
+      },
+      setPeeked: (peeked) => set({ peeked }),
     }),
     {
       name: "oikos.agent-drawer",
       storage: createJSONStorage(() => localStorage),
-      // Only persist user preferences. `open` and `mountedEver` are
-      // session-scoped — we don't want the iframe to auto-boot on every
-      // page load just because the user once opened the drawer.
-      partialize: (s) => ({ height: s.height, maximized: s.maximized }),
+      // Only persist user preferences. `open`, `mountedEver`, and
+      // `peeked` are session-scoped — we don't want the iframe to
+      // auto-boot on every page load just because the user once opened
+      // the drawer.
+      partialize: (s) => ({
+        height: s.height,
+        maximized: s.maximized,
+        autoHide: s.autoHide,
+      }),
     },
   ),
 );

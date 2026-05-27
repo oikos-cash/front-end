@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef } from "react";
-import { Maximize2, Minimize2, X } from "lucide-react";
+import { Maximize2, Minimize2, Pin, PinOff, X } from "lucide-react";
 
 import { useAgentDrawerStore } from "@/lib/agent-drawer-store";
 import { useWallet } from "@/stores/wallet";
@@ -30,6 +30,18 @@ const OSS_DEFAULT_COMMAND = [
   "auth",
   "status",
 ];
+
+// Hot strip at the very bottom of the viewport that triggers a peek
+// when in auto-hide mode. 6px is wide enough to hit reliably without
+// catching incidental cursor passes.
+const HOT_STRIP_PX = 6;
+// Once the drawer is peeked, the area that keeps it peeked widens to
+// (drawer height + this buffer). Lets the user move the cursor a touch
+// above the drawer top edge without it snapping shut.
+const PEEK_KEEP_BUFFER_PX = 40;
+// Grace period before the drawer slides back down once the cursor
+// leaves the hot zone. Tuned to ignore brief mouse-overshoots.
+const PEEK_CLOSE_DELAY_MS = 300;
 
 function DrawerBody(): React.ReactElement {
   const { isConnected } = useWallet();
@@ -59,14 +71,70 @@ function DrawerBody(): React.ReactElement {
   );
 }
 
+/** Track the cursor's vertical position and flip `peeked` whenever the
+ * cursor sits in the bottom edge (closed) or within the drawer + buffer
+ * (already peeked). Only active when auto-hide is on. */
+function useDockPeek(): void {
+  const autoHide = useAgentDrawerStore((s) => s.autoHide);
+  const setPeeked = useAgentDrawerStore((s) => s.setPeeked);
+  // Read height/peeked via a ref so changing them doesn't tear down the
+  // listener — we want one persistent mousemove across the whole session.
+  const heightRef = useRef(useAgentDrawerStore.getState().height);
+  const peekedRef = useRef(useAgentDrawerStore.getState().peeked);
+
+  useEffect(() => {
+    const unsub = useAgentDrawerStore.subscribe((s) => {
+      heightRef.current = s.height;
+      peekedRef.current = s.peeked;
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!autoHide) {
+      setPeeked(false);
+      return;
+    }
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    const onMove = (event: MouseEvent): void => {
+      const fromBottom = window.innerHeight - event.clientY;
+      const inZone = peekedRef.current
+        ? fromBottom < heightRef.current + PEEK_KEEP_BUFFER_PX
+        : fromBottom < HOT_STRIP_PX;
+      if (inZone) {
+        if (hideTimer) {
+          clearTimeout(hideTimer);
+          hideTimer = undefined;
+        }
+        if (!peekedRef.current) setPeeked(true);
+      } else if (peekedRef.current && !hideTimer) {
+        hideTimer = setTimeout(() => {
+          setPeeked(false);
+          hideTimer = undefined;
+        }, PEEK_CLOSE_DELAY_MS);
+      }
+    };
+    document.addEventListener("mousemove", onMove);
+    return () => {
+      document.removeEventListener("mousemove", onMove);
+      if (hideTimer) clearTimeout(hideTimer);
+    };
+  }, [autoHide, setPeeked]);
+}
+
 export default function AgentDrawer(): React.ReactElement {
   const open = useAgentDrawerStore((s) => s.open);
   const height = useAgentDrawerStore((s) => s.height);
   const maximized = useAgentDrawerStore((s) => s.maximized);
   const mountedEver = useAgentDrawerStore((s) => s.mountedEver);
+  const autoHide = useAgentDrawerStore((s) => s.autoHide);
+  const peeked = useAgentDrawerStore((s) => s.peeked);
   const setOpen = useAgentDrawerStore((s) => s.setOpen);
   const setHeight = useAgentDrawerStore((s) => s.setHeight);
   const setMaximized = useAgentDrawerStore((s) => s.setMaximized);
+  const setAutoHide = useAgentDrawerStore((s) => s.setAutoHide);
+
+  useDockPeek();
 
   const dragStateRef = useRef<{ startY: number; startHeight: number } | null>(
     null,
@@ -92,15 +160,23 @@ export default function AgentDrawer(): React.ReactElement {
 
   const onDragStart = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
-      if (maximized) return;
       event.preventDefault();
-      dragStateRef.current = { startY: event.clientY, startHeight: height };
+      // Dragging from maximized exits maximized: anchor the drag at the
+      // current viewport height, then drop fullscreen. setHeight clamps
+      // to 0.9 * innerHeight, so there's a small one-time snap (~10vh),
+      // after which the user's pointer drives the height directly.
+      const startHeight = maximized ? window.innerHeight : height;
+      dragStateRef.current = { startY: event.clientY, startHeight };
+      if (maximized) {
+        setHeight(window.innerHeight);
+        setMaximized(false);
+      }
       window.addEventListener("pointermove", onDragMove);
       window.addEventListener("pointerup", onDragEnd);
       document.body.style.userSelect = "none";
       document.body.style.cursor = "ns-resize";
     },
-    [height, maximized, onDragEnd, onDragMove],
+    [height, maximized, onDragEnd, onDragMove, setHeight, setMaximized],
   );
 
   useEffect(() => {
@@ -114,15 +190,19 @@ export default function AgentDrawer(): React.ReactElement {
   // so the iframe never unmounts. translate-y, not display:none — vaul-
   // style display removal kills the iframe paint context.
   const renderBody = mountedEver;
+  // In auto-hide mode visibility is dock-style: only show when the
+  // cursor is peeking the bottom edge. Otherwise the drawer follows
+  // the user's explicit open/close intent.
+  const visible = autoHide ? peeked : open;
 
   return (
     <div
-      aria-hidden={!open}
+      aria-hidden={!visible}
       className={[
         "fixed inset-x-0 bottom-0 z-40 flex flex-col",
         "border-t border-border/60 bg-background shadow-2xl",
         "transition-transform duration-200 ease-out",
-        open ? "translate-y-0" : "translate-y-full pointer-events-none",
+        visible ? "translate-y-0" : "translate-y-full pointer-events-none",
       ].join(" ")}
       style={{ height: maximized ? "100vh" : `${height}px` }}
     >
@@ -130,10 +210,7 @@ export default function AgentDrawer(): React.ReactElement {
         role="separator"
         aria-orientation="horizontal"
         onPointerDown={onDragStart}
-        className={[
-          "group relative h-2 w-full shrink-0",
-          maximized ? "cursor-default" : "cursor-ns-resize",
-        ].join(" ")}
+        className="group relative h-2 w-full shrink-0 cursor-ns-resize"
       >
         <span className="absolute left-1/2 top-1 h-1 w-12 -translate-x-1/2 rounded-full bg-border/60 transition-colors group-hover:bg-border" />
       </div>
@@ -149,9 +226,23 @@ export default function AgentDrawer(): React.ReactElement {
         <span className="flex items-center gap-1">
           <button
             type="button"
+            onClick={() => setAutoHide(!autoHide)}
+            aria-label={autoHide ? "Pin drawer (disable auto-hide)" : "Enable dock auto-hide"}
+            title={autoHide ? "Pin drawer" : "Auto-hide (dock mode)"}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          >
+            {autoHide ? (
+              <PinOff className="size-3.5" />
+            ) : (
+              <Pin className="size-3.5" />
+            )}
+          </button>
+          <button
+            type="button"
             onClick={() => setMaximized(!maximized)}
             aria-label={maximized ? "Restore drawer" : "Maximize drawer"}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            disabled={autoHide}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
           >
             {maximized ? (
               <Minimize2 className="size-3.5" />
@@ -163,7 +254,8 @@ export default function AgentDrawer(): React.ReactElement {
             type="button"
             onClick={() => setOpen(false)}
             aria-label="Close drawer"
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            disabled={autoHide}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
           >
             <X className="size-3.5" />
           </button>
