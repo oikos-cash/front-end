@@ -9,9 +9,14 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import "@xterm/xterm/css/xterm.css";
 
 import { useWebContainer } from "@/hooks/use-webcontainer";
-import { WEBCONTAINER_WS_URL } from "@/types/constants";
+import { WEBCONTAINER_BACKEND, WEBCONTAINER_WS_URL } from "@/types/constants";
 
 import type { SpawnHandle } from "@/services/webcontainer";
+
+const BACKEND_LABEL: Record<typeof WEBCONTAINER_BACKEND, string> = {
+  oss: "WC-OSS",
+  stackblitz: "StackBlitz",
+};
 
 /**
  * xterm theme aligned with the Oikos palette. xterm injects its own
@@ -61,6 +66,8 @@ export default function TerminalShell({
   const handleRef = useRef<SpawnHandle | null>(null);
   const [phase, setPhase] = useState<"booting" | "ready" | "lost">("booting");
   const { client, isConnected, error } = useWebContainer({
+    // The hook ignores `url` when backend === "stackblitz", but pass
+    // it anyway so the OSS path still has it without conditional logic.
     url: WEBCONTAINER_WS_URL || undefined,
   });
 
@@ -194,7 +201,9 @@ export default function TerminalShell({
             aria-hidden
             className="block size-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(245,200,67,0.7)]"
           />
-          <span className="eyebrow-strong">Webcontainer</span>
+          <span className="eyebrow-strong">
+            Webcontainer · {BACKEND_LABEL[WEBCONTAINER_BACKEND]}
+          </span>
         </span>
         <span
           className={[

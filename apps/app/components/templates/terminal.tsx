@@ -8,28 +8,44 @@ import Button from "@/components/atoms/button";
 import { useTranslations } from "next-intl";
 import { useWallet } from "@/stores/wallet";
 
-import { WEBCONTAINER_WS_URL } from "@/types/constants";
+import { WEBCONTAINER_BACKEND, WEBCONTAINER_WS_URL } from "@/types/constants";
 
 import { Lock, ServerOff, Wallet } from "lucide-react";
 
-// TerminalShell imports `@xterm/xterm` which touches `window` at
-// module load. Defer it until the browser bundle is hydrated so the
-// SSR pass doesn't blow up.
+// Both shells import `@xterm/xterm` which touches `window` at module
+// load — defer until the browser bundle is hydrated so the SSR pass
+// doesn't blow up.
+const SHELL_LOADER = (
+  <div className="h-[min(70vh,640px)] w-full animate-pulse rounded-xl border border-border/60 bg-card/60" />
+);
+
 const TerminalShell = dynamic(
   () => import("@/components/organism/terminal-shell"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[min(70vh,640px)] w-full animate-pulse rounded-xl border border-border/60 bg-card/60" />
-    ),
-  },
+  { ssr: false, loading: () => SHELL_LOADER },
+);
+
+const AgentShell = dynamic(
+  () => import("@/components/organism/agent-shell"),
+  { ssr: false, loading: () => SHELL_LOADER },
 );
 
 export default function TerminalTemplate() {
   const t = useTranslations("terminal");
   const { isConnected, handleConnect } = useWallet();
 
-  const configured = !!WEBCONTAINER_WS_URL;
+  // OSS needs a WS URL; StackBlitz boots in-browser with no extra config.
+  const configured =
+    WEBCONTAINER_BACKEND === "stackblitz" ? true : !!WEBCONTAINER_WS_URL;
+
+  // OSS path: server-resident container already has the agent on disk,
+  // so we just exec it. StackBlitz path: AgentShell mounts the bundles
+  // and orchestrates auth itself — no command needs to be passed.
+  const ossDefaultCommand = [
+    "node",
+    "./agent-entry-server.mjs",
+    "auth",
+    "status",
+  ];
 
   return (
     <div className="flex flex-col gap-6 py-4">
@@ -75,7 +91,11 @@ export default function TerminalTemplate() {
           </Button>
         </Empty>
       ) : (
-        <TerminalShell command={["node", "./agent-entry-server.mjs"]} />
+        WEBCONTAINER_BACKEND === "stackblitz" ? (
+          <AgentShell />
+        ) : (
+          <TerminalShell command={ossDefaultCommand} />
+        )
       )}
     </div>
   );
