@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // OIKOS_REQUIRE_SHIM — installs a module-scope require so esbuild's
-// __require shim (which checks `typeof require !== "undefined"`) finds it
-// when this bundle is evaluated under StackBlitz's ESM Node runtime.
-import { createRequire as __oikosCR } from "node:module";
+// __require shim (which checks `typeof require !== "undefined"`)
+// finds one when this bundle is evaluated under StackBlitz's ESM Node
+// runtime. Harmless on kernels that already expose require.
+import { createRequire as __oikosCR } from 'node:module';
 const require = __oikosCR(import.meta.url);
 // bundled by agent-wasm/scripts/bundle-guest.mjs
 var __create = Object.create;
@@ -33217,6 +33218,117 @@ function createOikosBuiltinClient(opts = {}) {
 }
 __name(createOikosBuiltinClient, "createOikosBuiltinClient");
 
+// ../oikos-agent/dist/mcp/http-client.js
+var HttpBridgeTransport = class {
+  static {
+    __name(this, "HttpBridgeTransport");
+  }
+  baseUrl;
+  timeoutMs;
+  closed = false;
+  onmessage;
+  onclose;
+  onerror;
+  constructor(opts) {
+    this.baseUrl = opts.baseUrl.replace(/\/$/, "");
+    this.timeoutMs = opts.timeoutMs ?? 6e4;
+  }
+  async start() {
+  }
+  async send(message) {
+    if (this.closed)
+      throw new Error("HttpBridgeTransport is closed");
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const res = await fetch(`${this.baseUrl}/request`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(message),
+        signal: controller.signal
+      });
+      if (!res.ok) {
+        const body2 = await res.text().catch(() => "");
+        throw new Error(`ui-mcp bridge HTTP ${res.status}: ${body2.slice(0, 200)}`);
+      }
+      const text = await res.text();
+      if (!text)
+        return;
+      let body;
+      try {
+        body = JSON.parse(text);
+      } catch {
+        return;
+      }
+      if (body && typeof body === "object" && Object.keys(body).length > 0) {
+        this.onmessage?.(body);
+      }
+    } catch (err) {
+      const e2 = err instanceof Error ? err : new Error(String(err));
+      this.onerror?.(e2);
+      throw e2;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  async close() {
+    if (this.closed)
+      return;
+    this.closed = true;
+    this.onclose?.();
+  }
+};
+var MCPHttpClient = class {
+  static {
+    __name(this, "MCPHttpClient");
+  }
+  name;
+  client;
+  transport;
+  connected = false;
+  toolsCache = null;
+  constructor(opts) {
+    this.name = opts.name;
+    this.transport = new HttpBridgeTransport({
+      baseUrl: opts.baseUrl,
+      timeoutMs: opts.timeoutMs
+    });
+    this.client = new Client({ name: "oikos-agent", version: "0.1.0" }, { capabilities: {} });
+  }
+  async connect() {
+    if (this.connected)
+      return;
+    await this.client.connect(this.transport);
+    this.connected = true;
+  }
+  async listTools() {
+    if (this.toolsCache)
+      return this.toolsCache;
+    const res = await this.client.listTools();
+    this.toolsCache = res.tools.map((t2) => ({
+      name: t2.name,
+      description: t2.description ?? "",
+      inputSchema: t2.inputSchema
+    }));
+    return this.toolsCache;
+  }
+  async callTool(name, args) {
+    const res = await this.client.callTool({ name, arguments: args }, void 0, { timeout: 6e4 });
+    const blocks = Array.isArray(res.content) ? res.content : [];
+    const text = blocks.map((b2) => typeof b2?.text === "string" ? b2.text : JSON.stringify(b2)).join("\n");
+    return { text, isError: res.isError === true };
+  }
+  async close() {
+    if (!this.connected)
+      return;
+    try {
+      await this.client.close();
+    } catch {
+    }
+    this.connected = false;
+  }
+};
+
 // ../oikos-agent/dist/mcp/registry.js
 var NAMESPACE_SEPARATOR = "__";
 var MCPRegistry = class {
@@ -45320,12 +45432,14 @@ function buildSystemPrompt(ctx) {
     '- IMV ("Inner Market Value") is the floor price guaranteed by the Floor position. The spot price is always \u2265 IMV.',
     "",
     "How to work:",
-    "- You have access to ~35 tools (prefix `oikos_`) for reading state and executing actions. Use them \u2014 never guess on-chain values.",
+    "- You have access to ~35 chain tools (prefix `oikos__`) for reading state and executing on-chain actions. Use them \u2014 never guess on-chain values.",
+    '- When running inside the in-browser /terminal, you ALSO have UI tools (prefix `ui__`) that drive the user\'s actual browser: navigate routes, prefill forms, open modals, submit swaps/borrows by driving the same buttons the user would click. Use these when the user asks for "open the swap page", "fill in this swap", "show me the markets table", etc.',
+    "- Prefer `ui__` when the user is steering the app and you should *do the click*. Prefer `oikos__` when answering data questions or executing actions independent of the visible UI.",
     "- ALWAYS verify with read tools (markets, balances, prices, positions) before suggesting or executing any write.",
-    "- For unfamiliar tokens, use `oikos_get_all_markets` or `oikos_search_tokens` to find the vault/pool addresses you need.",
+    "- For unfamiliar tokens, use `oikos__get_all_markets` or `oikos__search_tokens` to find the vault/pool addresses you need.",
     "- Tool responses include a natural-language summary plus raw JSON. Trust the summary; use raw data when you need exact numbers.",
     "- Quote amounts with units (BNB, USD, %) and addresses in full when relevant. Be precise about whether values are floor (IMV), spot, or expected output.",
-    "- Loans charge interest UPFRONT, are no-liquidation, and run 30\u2013365 days. Always show the APR and total fee from `oikos_calculate_loan_fees` before borrowing.",
+    "- Loans charge interest UPFRONT, are no-liquidation, and run 30\u2013365 days. Always show the APR and total fee from `oikos__calculate_loan_fees` before borrowing.",
     "- Swaps have configurable slippage (default 0.5%). Surface the expected output, slippage, and any safety caps before executing.",
     "",
     ...walletSection,
@@ -45843,6 +45957,45 @@ var chalkStderr = createChalk({ level: stderrColor ? stderrColor.level : 0 });
 var source_default = chalk;
 
 // ../oikos-agent/dist/ui/repl.js
+var SPINNER_FRAMES = ["\u280B", "\u2819", "\u2839", "\u2838", "\u283C", "\u2834", "\u2826", "\u2827", "\u2807", "\u280F"];
+var SPINNER_INTERVAL_MS = 80;
+var Spinner = class {
+  static {
+    __name(this, "Spinner");
+  }
+  timer = null;
+  frame = 0;
+  label = "";
+  active = false;
+  enabled;
+  constructor() {
+    this.enabled = Boolean(process.stdout.isTTY) && process.env.TERM !== "dumb";
+  }
+  start(label) {
+    if (!this.enabled || this.active)
+      return;
+    this.label = label;
+    this.active = true;
+    this.frame = 0;
+    this.render();
+    this.timer = setInterval(() => {
+      this.frame = (this.frame + 1) % SPINNER_FRAMES.length;
+      this.render();
+    }, SPINNER_INTERVAL_MS);
+  }
+  stop() {
+    if (!this.active)
+      return;
+    this.active = false;
+    if (this.timer)
+      clearInterval(this.timer);
+    this.timer = null;
+    process.stdout.write("\r\x1B[K");
+  }
+  render() {
+    process.stdout.write(`\r${source_default.cyan(SPINNER_FRAMES[this.frame])} ${source_default.dim(this.label)}\x1B[K`);
+  }
+};
 var HELP = [
   "  /help          Show this help",
   "  /tools         List available Oikos tools",
@@ -45871,12 +46024,15 @@ async function runRepl(opts) {
     terminal: true
   });
   let pendingNewline = false;
+  const spinner = new Spinner();
   agent.setHooks({
     onAssistantText: /* @__PURE__ */ __name((text) => {
+      spinner.stop();
       process.stdout.write(source_default.green(text));
       pendingNewline = !text.endsWith("\n");
     }, "onAssistantText"),
     onToolUse: /* @__PURE__ */ __name((call) => {
+      spinner.stop();
       if (pendingNewline) {
         process.stdout.write("\n");
         pendingNewline = false;
@@ -45884,12 +46040,15 @@ async function runRepl(opts) {
       const args = formatArgs(call.input);
       process.stdout.write(source_default.dim(`  \u2192 ${call.name}(${args})
 `));
+      spinner.start(`running ${call.name}\u2026`);
     }, "onToolUse"),
     onToolResult: /* @__PURE__ */ __name((_call, res) => {
+      spinner.stop();
       const trimmed = res.text.length > 600 ? res.text.slice(0, 600) + source_default.dim(" \u2026(truncated)") : res.text;
       const color = res.isError ? source_default.red : source_default.gray;
       const indented = trimmed.split("\n").map((l2) => "    " + l2).join("\n");
       process.stdout.write(color(indented) + "\n");
+      spinner.start("thinking\u2026");
     }, "onToolResult")
   });
   rl.prompt();
@@ -45909,10 +46068,13 @@ async function runRepl(opts) {
     try {
       process.stdout.write(source_default.magenta("agent \u203A "));
       pendingNewline = false;
+      spinner.start("thinking\u2026");
       await agent.send(input);
+      spinner.stop();
       if (pendingNewline)
         process.stdout.write("\n");
     } catch (err) {
+      spinner.stop();
       process.stdout.write(source_default.red(`
 [error] ${err.message}
 `));
@@ -46148,6 +46310,13 @@ async function main() {
         env: ext.env,
         cwd: ext.cwd
       })
+    });
+  }
+  const uiMcpUrl = process.env.OIKOS_UI_MCP_URL;
+  if (uiMcpUrl && uiMcpUrl.length > 0) {
+    mcp.register({
+      name: "ui",
+      client: new MCPHttpClient({ name: "ui", baseUrl: uiMcpUrl })
     });
   }
   let provider;
