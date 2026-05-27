@@ -25351,9 +25351,9 @@ var import_dotenv = __toESM(require_main(), 1);
 
 // ../oikos-agent/dist/mcp/external-config.js
 import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 var NAME_RE = /^[a-zA-Z][a-zA-Z0-9_-]{0,31}$/;
 var RESERVED_NAMES = /* @__PURE__ */ new Set(["oikos"]);
 function externalConfigPath() {
@@ -25394,12 +25394,54 @@ async function loadExternalMcpServers() {
   return out;
 }
 __name(loadExternalMcpServers, "loadExternalMcpServers");
+function assertValidServerName(name) {
+  if (!NAME_RE.test(name)) {
+    throw new Error(`Invalid MCP server name "${name}". Must match ${NAME_RE} (letter, then alnum/_/-).`);
+  }
+  if (RESERVED_NAMES.has(name)) {
+    throw new Error(`MCP server name "${name}" is reserved for the built-in server.`);
+  }
+}
+__name(assertValidServerName, "assertValidServerName");
+async function saveExternalMcpServers(servers) {
+  const path = externalConfigPath();
+  await mkdir(dirname(path), { recursive: true });
+  const mcpServers = {};
+  for (const s2 of servers) {
+    mcpServers[s2.name] = {
+      command: s2.command,
+      ...s2.args && s2.args.length > 0 ? { args: s2.args } : {},
+      ...s2.env && Object.keys(s2.env).length > 0 ? { env: s2.env } : {},
+      ...s2.cwd ? { cwd: s2.cwd } : {}
+    };
+  }
+  await writeFile(path, JSON.stringify({ mcpServers }, null, 2) + "\n", "utf8");
+}
+__name(saveExternalMcpServers, "saveExternalMcpServers");
+async function addExternalMcpServer(server) {
+  assertValidServerName(server.name);
+  const existing = await loadExternalMcpServers();
+  if (existing.some((s2) => s2.name === server.name)) {
+    throw new Error(`MCP server "${server.name}" already exists in ${externalConfigPath()}. Remove it first or edit the file directly.`);
+  }
+  await saveExternalMcpServers([...existing, server]);
+}
+__name(addExternalMcpServer, "addExternalMcpServer");
+async function removeExternalMcpServer(name) {
+  const existing = await loadExternalMcpServers();
+  const filtered = existing.filter((s2) => s2.name !== name);
+  if (filtered.length === existing.length)
+    return false;
+  await saveExternalMcpServers(filtered);
+  return true;
+}
+__name(removeExternalMcpServer, "removeExternalMcpServer");
 
 // ../oikos-agent/dist/dyspel/storage.js
-import { mkdir, readFile as readFile2, writeFile, chmod, unlink } from "node:fs/promises";
+import { mkdir as mkdir2, readFile as readFile2, writeFile as writeFile2, chmod, unlink } from "node:fs/promises";
 import { existsSync as existsSync2 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { dirname, join as join2 } from "node:path";
+import { dirname as dirname2, join as join2 } from "node:path";
 var CONFIG_DIR = join2(homedir2(), ".oikos-agent");
 var CREDS_PATH = join2(CONFIG_DIR, "credentials.json");
 function credsPath() {
@@ -25421,8 +25463,8 @@ async function readCreds() {
 }
 __name(readCreds, "readCreds");
 async function writeCreds(c2) {
-  await mkdir(dirname(CREDS_PATH), { recursive: true, mode: 448 });
-  await writeFile(CREDS_PATH, JSON.stringify(c2, null, 2));
+  await mkdir2(dirname2(CREDS_PATH), { recursive: true, mode: 448 });
+  await writeFile2(CREDS_PATH, JSON.stringify(c2, null, 2));
   await chmod(CREDS_PATH, 384).catch(() => {
   });
 }
@@ -25632,7 +25674,7 @@ __name(loadConfig, "loadConfig");
 
 // ../oikos-agent/dist/mcp/oikos-server.js
 import { createRequire } from "node:module";
-import { dirname as dirname2, resolve } from "node:path";
+import { dirname as dirname3, resolve } from "node:path";
 
 // ../oikos-agent/node_modules/zod/v4/core/core.js
 var NEVER = Object.freeze({
@@ -33195,7 +33237,7 @@ var MCPStdioClient = class {
 function resolveDefaultServerScript() {
   const require2 = createRequire(import.meta.url);
   const sdkIndex = require2.resolve("oikos-sdk");
-  const packageRoot = dirname2(dirname2(sdkIndex));
+  const packageRoot = dirname3(dirname3(sdkIndex));
   return resolve(packageRoot, "dist", "bin", "oikos-mcp-server.js");
 }
 __name(resolveDefaultServerScript, "resolveDefaultServerScript");
@@ -33363,6 +33405,44 @@ var MCPRegistry = class {
    */
   unregister(name) {
     this.entries = this.entries.filter((e2) => e2.name !== name);
+  }
+  /**
+   * Snapshot of currently-registered entries for UI listing. Order matches
+   * insertion. `bare` flag is surfaced so callers can tag the built-in
+   * server (`oikos`) differently from user-installed externals.
+   */
+  getEntries() {
+    return this.entries.map((e2) => ({ name: e2.name, bare: !!e2.bare }));
+  }
+  /**
+   * Register + connect in one step. On connect failure, rolls the
+   * register back so the registry doesn't end up holding a half-alive
+   * entry. Used by `/mcp add` for runtime installs.
+   */
+  async addAndConnect(entry) {
+    this.register(entry);
+    try {
+      await entry.client.connect();
+    } catch (err) {
+      this.unregister(entry.name);
+      throw err;
+    }
+  }
+  /**
+   * Close the client + unregister. Returns true if there was something
+   * to remove. Close errors are swallowed — by the time we're removing,
+   * we just want the entry gone.
+   */
+  async removeAndClose(name) {
+    const entry = this.entries.find((e2) => e2.name === name);
+    if (!entry)
+      return false;
+    this.entries = this.entries.filter((e2) => e2.name !== name);
+    try {
+      await entry.client.close();
+    } catch {
+    }
+    return true;
   }
   /**
    * Merge tool lists from every registered server. External servers' tools are
@@ -45313,6 +45393,17 @@ var OikosAgent = class {
   getTools() {
     return this.tools;
   }
+  /** Re-fetch the tool list. Call after adding or removing an MCP
+   *  server at runtime so subsequent turns see the updated surface. */
+  async refreshTools() {
+    this.tools = await this.mcp.listTools();
+  }
+  /** Direct access to the underlying registry. Used by REPL slash
+   *  commands (/mcp, /tools) that need to enumerate or mutate the
+   *  set of connected MCP servers. */
+  getMcpClient() {
+    return this.mcp;
+  }
   /** Replace UI hooks after construction (e.g. to wire the REPL renderer). */
   setHooks(hooks) {
     this.hooks = hooks;
@@ -45999,9 +46090,25 @@ var Spinner = class {
 var HELP = [
   "  /help          Show this help",
   "  /tools         List available Oikos tools",
+  "  /mcp           List MCP servers (or: /mcp add | remove | help)",
   "  /clear         Reset conversation history",
   "  /history       Show message count",
   "  /exit, /quit   Leave the REPL"
+].join("\n");
+var MCP_HELP = [
+  source_default.bold("  /mcp"),
+  source_default.dim("  manage MCP servers connected to this agent"),
+  "",
+  source_default.cyan("  /mcp") + "                                list connected servers",
+  source_default.cyan("  /mcp add") + " <name> <command> [args\u2026]   install a stdio MCP server",
+  source_default.cyan("  /mcp remove") + " <name>                  uninstall and disconnect",
+  source_default.cyan("  /mcp help") + "                           this message",
+  "",
+  source_default.dim("  Add persists to " + externalConfigPath() + "."),
+  source_default.dim("  Reserved names: oikos (built-in chain server), ui (in-page UI server)."),
+  source_default.dim("  Examples:"),
+  source_default.dim("    /mcp add filesystem npx -y @modelcontextprotocol/server-filesystem /tmp"),
+  source_default.dim("    /mcp add github npx -y @modelcontextprotocol/server-github")
 ].join("\n");
 async function runRepl(opts) {
   const { agent, providerName, modelName, chainId, dryRun, hasSigner, signerKind, walletAddress, dyspelUserId, dyspelBackendUrl } = opts;
@@ -46114,6 +46221,9 @@ async function handleSlashCommand(input, agent) {
       }
       return "continue";
     }
+    case "mcp":
+      await handleMcpCommand(input, agent);
+      return "continue";
     case "clear":
       await agent.reset();
       process.stdout.write(source_default.dim("conversation cleared.\n"));
@@ -46129,6 +46239,110 @@ async function handleSlashCommand(input, agent) {
   }
 }
 __name(handleSlashCommand, "handleSlashCommand");
+async function handleMcpCommand(input, agent) {
+  const tokens = input.slice("/mcp".length).trim().split(/\s+/).filter(Boolean);
+  const sub = tokens[0] ?? "list";
+  switch (sub) {
+    case "list":
+    case "":
+      printMcpList(agent);
+      return;
+    case "add": {
+      const name = tokens[1];
+      const command = tokens[2];
+      const args = tokens.slice(3);
+      if (!name || !command) {
+        process.stdout.write(source_default.yellow("usage: /mcp add <name> <command> [args\u2026]\n"));
+        return;
+      }
+      await installMcpServer(agent, { name, command, args: args.length > 0 ? args : void 0 });
+      return;
+    }
+    case "remove": {
+      const name = tokens[1];
+      if (!name) {
+        process.stdout.write(source_default.yellow("usage: /mcp remove <name>\n"));
+        return;
+      }
+      await uninstallMcpServer(agent, name);
+      return;
+    }
+    case "help":
+      process.stdout.write(MCP_HELP + "\n");
+      return;
+    default:
+      process.stdout.write(source_default.yellow(`unknown /mcp subcommand: ${sub}. try /mcp help
+`));
+  }
+}
+__name(handleMcpCommand, "handleMcpCommand");
+function printMcpList(agent) {
+  const registry2 = agent.getMcpClient();
+  const entries = registry2.getEntries();
+  const tools = agent.getTools();
+  const countByServer = /* @__PURE__ */ new Map();
+  for (const t2 of tools) {
+    countByServer.set(t2.serverName, (countByServer.get(t2.serverName) ?? 0) + 1);
+  }
+  process.stdout.write(source_default.bold(`${entries.length} MCP server${entries.length === 1 ? "" : "s"} connected:
+`));
+  for (const e2 of entries) {
+    const count = countByServer.get(e2.name) ?? 0;
+    const tag = e2.bare ? source_default.dim("(built-in)") : e2.name === "ui" ? source_default.dim("(in-page http)") : source_default.dim("(external stdio)");
+    process.stdout.write(`  ${source_default.cyan(e2.name)} ${tag} \u2014 ${count} tool${count === 1 ? "" : "s"}
+`);
+  }
+  process.stdout.write(source_default.dim("  Use /mcp add <name> <command> [args\u2026] to install.\n"));
+}
+__name(printMcpList, "printMcpList");
+async function installMcpServer(agent, entry) {
+  try {
+    await addExternalMcpServer(entry);
+  } catch (err) {
+    process.stdout.write(source_default.red(`failed to save config: ${err.message}
+`));
+    return;
+  }
+  const client = new MCPStdioClient({
+    name: entry.name,
+    command: entry.command,
+    args: entry.args,
+    env: entry.env,
+    cwd: entry.cwd
+  });
+  try {
+    await agent.getMcpClient().addAndConnect({ name: entry.name, client });
+    await agent.refreshTools();
+    const tools = agent.getTools().filter((t2) => t2.serverName === entry.name);
+    process.stdout.write(source_default.green(`\u2713 "${entry.name}" connected \u2014 ${tools.length} tool${tools.length === 1 ? "" : "s"} added.
+`));
+  } catch (err) {
+    await removeExternalMcpServer(entry.name).catch(() => {
+    });
+    process.stdout.write(source_default.red(`failed to connect "${entry.name}": ${err.message}
+`));
+  }
+}
+__name(installMcpServer, "installMcpServer");
+async function uninstallMcpServer(agent, name) {
+  if (name === "oikos" || name === "ui") {
+    process.stdout.write(source_default.yellow(`"${name}" is a built-in server; it can't be removed via /mcp.
+`));
+    return;
+  }
+  const registry2 = agent.getMcpClient();
+  const removedFromRegistry = await registry2.removeAndClose(name);
+  const removedFromConfig = await removeExternalMcpServer(name);
+  if (removedFromRegistry || removedFromConfig) {
+    await agent.refreshTools();
+    process.stdout.write(source_default.dim(`removed "${name}".
+`));
+  } else {
+    process.stdout.write(source_default.yellow(`"${name}" not found.
+`));
+  }
+}
+__name(uninstallMcpServer, "uninstallMcpServer");
 function printBanner(opts) {
   const chainName = { 56: "BSC Mainnet", 97: "BSC Testnet", 1337: "Local" }[opts.chainId] ?? `chain ${opts.chainId}`;
   const modeTag = !opts.hasSigner ? source_default.yellow("read-only") : opts.dryRun ? source_default.yellow("dry-run") : source_default.red.bold("LIVE");
