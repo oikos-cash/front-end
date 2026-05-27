@@ -3,7 +3,7 @@
  * stays on the existing wallet-bridge (eth_signTypedData_v4 etc.); this
  * server just exposes what the page knows about the user's connection.
  */
-import type { UiTool } from "./index.js";
+import type { UiTool } from "./index";
 
 const getConnectedAccount: UiTool = {
   name: "get_connected_account",

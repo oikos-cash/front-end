@@ -1,8 +1,8 @@
 /**
  * Modal tools — inspect, open, close.
  */
-import type { ModalName } from "../context.js";
-import type { UiTool } from "./index.js";
+import type { ModalName } from "../context";
+import type { UiTool } from "./index";
 
 const MODAL_NAMES = [
   "hedge",

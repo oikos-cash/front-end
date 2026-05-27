@@ -4,7 +4,7 @@
  * Tool names drop the `ui_` prefix because the MCPRegistry on the
  * agent side already prefixes the server name (`ui__navigate`).
  */
-import type { UiTool } from "./index.js";
+import type { UiTool } from "./index";
 
 const navigate: UiTool = {
   name: "navigate",

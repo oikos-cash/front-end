@@ -12,6 +12,11 @@ const STACKBLITZ_ENABLED =
   process.env.NEXT_PUBLIC_WEBCONTAINER_BACKEND === "stackblitz";
 
 const nextConfig: NextConfig = {
+  // The mcp/ workspace package ships TypeScript source (no build step).
+  // transpilePackages tells Next/Turbopack to compile it like local code,
+  // which also makes the `.js` ESM-style import specifiers in mcp/src
+  // resolve to their `.ts` siblings.
+  transpilePackages: ["@oikos/ui-mcp"],
   images: {
     remotePatterns: [
       {

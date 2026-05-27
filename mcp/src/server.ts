@@ -17,8 +17,8 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-import type { UiContext } from "./context.js";
-import { uiTools, type UiTool } from "./tools/index.js";
+import type { UiContext } from "./context";
+import { uiTools, type UiTool } from "./tools/index";
 
 export interface CreateUiMcpServerOptions {
   /** React-bound surface the tools call into. Must be referentially

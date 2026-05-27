@@ -13,7 +13,7 @@
  * name itself to surface as `ui__navigate`).
  */
 
-import type { UiContext } from "../context.js";
+import type { UiContext } from "../context";
 
 export interface UiTool {
   /** Tool name as the LLM sees it after the server prefix. */
@@ -28,11 +28,11 @@ export interface UiTool {
   handler: (ctx: UiContext, args: Record<string, unknown>) => Promise<unknown>;
 }
 
-import { navigationTools } from "./navigation.js";
-import { walletTools } from "./wallet.js";
-import { marketsTools } from "./markets.js";
-import { swapTools } from "./swap.js";
-import { modalsTools } from "./modals.js";
+import { navigationTools } from "./navigation";
+import { walletTools } from "./wallet";
+import { marketsTools } from "./markets";
+import { swapTools } from "./swap";
+import { modalsTools } from "./modals";
 
 /**
  * The default tool set. Phase 1: read-only inspectors + navigate.

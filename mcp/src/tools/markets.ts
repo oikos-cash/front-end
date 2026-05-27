@@ -2,7 +2,7 @@
  * Markets tools — read what the markets/trade pages are showing, and
  * navigate the user into a specific market.
  */
-import type { UiTool } from "./index.js";
+import type { UiTool } from "./index";
 
 const getVisibleMarkets: UiTool = {
   name: "get_visible_markets",

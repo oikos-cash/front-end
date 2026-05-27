@@ -4,7 +4,7 @@
  * flow — no new signing infra here, just an indirection that drives
  * the same useSwap mutation the UI button would.
  */
-import type { UiTool } from "./index.js";
+import type { UiTool } from "./index";
 
 const getSwapState: UiTool = {
   name: "get_swap_state",

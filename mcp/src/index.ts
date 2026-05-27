@@ -1,9 +1,9 @@
 /**
  * @oikos/ui-mcp — entry. See README.md.
  */
-export { createUiMcpServer } from "./server.js";
-export { HttpBridgeTransport } from "./transport-http.js";
-export { PageBridgeTransport } from "./transport-page.js";
+export { createUiMcpServer } from "./server";
+export { HttpBridgeTransport } from "./transport-http";
+export { PageBridgeTransport } from "./transport-page";
 export type {
   UiContext,
   RouterApi,
@@ -14,5 +14,5 @@ export type {
   VisibleMarket,
   SwapFormState,
   ModalName,
-} from "./context.js";
-export type { UiTool } from "./tools/index.js";
+} from "./context";
+export type { UiTool } from "./tools/index";
