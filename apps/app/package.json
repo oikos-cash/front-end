@@ -6,7 +6,8 @@
     "dev": "NODE_OPTIONS='--max-old-space-size=8192' next dev",
     "build": "NODE_OPTIONS='--max-old-space-size=8192' next build",
     "start": "NODE_OPTIONS='--max-old-space-size=4096' next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "sync:guest": "node scripts/sync-guest-bundles.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
