@@ -171,8 +171,18 @@ export default function AgentShell({
     });
     ro.observe(hostRef.current);
 
+    // Universal scroll-snap: fires for every linefeed regardless of
+    // whether it came from term.write() (subprocess output) or
+    // term.writeln() (the boot banner + auth flow announcements).
+    // Defer one frame so xterm's renderer has positioned the new row
+    // before we ask the viewport to follow.
+    const lf = term.onLineFeed(() => {
+      requestAnimationFrame(() => term.scrollToBottom());
+    });
+
     return () => {
       ro.disconnect();
+      lf.dispose();
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
