@@ -25613,6 +25613,7 @@ async function loadConfig(overrides = {}) {
     OIKOS_CHAIN_ID: process.env.OIKOS_CHAIN_ID,
     OIKOS_RPC_URL: process.env.OIKOS_RPC_URL,
     OIKOS_PRIVATE_KEY: process.env.OIKOS_PRIVATE_KEY,
+    OIKOS_REMOTE_SIGNER_URL: process.env.OIKOS_REMOTE_SIGNER_URL,
     OIKOS_DRY_RUN: process.env.OIKOS_DRY_RUN,
     OIKOS_MAX_SWAP_AMOUNT: process.env.OIKOS_MAX_SWAP_AMOUNT,
     OIKOS_MAX_BORROW_AMOUNT: process.env.OIKOS_MAX_BORROW_AMOUNT,
@@ -33173,7 +33174,7 @@ var MCPStdioClient = class {
     return this.toolsCache;
   }
   async callTool(name, args) {
-    const res = await this.client.callTool({ name, arguments: args });
+    const res = await this.client.callTool({ name, arguments: args }, void 0, { timeout: 5 * 6e4 });
     const blocks = Array.isArray(res.content) ? res.content : [];
     const text = blocks.map((b2) => typeof b2?.text === "string" ? b2.text : JSON.stringify(b2)).join("\n");
     return { text, isError: res.isError === true };
@@ -45286,6 +45287,13 @@ function buildSystemPrompt(ctx) {
   walletSection.push("Wallet:");
   if (!ctx.hasSigner) {
     walletSection.push("- NO private key is configured. There is no signer attached to this session.", "- All write tools (swap, borrow, repay, stake, deploy, presale_deposit, etc.) WILL FAIL.", "- Restrict yourself to read-only tools. If the user asks for a write, explain that they need to set OIKOS_PRIVATE_KEY and restart the agent.");
+  } else if (ctx.signerKind === "remote") {
+    walletSection.push(`- Active signer address: ${ctx.walletAddress ?? "(unknown \u2014 derive via oikos_get_agent_view if needed)"}`, "- The signer is a REMOTE wallet attached to the host browser (MetaMask via wagmi). Every signing operation pops a confirmation dialog there \u2014 the user is the per-transaction gatekeeper, not you.", "- You CAN suggest writes; the user will approve or reject each one in MetaMask. Restate the action plainly before calling any write tool so the user knows what they're about to approve.", "- You cannot switch accounts or chains from inside the agent \u2014 the user controls those in MetaMask.", `- When a write succeeds, include the tx hash AND a link in the form ${explorer ?? "the block explorer"}/tx/<hash> so the user can verify.`);
+    if (ctx.dryRun) {
+      walletSection.push("- DRY-RUN mode is ENABLED: write tools simulate against a fork and do NOT broadcast. Tell the user the action was simulated; remind them to set OIKOS_DRY_RUN=false to go live.");
+    } else {
+      walletSection.push(`- LIVE mode: write tools broadcast REAL transactions on ${chain}. The user's MetaMask will pop for each one \u2014 they can reject. Triple-check amounts/addresses/slippage before calling.`);
+    }
   } else {
     walletSection.push(`- Active signer address: ${ctx.walletAddress ?? "(unknown \u2014 derive via oikos_get_agent_view if needed)"}`, "- This is a SINGLE hot wallet loaded from an env var. You cannot switch accounts, generate new addresses, or use a hardware wallet \u2014 those features do not exist in this agent.", "- The user has NO per-transaction approval UI. Once you call a write tool in LIVE mode, the transaction is broadcast. You are the only gatekeeper \u2014 confirm intent in plain language before any write.", `- When a write succeeds, include the tx hash AND a link in the form ${explorer ?? "the block explorer"}/tx/<hash> so the user can verify.`);
     if (ctx.dryRun) {
@@ -45843,13 +45851,14 @@ var HELP = [
   "  /exit, /quit   Leave the REPL"
 ].join("\n");
 async function runRepl(opts) {
-  const { agent, providerName, modelName, chainId, dryRun, hasSigner, walletAddress, dyspelUserId, dyspelBackendUrl } = opts;
+  const { agent, providerName, modelName, chainId, dryRun, hasSigner, signerKind, walletAddress, dyspelUserId, dyspelBackendUrl } = opts;
   printBanner({
     providerName,
     modelName,
     chainId,
     dryRun,
     hasSigner,
+    signerKind,
     walletAddress,
     dyspelUserId,
     dyspelBackendUrl,
@@ -45961,7 +45970,15 @@ __name(handleSlashCommand, "handleSlashCommand");
 function printBanner(opts) {
   const chainName = { 56: "BSC Mainnet", 97: "BSC Testnet", 1337: "Local" }[opts.chainId] ?? `chain ${opts.chainId}`;
   const modeTag = !opts.hasSigner ? source_default.yellow("read-only") : opts.dryRun ? source_default.yellow("dry-run") : source_default.red.bold("LIVE");
-  const walletLine = opts.hasSigner && opts.walletAddress ? `${source_default.cyan(opts.walletAddress)} ${source_default.dim("(single hot wallet, env-loaded)")}` : source_default.dim("none (read-only)");
+  const walletLine = (() => {
+    if (!opts.hasSigner)
+      return source_default.dim("none (read-only)");
+    if (opts.signerKind === "remote") {
+      const addr = opts.walletAddress ? source_default.cyan(opts.walletAddress) : source_default.dim("(address fetched on first signing call)");
+      return `${addr} ${source_default.dim("(remote \u2014 host browser wallet via bridge)")}`;
+    }
+    return opts.walletAddress ? `${source_default.cyan(opts.walletAddress)} ${source_default.dim("(single hot wallet, env-loaded)")}` : source_default.dim("none (read-only)");
+  })();
   const providerLine = opts.providerName === "dyspel" ? `${source_default.cyan("dyspel")} ${source_default.dim(`\u2192 ${opts.dyspelBackendUrl ?? "?"}`)} (${opts.modelName})` : `${source_default.cyan(opts.providerName)} (${opts.modelName})`;
   const lines = [
     source_default.bold("Oikos Agent") + source_default.dim(" v0.1.0"),
@@ -46102,7 +46119,9 @@ async function main() {
   const chainId = Number.parseInt(config2.serverEnv.OIKOS_CHAIN_ID ?? "56", 10);
   const dryRun = (config2.serverEnv.OIKOS_DRY_RUN ?? "true").toLowerCase() !== "false";
   const privateKey = config2.serverEnv.OIKOS_PRIVATE_KEY;
-  const hasSigner = !!privateKey;
+  const remoteSignerUrl = config2.serverEnv.OIKOS_REMOTE_SIGNER_URL;
+  const signerKind = privateKey ? "private-key" : remoteSignerUrl ? "remote" : "none";
+  const hasSigner = signerKind !== "none";
   let walletAddress;
   if (privateKey) {
     try {
@@ -46164,6 +46183,7 @@ async function main() {
       chainId,
       dryRun,
       hasSigner,
+      signerKind,
       walletAddress,
       maxSwapAmount: config2.serverEnv.OIKOS_MAX_SWAP_AMOUNT,
       maxBorrowAmount: config2.serverEnv.OIKOS_MAX_BORROW_AMOUNT
@@ -46188,6 +46208,7 @@ async function main() {
       chainId,
       dryRun,
       hasSigner,
+      signerKind,
       walletAddress,
       dyspelUserId: config2.dyspel?.userId,
       dyspelBackendUrl: config2.dyspel?.backendUrl

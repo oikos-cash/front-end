@@ -55455,6 +55455,221 @@ var KNOWN_VAULTS = {
     }
   }
 };
+var RemoteSigner = class _RemoteSigner extends AbstractSigner {
+  static {
+    __name(this, "_RemoteSigner");
+  }
+  baseUrl;
+  timeoutMs;
+  /** Cached after the first getAddress() to avoid extra round-trips
+   *  (and to keep the prompt count down — every getAddress() that goes
+   *  to the wire would otherwise burden the page). */
+  cachedAddress = null;
+  constructor(config2) {
+    super(config2.provider ?? null);
+    this.baseUrl = config2.baseUrl.replace(/\/$/, "");
+    this.timeoutMs = config2.timeoutMs ?? 5 * 6e4;
+  }
+  connect(provider) {
+    return new _RemoteSigner({
+      baseUrl: this.baseUrl,
+      timeoutMs: this.timeoutMs,
+      provider
+    });
+  }
+  async getAddress() {
+    if (this.cachedAddress) return this.cachedAddress;
+    const accounts = await this.rpc("eth_accounts", []);
+    if (!Array.isArray(accounts) || accounts.length === 0 || typeof accounts[0] !== "string") {
+      throw new OikosError(
+        "wallet bridge returned no accounts \u2014 connect a wallet to /terminal",
+        "INVALID_PARAMS"
+        /* INVALID_PARAMS */
+      );
+    }
+    this.cachedAddress = accounts[0];
+    return accounts[0];
+  }
+  async signTypedData(domain2, types, value) {
+    const address = await this.getAddress();
+    const primaryType = Object.keys(types).find((k) => k !== "EIP712Domain") ?? "";
+    const payload = {
+      domain: domain2,
+      types: { ...types },
+      primaryType,
+      message: value
+    };
+    const sig = await this.rpc("eth_signTypedData_v4", [
+      address,
+      JSON.stringify(
+        payload,
+        (_key, val) => typeof val === "bigint" ? val.toString() : val
+      )
+    ]);
+    if (typeof sig !== "string") {
+      throw new OikosError(
+        `wallet bridge returned non-string signature: ${typeof sig}`,
+        "INVALID_PARAMS"
+        /* INVALID_PARAMS */
+      );
+    }
+    return sig;
+  }
+  signMessage(_message) {
+    return Promise.reject(
+      new OikosError(
+        "RemoteSigner.signMessage is not implemented yet.",
+        "INVALID_PARAMS"
+        /* INVALID_PARAMS */
+      )
+    );
+  }
+  signTransaction(_tx) {
+    return Promise.reject(
+      new OikosError(
+        "RemoteSigner.signTransaction not supported \u2014 MetaMask only signs+broadcasts via sendTransaction. Use sendTransaction directly.",
+        "INVALID_PARAMS"
+        /* INVALID_PARAMS */
+      )
+    );
+  }
+  /**
+   * Send a transaction via the remote wallet. The page receives the
+   * full populated tx, MetaMask pops a confirmation, and on approval
+   * the wallet signs + broadcasts in one shot.
+   *
+   * Ethers' AbstractSigner default would call `signTransaction` then
+   * `provider.broadcastTransaction`, but MetaMask doesn't expose
+   * `eth_signTransaction` — overriding here so we go through MetaMask's
+   * atomic `eth_sendTransaction` instead.
+   */
+  async sendTransaction(tx) {
+    const populated = await this.populateTransaction(tx);
+    const from = await this.getAddress();
+    const txParam = {
+      from,
+      // Hexify each numeric field the way MetaMask's eth_sendTransaction
+      // expects. Skip undefined fields so the wallet uses its own
+      // defaults (gas estimation, fee market params).
+      ...populated.to ? { to: populated.to } : {},
+      ...populated.value != null ? { value: toHex(populated.value) } : {},
+      ...populated.data ? { data: populated.data } : {},
+      ...populated.gasLimit != null ? { gas: toHex(populated.gasLimit) } : {},
+      ...populated.nonce != null ? { nonce: toHex(populated.nonce) } : {},
+      ...populated.maxFeePerGas != null ? { maxFeePerGas: toHex(populated.maxFeePerGas) } : {},
+      ...populated.maxPriorityFeePerGas != null ? { maxPriorityFeePerGas: toHex(populated.maxPriorityFeePerGas) } : {},
+      ...populated.gasPrice != null ? { gasPrice: toHex(populated.gasPrice) } : {},
+      ...populated.chainId != null ? { chainId: toHex(populated.chainId) } : {}
+    };
+    const hash3 = await this.rpc("eth_sendTransaction", [txParam]);
+    if (typeof hash3 !== "string" || !hash3.startsWith("0x")) {
+      throw new OikosError(
+        `wallet bridge returned non-hash from eth_sendTransaction: ${typeof hash3}`,
+        "INVALID_PARAMS"
+        /* INVALID_PARAMS */
+      );
+    }
+    if (this.provider) {
+      const resp = await this.provider.getTransaction(hash3);
+      if (resp) return resp;
+    }
+    return synthesizeTransactionResponse(this.provider, hash3, from, populated);
+  }
+  /**
+   * Low-level: POST a JSON-RPC-shaped request to the bridge and await
+   * the response. Translates bridge-side errors into OikosError so the
+   * SDK's error surface stays uniform.
+   */
+  async rpc(method, params) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    const url2 = `${this.baseUrl}/request`;
+    const debug = process.env.OIKOS_REMOTE_SIGNER_DEBUG === "1";
+    if (debug) process.stderr.write(`[remote-signer] \u2192 ${method}
+`);
+    try {
+      const res = await fetch(url2, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ method, params }),
+        signal: controller.signal
+      });
+      if (!res.ok) {
+        throw new OikosError(
+          `wallet bridge HTTP ${res.status}: ${await res.text().catch(() => "")}`.slice(0, 500),
+          "INVALID_PARAMS"
+          /* INVALID_PARAMS */
+        );
+      }
+      const body = await res.json();
+      if (body?.error) {
+        throw new OikosError(
+          `wallet bridge: ${body.error.message} (code ${body.error.code})`,
+          "INVALID_PARAMS"
+          /* INVALID_PARAMS */
+        );
+      }
+      if (debug) process.stderr.write(`[remote-signer] \u2190 ${method} ok
+`);
+      return body.result;
+    } catch (err) {
+      if (err instanceof OikosError) throw err;
+      const message = err instanceof Error ? err.message : String(err);
+      throw new OikosError(
+        `wallet bridge request failed: ${message}`,
+        "INVALID_PARAMS"
+        /* INVALID_PARAMS */
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+};
+function remoteSignerFromEnv(env = process.env) {
+  const baseUrl = env.OIKOS_REMOTE_SIGNER_URL;
+  if (!baseUrl) return null;
+  return new RemoteSigner({ baseUrl });
+}
+__name(remoteSignerFromEnv, "remoteSignerFromEnv");
+function toHex(value) {
+  if (typeof value === "string") {
+    return value.startsWith("0x") ? value : `0x${BigInt(value).toString(16)}`;
+  }
+  return `0x${BigInt(value).toString(16)}`;
+}
+__name(toHex, "toHex");
+function synthesizeTransactionResponse(provider, hash3, from, populated) {
+  const stub = {
+    hash: hash3,
+    from,
+    to: populated.to ?? null,
+    value: typeof populated.value === "bigint" ? populated.value : 0n,
+    data: populated.data ?? "0x",
+    chainId: typeof populated.chainId === "bigint" ? populated.chainId : 0n,
+    nonce: typeof populated.nonce === "number" ? populated.nonce : 0,
+    gasLimit: typeof populated.gasLimit === "bigint" ? populated.gasLimit : 0n,
+    gasPrice: null,
+    maxFeePerGas: null,
+    maxPriorityFeePerGas: null,
+    type: 0,
+    blockHash: null,
+    blockNumber: null,
+    index: 0,
+    signature: { r: "0x", s: "0x", v: 0, networkV: null },
+    async wait(confirmations) {
+      if (!provider) {
+        throw new OikosError(
+          "cannot wait() for tx confirmation \u2014 RemoteSigner has no provider attached",
+          "INVALID_PARAMS"
+          /* INVALID_PARAMS */
+        );
+      }
+      return provider.waitForTransaction(hash3, confirmations ?? 1);
+    }
+  };
+  return stub;
+}
+__name(synthesizeTransactionResponse, "synthesizeTransactionResponse");
 var OikosProvider = class {
   static {
     __name(this, "OikosProvider");
@@ -55471,12 +55686,13 @@ var OikosProvider = class {
     this.provider = new JsonRpcProvider(config2.rpcUrl, config2.chainId, {
       staticNetwork: true
     });
-    if (config2.privateKey) {
-      this.signer = new Wallet(config2.privateKey, this.provider);
-    } else if (config2.signer) {
+    if (config2.signer) {
       this.signer = config2.signer;
+    } else if (config2.privateKey) {
+      this.signer = new Wallet(config2.privateKey, this.provider);
     } else {
-      this.signer = null;
+      const remote = remoteSignerFromEnv();
+      this.signer = remote ? remote.connect(this.provider) : null;
     }
   }
   requireSigner() {
@@ -57101,20 +57317,19 @@ var OikosSDK = class {
     }
     const loans = [];
     const stakes = [];
-    for (const market of markets) {
-      try {
-        const loan = await this.lending.getLoan(market.vaultAddress, address);
-        if (loan) {
-          loans.push({ ...loan, vaultAddress: market.vaultAddress });
-        }
-      } catch {
-      }
-      try {
-        const stakeInfo = await this.staking.getStakeInfo(market.vaultAddress, address);
-        if (parseFloat(stakeInfo.stakedBalance) > 0) {
-          stakes.push({ ...stakeInfo, vaultAddress: market.vaultAddress });
-        }
-      } catch {
+    const perVault = await Promise.all(
+      markets.map(async (market) => {
+        const [loan, stakeInfo] = await Promise.all([
+          this.lending.getLoan(market.vaultAddress, address).catch(() => null),
+          this.staking.getStakeInfo(market.vaultAddress, address).catch(() => null)
+        ]);
+        return { market, loan, stakeInfo };
+      })
+    );
+    for (const { market, loan, stakeInfo } of perVault) {
+      if (loan) loans.push({ ...loan, vaultAddress: market.vaultAddress });
+      if (stakeInfo && parseFloat(stakeInfo.stakedBalance) > 0) {
+        stakes.push({ ...stakeInfo, vaultAddress: market.vaultAddress });
       }
     }
     return {

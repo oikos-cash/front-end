@@ -28,40 +28,25 @@ if (typeof origFetch !== 'function') {
   throw new Error('fetch-shim: globalThis.fetch is not a function in this runtime');
 }
 
-// StackBlitz's WC has its own outbound network (the container can reach
-// the public internet via 10.0.0.1) and Node's fetch doesn't enforce
-// browser CORS, so the same-origin proxy isn't needed — we can hit the
-// real backend directly. The agent-wasm Vite host needed it because the
-// Dyspel kernel routes fetch through the browser's CORS-enforcing fetch.
-// When OIKOS_HOST_ORIGIN is unset, treat the shim as a no-op.
-if (!HOST_ORIGIN) {
-  // Pass through.
-} else {
-  globalThis.fetch = function patchedFetch(input, init) {
-    const url = typeof input === 'string' ? input : (input?.url ?? String(input));
-    for (const { prefix, route } of PROXY_RULES) {
-      if (url.startsWith(prefix)) {
-        const rewritten = HOST_ORIGIN + route + url.slice(prefix.length);
-        // Re-wrap so the body / headers from the original Request are kept
-        // if `input` was a Request object.
-        if (typeof input !== 'string' && input instanceof Request) {
-          return origFetch(new Request(rewritten, input), init);
-        }
-        return origFetch(rewritten, init);
+globalThis.fetch = function patchedFetch(input, init) {
+  const url = typeof input === 'string' ? input : (input?.url ?? String(input));
+  for (const { prefix, route } of PROXY_RULES) {
+    if (url.startsWith(prefix)) {
+      const rewritten = HOST_ORIGIN + route + url.slice(prefix.length);
+      // Re-wrap so the body / headers from the original Request are kept
+      // if `input` was a Request object.
+      if (typeof input !== 'string' && input instanceof Request) {
+        return origFetch(new Request(rewritten, input), init);
       }
+      return origFetch(rewritten, init);
     }
-    return origFetch(input, init);
-  };
-}
+  }
+  return origFetch(input, init);
+};
 
-// The bundled CLI (agent.bundle.mjs) and MCP server now ship with
-// their own module-scope `require` declaration (search OIKOS_REQUIRE_SHIM)
-// so esbuild's __require shim can find one under StackBlitz's ESM Node
-// runtime, where bare `require` isn't auto-injected.
 
-// ⚠ Must be a *dynamic* import — ESM `import` statements are hoisted
+// ⚠ Dynamic import is required — ESM `import` statements are hoisted
 // above body code, so a static `import './agent.bundle.mjs'` would run
 // before the fetch-shim above installed `globalThis.fetch`, and the
-// bundle would capture the un-patched original. Dynamic import keeps
-// source order.
+// bundle would capture the un-patched original.
 await import('./agent.bundle.mjs');
