@@ -12,6 +12,7 @@ import Button from "@/components/atoms/button";
 
 import { useWebContainer } from "@/hooks/use-webcontainer";
 import { useWalletBridge } from "@/hooks/use-wallet-bridge";
+import { useUiMcpServer } from "@/hooks/use-ui-mcp-server";
 import { API_BASE_URL, WEBCONTAINER_HOST_TUNNEL } from "@/types/constants";
 
 import type { SpawnHandle, WebContainerClient } from "@/services/webcontainer";
@@ -110,6 +111,17 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
   );
   useWalletBridge({ sessionId: bridgeSessionId });
 
+  // Separate session for the UI-MCP bridge. The agent's MCPRegistry
+  // registers an `ui` server backed by an HTTP transport pointed at
+  // ${tunnel}/api/ui-mcp/<sessionId>; useUiMcpServer hosts the actual
+  // MCP server on this side of the bridge, bound to wagmi + router +
+  // form state via UiContext.
+  const uiMcpSessionId = useMemo(
+    () => `uimcp_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`,
+    [],
+  );
+  useUiMcpServer({ sessionId: uiMcpSessionId });
+
   const { client, isConnected } = useWebContainer({
     backend: "stackblitz",
     workdirName: WORKDIR_NAME,
@@ -190,7 +202,7 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
         command: ["node", "./agent-entry.mjs", ...args],
         cols: term.cols,
         rows: term.rows,
-        env: agentEnv(bridgeSessionId),
+        env: agentEnv(bridgeSessionId, uiMcpSessionId),
       });
       handleRef.current = handle;
 
@@ -230,7 +242,7 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
       handleRef.current = null;
       return { code, output: captureRef.current };
     },
-    [bridgeSessionId],
+    [bridgeSessionId, uiMcpSessionId],
   );
 
   // Drive the boot → mount → spawn pipeline once the client is live.
@@ -449,7 +461,10 @@ function statusKindFor(phase: Phase): "" | "ok" | "warn" | "err" {
   }
 }
 
-function agentEnv(bridgeSessionId: string): Record<string, string> {
+function agentEnv(
+  bridgeSessionId: string,
+  uiMcpSessionId: string,
+): Record<string, string> {
   return {
     OIKOS_AGENT_PROVIDER: "dyspel",
     OIKOS_MCP_COMMAND: "node",
@@ -488,6 +503,10 @@ function agentEnv(bridgeSessionId: string): Record<string, string> {
           // tunnel hostname, different path. See use-wallet-bridge.ts
           // for the host-side handler.
           OIKOS_REMOTE_SIGNER_URL: `${WEBCONTAINER_HOST_TUNNEL}/api/wallet-bridge/${bridgeSessionId}`,
+          // Bridge URL for the in-process UI MCP server. The agent's
+          // MCPRegistry picks this up via cli.ts and registers an `ui`
+          // server backed by MCPHttpClient. See use-ui-mcp-server.ts.
+          OIKOS_UI_MCP_URL: `${WEBCONTAINER_HOST_TUNNEL}/api/ui-mcp/${uiMcpSessionId}`,
         }
       : {}),
   };
