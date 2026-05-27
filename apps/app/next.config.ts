@@ -4,10 +4,13 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin();
 
 // StackBlitz WebContainers depend on SharedArrayBuffer, which the
-// browser only exposes under cross-origin isolation. Apply the
-// COOP/COEP pair to the /terminal route prefix only — slapping it on
-// every route would break cross-origin <img>/<iframe>/RPC traffic for
-// unrelated pages.
+// browser only exposes under cross-origin isolation. The agent shell
+// now lives in a bottom drawer mounted in the locale layout, so it can
+// boot on ANY route — meaning the COOP/COEP pair has to apply
+// app-wide. We use `credentialless` (not `require-corp`) which is the
+// looser COEP variant: cross-origin sub-resources still load as long
+// as they're fetched without credentials, so token icons, RPC POSTs,
+// and rainbow-kit transports keep working.
 const STACKBLITZ_ENABLED =
   process.env.NEXT_PUBLIC_WEBCONTAINER_BACKEND === "stackblitz";
 
@@ -31,17 +34,9 @@ const nextConfig: NextConfig = {
       { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
       { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
     ];
-    // next-intl serves /terminal under each locale prefix
-    // (`/en/terminal`, `/es/terminal`, …). Constrain to the configured
-    // locale set so we don't accidentally widen the isolation blast
-    // radius to unrelated routes.
     return [
       {
-        source: "/:locale(en|es)/terminal/:path*",
-        headers: isolation,
-      },
-      {
-        source: "/:locale(en|es)/terminal",
+        source: "/:path*",
         headers: isolation,
       },
     ];

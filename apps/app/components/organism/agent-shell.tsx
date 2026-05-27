@@ -71,6 +71,10 @@ type Phase =
 interface AgentShellProps {
   /** Status banner label override; defaults to "Agent". */
   label?: string;
+  /** When true, the shell fills its parent (no rounded card chrome,
+   * no fixed height). The bottom-bar drawer uses this so its own
+   * frame governs the dimensions. */
+  embedded?: boolean;
 }
 
 /**
@@ -86,7 +90,10 @@ interface AgentShellProps {
  * `/data2/code/Oikos/agent-wasm/src/host/main.ts`; this is the same
  * choreography ported into the React shape.
  */
-export default function AgentShell({ label = "Agent" }: AgentShellProps) {
+export default function AgentShell({
+  label = "Agent",
+  embedded = false,
+}: AgentShellProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -388,9 +395,10 @@ export default function AgentShell({ label = "Agent" }: AgentShellProps) {
   return (
     <div
       className={[
-        "relative flex h-[min(60vh,640px)] min-h-[320px] w-full flex-col overflow-hidden",
-        "rounded-xl border border-border/60 bg-card",
-        "shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_18px_50px_-24px_rgba(0,0,0,0.75)]",
+        "relative flex w-full flex-col overflow-hidden bg-card",
+        embedded
+          ? "h-full"
+          : "h-[min(60vh,640px)] min-h-[320px] rounded-xl border border-border/60 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_18px_50px_-24px_rgba(0,0,0,0.75)]",
       ].join(" ")}
     >
       <header className="flex items-center justify-between gap-3 border-b border-border/40 px-3 py-2">
