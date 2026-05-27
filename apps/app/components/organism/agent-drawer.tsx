@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Maximize2, Minimize2, Pin, PinOff, X } from "lucide-react";
 
 import { useAgentDrawerStore } from "@/lib/agent-drawer-store";
@@ -136,6 +136,12 @@ export default function AgentDrawer(): React.ReactElement {
 
   useDockPeek();
 
+  // Tracks whether the user is currently mid-drag on the top edge.
+  // While true we kill all transitions so height tracks the cursor
+  // instantly; otherwise the iOS-style curves would lag behind every
+  // pointermove and turn the resize into a sluggish jelly.
+  const [dragging, setDragging] = useState(false);
+
   const dragStateRef = useRef<{ startY: number; startHeight: number } | null>(
     null,
   );
@@ -152,6 +158,7 @@ export default function AgentDrawer(): React.ReactElement {
 
   const onDragEnd = useCallback(() => {
     dragStateRef.current = null;
+    setDragging(false);
     window.removeEventListener("pointermove", onDragMove);
     window.removeEventListener("pointerup", onDragEnd);
     document.body.style.userSelect = "";
@@ -167,6 +174,7 @@ export default function AgentDrawer(): React.ReactElement {
       // after which the user's pointer drives the height directly.
       const startHeight = maximized ? window.innerHeight : height;
       dragStateRef.current = { startY: event.clientY, startHeight };
+      setDragging(true);
       if (maximized) {
         setHeight(window.innerHeight);
         setMaximized(false);
@@ -218,6 +226,29 @@ export default function AgentDrawer(): React.ReactElement {
   // the user's explicit open/close intent.
   const visible = autoHide ? peeked : open;
 
+  // iPhone-style asymmetric easing.
+  //
+  // Open: 720ms with a back-out curve that briefly overshoots ~8% past
+  // the rest position before settling. That tiny rebound is what makes
+  // iOS sheets feel physical instead of computed.
+  //
+  // Close: 340ms with a strong ease-in — the drawer accelerates as it
+  // falls, like dropping back into its dock instead of being dragged.
+  //
+  // Height (maximize/restore): 520ms ease-out-quint, so growing the
+  // drawer feels like it expands rather than snaps.
+  //
+  // During drag, transitions are killed so resize tracks the cursor.
+  const openTransform =
+    "transform 720ms cubic-bezier(0.34, 1.35, 0.64, 1)";
+  const closeTransform =
+    "transform 340ms cubic-bezier(0.64, 0, 0.78, 0)";
+  const heightTransition =
+    "height 520ms cubic-bezier(0.22, 1, 0.36, 1)";
+  const transition = dragging
+    ? "none"
+    : `${visible ? openTransform : closeTransform}, ${heightTransition}`;
+
   return (
     <div
       aria-hidden={!visible}
@@ -232,10 +263,8 @@ export default function AgentDrawer(): React.ReactElement {
       ].join(" ")}
       style={{
         height: maximized ? "100vh" : `${height}px`,
-        // OutExpo easing: barely moves at first, accelerates through
-        // the middle, then floats to a stop. 520ms is slow enough to
-        // read the motion without dragging the user back to wait.
-        transition: "transform 520ms cubic-bezier(0.16, 1, 0.3, 1)",
+        transition,
+        willChange: "transform, height",
       }}
     >
       <div

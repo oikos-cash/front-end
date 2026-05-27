@@ -160,6 +160,11 @@ export default function AgentShell({
         fit.fit();
         const h = handleRef.current;
         if (h && term.cols && term.rows) h.resize(term.cols, term.rows);
+        // After fit() the row count may have changed under the cursor.
+        // If the user wasn't scrolling around, snap the viewport back
+        // to the latest line so the drawer never lands on a stale view
+        // when it animates open or is resized.
+        term.scrollToBottom();
       } catch {
         /* size 0 during teardown is fine */
       }
@@ -222,7 +227,14 @@ export default function AgentShell({
       cleanups.push(
         c.onOutput(handle.pid, (chunk) => {
           const text = decoder.decode(chunk, { stream: true });
-          term.write(text);
+          term.write(text, () => {
+            // The write is async — schedule the scroll in its callback
+            // so the buffer pointer is past the new content before we
+            // snap the viewport. Without this, fast output streams
+            // (signing-in banner, tool calls) can leave the last row
+            // permanently below the visible fold.
+            term.scrollToBottom();
+          });
           captureRef.current = (captureRef.current + text).slice(
             -CAPTURE_CAP_BYTES,
           );
