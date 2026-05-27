@@ -3,6 +3,7 @@
  */
 export { createUiMcpServer } from "./server.js";
 export { HttpBridgeTransport } from "./transport-http.js";
+export { PageBridgeTransport } from "./transport-page.js";
 export type {
   UiContext,
   RouterApi,
@@ -10,4 +11,8 @@ export type {
   ModalApi,
   SwapFormApi,
   MarketsApi,
+  VisibleMarket,
+  SwapFormState,
+  ModalName,
 } from "./context.js";
+export type { UiTool } from "./tools/index.js";

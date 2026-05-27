@@ -28,8 +28,20 @@ export interface UiTool {
   handler: (ctx: UiContext, args: Record<string, unknown>) => Promise<unknown>;
 }
 
+import { navigationTools } from "./navigation.js";
+import { walletTools } from "./wallet.js";
+import { marketsTools } from "./markets.js";
+import { swapTools } from "./swap.js";
+import { modalsTools } from "./modals.js";
+
 /**
- * The default tool set. Empty in the scaffold — Phase 1 adds the
- * read-only tools, Phase 2 the writes, Phase 3 the submits.
+ * The default tool set. Phase 1: read-only inspectors + navigate.
+ * Phase 2 will add form prefill / modal control; Phase 3, submits.
  */
-export const uiTools: UiTool[] = [];
+export const uiTools: UiTool[] = [
+  ...navigationTools,
+  ...walletTools,
+  ...marketsTools,
+  ...swapTools,
+  ...modalsTools,
+];
