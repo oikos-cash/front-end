@@ -21,13 +21,19 @@
 /**
  * Format the message string the backend AuthGuard expects.
  * If the backend ever changes the expected format, update this single function.
+ *
+ * NOTE: must be single-line. The signed message is round-tripped through the
+ * `x-message` HTTP header, and the Fetch spec forbids CR/LF in header values
+ * (Headers.set() throws TypeError). A multi-line message like
+ * `"…services:\n\nAddress: …\nTimestamp: …"` would fail at fetch() time with
+ * "Failed to execute 'fetch' on 'Window': Invalid value".
  */
 export function formatAuthMessage(
   address: string,
   timestamp: number = Date.now(),
 ): string {
   const lower = address.toLowerCase();
-  return `Sign this message to authenticate with Oikos services:\n\nAddress: ${lower}\nTimestamp: ${timestamp}`;
+  return `Sign this message to authenticate with Oikos services. Address: ${lower}. Timestamp: ${timestamp}`;
 }
 
 /**
