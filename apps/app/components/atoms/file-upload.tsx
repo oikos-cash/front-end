@@ -15,7 +15,7 @@ export default function FileUpload({
   onChange,
   disabled,
   className,
-  accept = "image/png,image/jpeg,image/svg+xml,image/webp",
+  accept = "image/png,image/jpeg,image/webp",
 }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);

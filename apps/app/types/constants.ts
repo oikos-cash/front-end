@@ -368,7 +368,10 @@ export const LAUNCHPAD_TOKEN_FIELD_OVERRIDES: Record<
 > = {
   tokenDescription: { maxLength: 500, rows: 4 } as Partial<FieldItem>,
   tokenLogoUrl: {
-    accept: "image/png,image/jpeg,image/svg+xml,image/webp",
+    // SVG omitted: the backend's /api/uploads/token-logo only allows PNG /
+    // JPEG / WebP (magic-byte sniff). Rasterise client-side if vector
+    // input is needed.
+    accept: "image/png,image/jpeg,image/webp",
   } as Partial<FieldItem>,
 };
 

@@ -7,6 +7,7 @@ import type {
 } from "@/types/interfaces";
 import { saveToken } from "@/services/token";
 import { savePool } from "@/services/pool-api";
+import { uploadTokenLogo } from "@/services/uploads";
 import {
   WBNB_ADDRESS,
   WBNB_DECIMALS,
@@ -100,8 +101,23 @@ export const useLaunchpadStore = create<LaunchpadState>()(
         }
 
         // `tokenLogoUrl` actually holds a base64 data URL (FileUpload writes
-        // it that way). Keeping the state field name for compatibility but
-        // mapping to the API's `logoBase64` to match the DTO contract.
+        // it that way). Two-step persistence: POST the binary to
+        // /api/uploads/token-logo first, then send the returned CDN URL as
+        // `logoUrl` on createToken. The backend's `logoBase64` field is
+        // deprecated and silently dropped.
+        let logoUrl: string | undefined;
+        if (s.tokenLogoUrl?.startsWith("data:")) {
+          logoUrl = await uploadTokenLogo(s.tokenLogoUrl, auth);
+        } else if (s.tokenLogoUrl?.startsWith("https://")) {
+          // Caller already has a hosted URL — pass it through unchanged.
+          logoUrl = s.tokenLogoUrl;
+        }
+        // Optional social/URL fields are omitted when blank — the backend
+        // validators (https URL, Twitter handle, Discord invite) reject ""
+        // but accept absence.
+        const trimmedWebsite = s.website?.trim();
+        const trimmedTwitter = s.twitter?.trim();
+        const trimmedDiscord = s.discord?.trim();
         await saveToken(
           {
             tokenName: s.tokenName,
@@ -126,10 +142,10 @@ export const useLaunchpadStore = create<LaunchpadState>()(
             contractAddress,
             transactionHash,
             status: deriveStatus({ contractAddress, transactionHash }),
-            websiteUrl: s.website,
-            twitterHandle: s.twitter,
-            discordInvite: s.discord,
-            logoBase64: s.tokenLogoUrl,
+            ...(trimmedWebsite && { websiteUrl: trimmedWebsite }),
+            ...(trimmedTwitter && { twitterHandle: trimmedTwitter }),
+            ...(trimmedDiscord && { discordInvite: trimmedDiscord }),
+            ...(logoUrl && { logoUrl }),
           },
           auth,
         );
