@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { parseEther, zeroAddress, type Address } from "viem";
 import {
   useReadContract,
+  useSignMessage,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
@@ -34,6 +35,7 @@ import {
   meetsMinTotalSupply,
 } from "@/utils/launchpad-supply";
 import { extractRevertReason } from "@/utils/wagmi-error";
+import { formatAuthMessage, buildAuthHeaders } from "@/utils/auth-fetch";
 
 // Icons
 import { Check, ChevronLeft, ChevronRight } from "lucide-react";
@@ -75,7 +77,9 @@ export default function LaunchpadSidebar({
     completedSteps,
     isReadyToDeploy,
     markStepCompleted,
+    saveTokenMetadata,
   } = store;
+  const { signMessageAsync } = useSignMessage();
 
   const currentIndex = LAUNCHPAD_STEPS.findIndex((step) =>
     pathname.endsWith(step.path),
@@ -104,7 +108,9 @@ export default function LaunchpadSidebar({
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash: deployTxHash });
   const deployError = writeError ?? receiptError ?? null;
-  const isDeploying = isWalletSigning || isConfirming;
+  // `isPersisting` covers the post-confirm signing + POST /api/tokens leg.
+  const [isPersisting, setIsPersisting] = useState(false);
+  const isDeploying = isWalletSigning || isConfirming || isPersisting;
 
   function safeBigInt(value: string | number | undefined, fallback = 0n): bigint {
     if (value == null || value === "") return fallback;
@@ -241,12 +247,38 @@ export default function LaunchpadSidebar({
     stageRef.current = "done";
     const symbol = tokenSymbol.toLowerCase();
     const hasPresale = enablePresale;
-    toast.success(t("toastDeploySuccess"));
-    markStepCompleted(3);
-    reset();
-    resetDeployWrite();
-    stageRef.current = "idle";
-    router.push(hasPresale ? `/presale/${symbol}` : `/liquidity/${symbol}`);
+    const vaultAddress = list[list.length - 1] as string;
+    // Sign + POST runs as an IIFE so the effect itself stays sync.
+    // The chain leg already succeeded, so a save failure surfaces as a
+    // toast but doesn't block navigation (the row can be backfilled).
+    (async () => {
+      setIsPersisting(true);
+      try {
+        if (address) {
+          const message = formatAuthMessage(address);
+          const signature = await signMessageAsync({ message });
+          const auth = buildAuthHeaders({ address, signature, message });
+          await saveTokenMetadata({
+            auth,
+            vaultAddress,
+            transactionHash: deployTxHash,
+          });
+        }
+      } catch (err) {
+        console.error("[Launchpad] saveTokenMetadata after deploy failed:", err);
+        toast.error(
+          "Metadata save failed — token is deployed on-chain but not indexed",
+        );
+      } finally {
+        setIsPersisting(false);
+      }
+      toast.success(t("toastDeploySuccess"));
+      markStepCompleted(3);
+      reset();
+      resetDeployWrite();
+      stageRef.current = "idle";
+      router.push(hasPresale ? `/presale/${symbol}` : `/liquidity/${symbol}`);
+    })();
   }, [
     isDeployConfirmed,
     deployedVaults,
@@ -258,6 +290,10 @@ export default function LaunchpadSidebar({
     resetDeployWrite,
     t,
     router,
+    address,
+    signMessageAsync,
+    saveTokenMetadata,
+    deployTxHash,
   ]);
 
   // Reset the per-attempt stage flag when the user navigates away or the
