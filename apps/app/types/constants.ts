@@ -154,6 +154,8 @@ export const SWR_ERROR_RETRY_INTERVAL = 5000;
 export const SSR_REVALIDATE_SHORT = 30;
 export const SSR_REVALIDATE_DEFAULT = 60;
 export const SSR_REVALIDATE_LONG = 300;
+/** Abort SSR fetches so a slow backend degrades the page instead of hanging it. */
+export const SSR_FETCH_TIMEOUT_MS = 8000;
 
 // =================================================
 //                   TOKEN CARD

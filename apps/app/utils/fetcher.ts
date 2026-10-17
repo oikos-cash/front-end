@@ -2,6 +2,7 @@ import {
   API_BASE_URL,
   VAULT_API_URL,
   SSR_REVALIDATE_DEFAULT,
+  SSR_FETCH_TIMEOUT_MS,
 } from "@/types/constants";
 
 /**
@@ -96,6 +97,7 @@ export async function fetchServer<T>(
 
   const response = await fetch(url.toString(), {
     next: { revalidate: options?.revalidate ?? SSR_REVALIDATE_DEFAULT },
+    signal: AbortSignal.timeout(SSR_FETCH_TIMEOUT_MS),
   });
 
   if (!response.ok) {

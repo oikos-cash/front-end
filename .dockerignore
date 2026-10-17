@@ -1,0 +1,10 @@
+**/node_modules
+**/.next
+**/.turbo
+**/.vercel
+**/.env
+**/.env.*
+**/tsconfig.tsbuildinfo
+.git
+.claude
+package-lock.json
