@@ -11,17 +11,22 @@ import StatusDonut from "@/components/organism/admin/status-donut";
 import LoanActivityChart from "@/components/organism/admin/loan-activity-chart";
 import TokensTable from "@/components/organism/admin/tokens-table";
 import LoansTable from "@/components/organism/admin/loans-table";
+import ProtocolHealthSection from "@/components/organism/admin/protocol-health";
+import LoanPositionsTable from "@/components/organism/admin/loan-positions-table";
 
 // Hooks
 import { useBnbPrice } from "@/hooks/use-bnb-price";
 import { useAdminStats } from "@/hooks/use-admin-stats";
+import { useProtocolHealth } from "@/hooks/use-protocol-health";
 
 // Utils / types
 import {
   buildLaunchSeries,
   buildMarketCapBars,
   buildStatusSlices,
+  deriveKpis,
 } from "@/utils/admin";
+import { deriveProtocolHealth } from "@/utils/protocol-health";
 import type { MarketToken, VaultInfo } from "@/types/interfaces";
 
 export default function AdminTemplate({
@@ -32,7 +37,17 @@ export default function AdminTemplate({
   initialVaults: VaultInfo[];
 }) {
   const { bnbPrice } = useBnbPrice();
-  const { loanActivity, loanEvents } = useAdminStats();
+  const { loanActivity, loanEvents, loanAggregates } = useAdminStats();
+  const { loans, isLoading: healthLoading } = useProtocolHealth(initialVaults);
+
+  const health = useMemo(
+    () =>
+      deriveProtocolHealth(
+        loans,
+        deriveKpis(initialTokens, initialVaults, bnbPrice).totalMarketCapBnb,
+      ),
+    [loans, initialTokens, initialVaults, bnbPrice],
+  );
 
   const launchSeries = useMemo(
     () => buildLaunchSeries(initialTokens),
@@ -57,6 +72,16 @@ export default function AdminTemplate({
 
       {/* Headline KPIs */}
       <KpiGrid tokens={initialTokens} vaults={initialVaults} />
+
+      {/* Debt vs market cap, collateral coverage, per-loan health */}
+      <ProtocolHealthSection
+        health={health}
+        lifetimeBorrowedBnb={loanAggregates.totalBorrowedBnb}
+        lifetimeBorrows={loanAggregates.borrows}
+        bnbPrice={bnbPrice}
+        isLoading={healthLoading}
+      />
+      <LoanPositionsTable positions={health.positions} isLoading={healthLoading} />
 
       {/* Growth & activity charts */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
