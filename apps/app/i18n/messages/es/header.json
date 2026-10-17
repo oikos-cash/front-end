@@ -13,7 +13,8 @@
       "dividends": "Dividendos",
       "launchpad": "Launchpad",
       "studio": "Studio",
-      "terminal": "Terminal"
+      "terminal": "Terminal",
+      "admin": "Admin"
     }
   }
 }
