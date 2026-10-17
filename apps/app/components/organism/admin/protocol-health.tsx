@@ -11,13 +11,13 @@ import { ChartCard, LegendDot, SectionTitle } from "./shared";
 import { formatBnb, formatUsd, formatCount } from "@/utils/admin";
 import {
   formatPct,
-  formatRatio,
   type LoanStatus,
   type ProtocolHealth,
+  type VaultSolvency,
 } from "@/utils/protocol-health";
 
 // Icons
-import { Scale, ShieldCheck, TriangleAlert, Landmark } from "lucide-react";
+import { Scale, ShieldCheck, TriangleAlert, Landmark, HeartPulse } from "lucide-react";
 
 const ICON = "size-4 text-primary";
 
@@ -25,7 +25,7 @@ export const STATUS_META: Record<LoanStatus, { label: string; color: string }> =
   expired: { label: "Expired", color: "var(--chart-4)" },
   underwater: { label: "Under IMV", color: "#ff7a45" },
   expiring: { label: "Expiring < 7d", color: "#f59e0b" },
-  watch: { label: "Watch (< 1.1×)", color: "var(--chart-1)" },
+  watch: { label: "Watch (< 110%)", color: "var(--chart-1)" },
   healthy: { label: "Healthy", color: "var(--chart-2)" },
   "self-repaying": { label: "Self-repaying", color: "var(--chart-3)" },
 };
@@ -117,12 +117,14 @@ function BnbBars({
 
 export default function ProtocolHealthSection({
   health,
+  solvency,
   lifetimeBorrowedBnb,
   lifetimeBorrows,
   bnbPrice,
   isLoading,
 }: {
   health: ProtocolHealth;
+  solvency: { vaults: VaultSolvency[]; weakest: VaultSolvency | null };
   lifetimeBorrowedBnb: number;
   lifetimeBorrows: number;
   bnbPrice: number;
@@ -159,7 +161,20 @@ export default function ProtocolHealthSection({
         Protocol Health
       </SectionTitle>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <KpiCard
+          title="Solvency"
+          value={formatPct(solvency.weakest?.ratio ?? null)}
+          secondary={
+            solvency.weakest
+              ? `weakest vault: ${solvency.weakest.symbol} · floor 100%`
+              : "capacity ÷ circulating"
+          }
+          description={solvency.vaults
+            .map((v) => `${v.symbol} ${formatPct(v.ratio)}`)
+            .join(" · ")}
+          icon={<HeartPulse className={ICON} />}
+        />
         <KpiCard
           title="Debt / Market Cap"
           value={formatPct(health.debtToMarketCap)}
@@ -174,8 +189,8 @@ export default function ProtocolHealthSection({
         />
         <KpiCard
           title="Collateral Coverage"
-          value={formatRatio(health.imvCoverage)}
-          secondary={`at IMV · ${formatRatio(health.spotCoverage)} at spot`}
+          value={formatPct(health.imvCoverage)}
+          secondary={`collateral ÷ debt at IMV · ${formatPct(health.spotCoverage)} at spot`}
           icon={<ShieldCheck className={ICON} />}
         />
         <KpiCard
@@ -213,7 +228,7 @@ export default function ProtocolHealthSection({
 
       <ChartCard
         title="Debt by Loan Health"
-        description="IMV coverage = collateral × IMV ÷ debt. Below 1× the floor no longer covers the loan; ≥ 1.5× self-repays"
+        description="IMV coverage = collateral × IMV ÷ debt. Below 100% the floor no longer covers the loan; ≥ 150% self-repays"
         height={statusRows.length * ROW_H + 24}
         isEmpty={empty}
         emptyTitle="No active loans"

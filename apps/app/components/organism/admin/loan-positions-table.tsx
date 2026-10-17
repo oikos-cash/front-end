@@ -13,7 +13,7 @@ import { STATUS_META } from "./protocol-health";
 // Utils / types
 import { truncateAddress } from "@/utils/string";
 import { formatStakeNumber } from "@/utils/number";
-import { formatRatio, type LoanPosition } from "@/utils/protocol-health";
+import { formatPct, type LoanPosition } from "@/utils/protocol-health";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ExternalLink, Landmark } from "lucide-react";
 
@@ -102,7 +102,7 @@ export default function LoanPositionsTable({
         header: () => <span className="block text-right">IMV cov.</span>,
         cell: ({ row }) => (
           <div className={`text-right font-mono num text-sm ${coverageClass(row.original.imvCoverage)}`}>
-            {formatRatio(row.original.imvCoverage)}
+            {formatPct(row.original.imvCoverage)}
           </div>
         ),
       },
@@ -111,7 +111,7 @@ export default function LoanPositionsTable({
         header: () => <span className="block text-right">Spot cov.</span>,
         cell: ({ row }) => (
           <div className="text-right font-mono num text-sm text-muted-foreground">
-            {formatRatio(row.original.spotCoverage)}
+            {formatPct(row.original.spotCoverage)}
           </div>
         ),
       },

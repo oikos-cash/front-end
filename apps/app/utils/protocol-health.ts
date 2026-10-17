@@ -206,6 +206,110 @@ export function deriveProtocolHealth(
   };
 }
 
+export interface VaultSolvency {
+  vaultAddress: string;
+  symbol: string;
+  /** (anchor + floor capacity) / circulating supply; > 1 is solvent. */
+  ratio: number;
+}
+
+/**
+ * On-chain solvency invariant, as enforced by
+ * `ModelHelper.enforceSolvencyInvariant`: a vault stays solvent while
+ * anchorCapacity + floorCapacity > circulatingSupply. Capacities are in token
+ * units per vault, so vaults can't be summed; the protocol figure is the
+ * weakest vault.
+ */
+export function deriveSolvency(
+  vaults: {
+    address: string;
+    tokenSymbol: string;
+    anchorCapacity: string;
+    floorCapacity: string;
+    circulatingSupply: string;
+  }[],
+): { vaults: VaultSolvency[]; weakest: VaultSolvency | null } {
+  const rows: VaultSolvency[] = [];
+  for (const v of vaults) {
+    const circulating = Number(v.circulatingSupply || "0");
+    if (!(circulating > 0)) continue;
+    const capacity = Number(v.anchorCapacity || "0") + Number(v.floorCapacity || "0");
+    rows.push({ vaultAddress: v.address, symbol: v.tokenSymbol, ratio: capacity / circulating });
+  }
+  rows.sort((a, b) => a.ratio - b.ratio);
+  return { vaults: rows, weakest: rows[0] ?? null };
+}
+
+export interface VaultHealthRow {
+  vaultAddress: string;
+  symbol: string;
+  anchorCapacity: number;
+  floorCapacity: number;
+  circulatingSupply: number;
+  /** (anchor + floor) / circulating; null when nothing circulates. */
+  solvency: number | null;
+  marketCapBnb: number;
+  activeLoans: number;
+  atRiskLoans: number;
+  debtBnb: number;
+  debtToMarketCap: number | null;
+  /** Σ collateral@IMV / Σ debt for this vault's loans. */
+  imvCoverage: number | null;
+  spotCoverage: number | null;
+}
+
+/** Per-vault solvency + loan book, joining /vaults, market caps and positions. */
+export function buildVaultHealth(
+  vaults: {
+    address: string;
+    tokenSymbol: string;
+    anchorCapacity: string;
+    floorCapacity: string;
+    circulatingSupply: string;
+  }[],
+  positions: LoanPosition[],
+  marketCapByVault: Map<string, number>,
+): VaultHealthRow[] {
+  return vaults
+    .map((v) => {
+      const key = v.address.toLowerCase();
+      const mine = positions.filter((p) => p.vaultAddress.toLowerCase() === key);
+      const anchorCapacity = Number(v.anchorCapacity || "0") / WEI;
+      const floorCapacity = Number(v.floorCapacity || "0") / WEI;
+      const circulatingSupply = Number(v.circulatingSupply || "0") / WEI;
+      let debtBnb = 0;
+      let imvBnb = 0;
+      let imvDebt = 0;
+      let spotBnb = 0;
+      for (const p of mine) {
+        debtBnb += p.debtBnb;
+        spotBnb += p.collateralSpotBnb;
+        if (p.imvCoverage != null) {
+          imvBnb += p.collateralImvBnb;
+          imvDebt += p.debtBnb;
+        }
+      }
+      const marketCapBnb = marketCapByVault.get(key) ?? 0;
+      return {
+        vaultAddress: v.address,
+        symbol: v.tokenSymbol,
+        anchorCapacity,
+        floorCapacity,
+        circulatingSupply,
+        solvency:
+          circulatingSupply > 0 ? (anchorCapacity + floorCapacity) / circulatingSupply : null,
+        marketCapBnb,
+        activeLoans: mine.length,
+        atRiskLoans: mine.filter((p) => AT_RISK.includes(p.status)).length,
+        debtBnb,
+        debtToMarketCap: marketCapBnb > 0 ? debtBnb / marketCapBnb : null,
+        imvCoverage: imvDebt > 0 ? imvBnb / imvDebt : null,
+        spotCoverage: debtBnb > 0 ? spotBnb / debtBnb : null,
+      };
+    })
+    .sort((a, b) => b.marketCapBnb - a.marketCapBnb);
+}
+
 export function formatRatio(value: number | null, digits = 2): string {
   return value == null || !Number.isFinite(value) ? "—" : `${value.toFixed(digits)}×`;
 }

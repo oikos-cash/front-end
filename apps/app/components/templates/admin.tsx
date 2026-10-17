@@ -13,6 +13,7 @@ import TokensTable from "@/components/organism/admin/tokens-table";
 import LoansTable from "@/components/organism/admin/loans-table";
 import ProtocolHealthSection from "@/components/organism/admin/protocol-health";
 import LoanPositionsTable from "@/components/organism/admin/loan-positions-table";
+import VaultHealthTable from "@/components/organism/admin/vault-health-table";
 
 // Hooks
 import { useBnbPrice } from "@/hooks/use-bnb-price";
@@ -26,7 +27,11 @@ import {
   buildStatusSlices,
   deriveKpis,
 } from "@/utils/admin";
-import { deriveProtocolHealth } from "@/utils/protocol-health";
+import {
+  buildVaultHealth,
+  deriveProtocolHealth,
+  deriveSolvency,
+} from "@/utils/protocol-health";
 import type { MarketToken, VaultInfo } from "@/types/interfaces";
 
 export default function AdminTemplate({
@@ -48,6 +53,14 @@ export default function AdminTemplate({
       ),
     [loans, initialTokens, initialVaults, bnbPrice],
   );
+  const solvency = useMemo(() => deriveSolvency(initialVaults), [initialVaults]);
+  const vaultHealth = useMemo(() => {
+    const mcap = new Map<string, number>();
+    for (const t of initialTokens) {
+      if (t.vaultAddress && t.marketCap) mcap.set(t.vaultAddress.toLowerCase(), t.marketCap);
+    }
+    return buildVaultHealth(initialVaults, health.positions, mcap);
+  }, [initialVaults, initialTokens, health.positions]);
 
   const launchSeries = useMemo(
     () => buildLaunchSeries(initialTokens),
@@ -76,11 +89,13 @@ export default function AdminTemplate({
       {/* Debt vs market cap, collateral coverage, per-loan health */}
       <ProtocolHealthSection
         health={health}
+        solvency={solvency}
         lifetimeBorrowedBnb={loanAggregates.totalBorrowedBnb}
         lifetimeBorrows={loanAggregates.borrows}
         bnbPrice={bnbPrice}
         isLoading={healthLoading}
       />
+      <VaultHealthTable rows={vaultHealth} />
       <LoanPositionsTable positions={health.positions} isLoading={healthLoading} />
 
       {/* Growth & activity charts */}
