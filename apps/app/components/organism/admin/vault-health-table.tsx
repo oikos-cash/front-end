@@ -117,10 +117,9 @@ export default function VaultHealthTable({ rows }: { rows: VaultHealthRow[] }) {
         cell: ({ row }) => (
           <div className="text-right font-mono num">
             <div className="text-sm">{formatCount(row.original.activeLoans)}</div>
-            <div
-              className={`text-2xs ${row.original.atRiskLoans ? "text-destructive" : "text-muted-foreground"}`}
-            >
-              {formatCount(row.original.atRiskLoans)} at risk
+            <div className="text-2xs text-muted-foreground">
+              {formatCount(row.original.expiringLoans)} expiring ·{" "}
+              {formatCount(row.original.expiredLoans)} expired
             </div>
           </div>
         ),

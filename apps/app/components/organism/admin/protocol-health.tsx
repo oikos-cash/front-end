@@ -17,27 +17,18 @@ import {
 } from "@/utils/protocol-health";
 
 // Icons
-import { Scale, ShieldCheck, TriangleAlert, Landmark, HeartPulse } from "lucide-react";
+import { Scale, ShieldCheck, CalendarClock, Landmark, HeartPulse } from "lucide-react";
 
 const ICON = "size-4 text-primary";
 
 export const STATUS_META: Record<LoanStatus, { label: string; color: string }> = {
-  expired: { label: "Expired", color: "var(--chart-4)" },
-  underwater: { label: "Under IMV", color: "#ff7a45" },
+  expired: { label: "Expired · awaiting burn", color: "var(--chart-4)" },
   expiring: { label: "Expiring < 7d", color: "#f59e0b" },
-  watch: { label: "Watch (< 110%)", color: "var(--chart-1)" },
-  healthy: { label: "Healthy", color: "var(--chart-2)" },
-  "self-repaying": { label: "Self-repaying", color: "var(--chart-3)" },
+  rollable: { label: "Rollable", color: "var(--chart-3)" },
+  active: { label: "Active", color: "var(--chart-2)" },
 };
 
-const STATUS_ORDER: LoanStatus[] = [
-  "expired",
-  "underwater",
-  "expiring",
-  "watch",
-  "healthy",
-  "self-repaying",
-];
+const STATUS_ORDER: LoanStatus[] = ["active", "rollable", "expiring", "expired"];
 
 const MARGIN = { top: 6, right: 96, bottom: 6, left: 128 };
 const ROW_H = 30;
@@ -130,11 +121,6 @@ export default function ProtocolHealthSection({
   bnbPrice: number;
   isLoading: boolean;
 }) {
-  const atRisk =
-    health.statusCounts.expired +
-    health.statusCounts.underwater +
-    health.statusCounts.expiring +
-    health.statusCounts.watch;
   const empty = !isLoading && health.activeLoans === 0;
 
   const solvencyRows = [
@@ -147,8 +133,7 @@ export default function ProtocolHealthSection({
   const maturityRows = health.maturity.map((b) => ({
     label: `${b.label} · ${b.loans}`,
     value: b.debtBnb,
-    color: b.label === "Expired" ? "var(--chart-4)" : b.label === "< 7d" ? "#f59e0b" : "var(--chart-2)",
-  }));
+    color: b.label === "Expired" ? "var(--chart-4)" : b.label === "< 7d" ? "#f59e0b" : "var(--chart-2)",  }));
   const statusRows = STATUS_ORDER.map((s) => ({
     label: `${STATUS_META[s].label} · ${health.statusCounts[s]}`,
     value: health.positions.filter((p) => p.status === s).reduce((sum, p) => sum + p.debtBnb, 0),
@@ -194,10 +179,10 @@ export default function ProtocolHealthSection({
           icon={<ShieldCheck className={ICON} />}
         />
         <KpiCard
-          title="Loans at Risk"
-          value={formatCount(atRisk)}
-          secondary={`${formatBnb(health.atRiskDebtBnb)} debt · ${health.statusCounts.expired} expired`}
-          icon={<TriangleAlert className={ICON} />}
+          title="Expiring < 7d"
+          value={formatCount(health.statusCounts.expiring)}
+          secondary={`${formatBnb(health.expiringDebtBnb)} due · ${health.statusCounts.expired} expired awaiting burn (${formatBnb(health.expiredDebtBnb)})`}
+          icon={<CalendarClock className={ICON} />}
         />
       </div>
 
@@ -215,7 +200,7 @@ export default function ProtocolHealthSection({
         </ChartCard>
         <ChartCard
           title="Debt by Maturity"
-          description="Outstanding debt grouped by time to expiry (loans default at expiry)"
+          description="Outstanding debt grouped by time to expiry (unpaid loans burn their collateral at expiry)"
           height={maturityRows.length * ROW_H + 24}
           isEmpty={empty}
           emptyTitle="No active loans"
@@ -227,8 +212,8 @@ export default function ProtocolHealthSection({
       </div>
 
       <ChartCard
-        title="Debt by Loan Health"
-        description="IMV coverage = collateral × IMV ÷ debt. Below 100% the floor no longer covers the loan; ≥ 150% self-repays"
+        title="Debt by Loan State"
+        description="No liquidations: collateral is quoted at the IMV, which only rises, and unpaid loans burn their collateral at expiry with zero net effect. Rollable = IMV coverage > 100%, so the holder can borrow more and extend"
         height={statusRows.length * ROW_H + 24}
         isEmpty={empty}
         emptyTitle="No active loans"

@@ -25,13 +25,12 @@ export interface LoanPositionRaw {
   spotPrice: number;
 }
 
-export type LoanStatus =
-  | "expired"
-  | "underwater"
-  | "expiring"
-  | "watch"
-  | "self-repaying"
-  | "healthy";
+/**
+ * Loan lifecycle state. Oikos loans can't be liquidated: collateral is quoted
+ * 1:1 at the IMV, which only rises, and an unpaid loan's collateral is burned
+ * at expiry with zero net effect on the protocol.
+ */
+export type LoanStatus = "expired" | "expiring" | "rollable" | "active";
 
 export interface LoanPosition {
   id: string;
@@ -76,17 +75,18 @@ export interface ProtocolHealth {
   /** Outstanding debt as a share of total market cap (0..1+). */
   debtToMarketCap: number | null;
   statusCounts: Record<LoanStatus, number>;
-  atRiskDebtBnb: number;
+  /** Debt of expired loans whose collateral awaits burning. */
+  expiredDebtBnb: number;
+  expiringDebtBnb: number;
   maturity: MaturityBucket[];
   positions: LoanPosition[];
 }
 
 const WEI = 1e18;
 const DAY = 86_400;
-/** Mirrors `use-loan-position`: collateralization above this self-repays. */
-export const SELF_REPAY_COVERAGE = 1.5;
-export const WATCH_COVERAGE = 1.1;
 export const EXPIRING_DAYS = 7;
+/** IMV coverage above this lets the holder roll (borrow more, extend). */
+export const ROLLABLE_COVERAGE = 1.001;
 
 const toNum = (wei: bigint) => Number(wei) / WEI;
 
@@ -95,11 +95,9 @@ export function classifyLoan(
   secondsLeft: number,
 ): LoanStatus {
   if (secondsLeft <= 0) return "expired";
-  if (imvCoverage != null && imvCoverage < 1) return "underwater";
   if (secondsLeft < EXPIRING_DAYS * DAY) return "expiring";
-  if (imvCoverage != null && imvCoverage < WATCH_COVERAGE) return "watch";
-  if (imvCoverage != null && imvCoverage >= SELF_REPAY_COVERAGE) return "self-repaying";
-  return "healthy";
+  if (imvCoverage != null && imvCoverage > ROLLABLE_COVERAGE) return "rollable";
+  return "active";
 }
 
 export function toLoanPosition(raw: LoanPositionRaw, nowSec: number): LoanPosition {
@@ -147,8 +145,6 @@ export function buildMaturity(positions: LoanPosition[]): MaturityBucket[] {
   return buckets;
 }
 
-const AT_RISK: LoanStatus[] = ["expired", "underwater", "expiring", "watch"];
-
 export function deriveProtocolHealth(
   raws: LoanPositionRaw[],
   marketCapBnb: number,
@@ -161,18 +157,17 @@ export function deriveProtocolHealth(
 
   const statusCounts: Record<LoanStatus, number> = {
     expired: 0,
-    underwater: 0,
     expiring: 0,
-    watch: 0,
-    "self-repaying": 0,
-    healthy: 0,
+    rollable: 0,
+    active: 0,
   };
   let outstandingDebtBnb = 0;
   let feesBnb = 0;
   let collateralSpotBnb = 0;
   let collateralImvBnb = 0;
   let imvDebt = 0;
-  let atRiskDebtBnb = 0;
+  let expiredDebtBnb = 0;
+  let expiringDebtBnb = 0;
   const borrowers = new Set<string>();
 
   for (const p of positions) {
@@ -184,7 +179,8 @@ export function deriveProtocolHealth(
       collateralImvBnb += p.collateralImvBnb;
       imvDebt += p.debtBnb;
     }
-    if (AT_RISK.includes(p.status)) atRiskDebtBnb += p.debtBnb;
+    if (p.status === "expired") expiredDebtBnb += p.debtBnb;
+    if (p.status === "expiring") expiringDebtBnb += p.debtBnb;
     borrowers.add(p.borrower.toLowerCase());
   }
 
@@ -200,7 +196,8 @@ export function deriveProtocolHealth(
     marketCapBnb,
     debtToMarketCap: marketCapBnb > 0 ? outstandingDebtBnb / marketCapBnb : null,
     statusCounts,
-    atRiskDebtBnb,
+    expiredDebtBnb,
+    expiringDebtBnb,
     maturity: buildMaturity(positions),
     positions,
   };
@@ -250,7 +247,8 @@ export interface VaultHealthRow {
   solvency: number | null;
   marketCapBnb: number;
   activeLoans: number;
-  atRiskLoans: number;
+  expiringLoans: number;
+  expiredLoans: number;
   debtBnb: number;
   debtToMarketCap: number | null;
   /** Σ collateral@IMV / Σ debt for this vault's loans. */
@@ -300,7 +298,8 @@ export function buildVaultHealth(
           circulatingSupply > 0 ? (anchorCapacity + floorCapacity) / circulatingSupply : null,
         marketCapBnb,
         activeLoans: mine.length,
-        atRiskLoans: mine.filter((p) => AT_RISK.includes(p.status)).length,
+        expiringLoans: mine.filter((p) => p.status === "expiring").length,
+        expiredLoans: mine.filter((p) => p.status === "expired").length,
         debtBnb,
         debtToMarketCap: marketCapBnb > 0 ? debtBnb / marketCapBnb : null,
         imvCoverage: imvDebt > 0 ? imvBnb / imvDebt : null,

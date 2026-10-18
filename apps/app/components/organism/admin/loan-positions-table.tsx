@@ -13,7 +13,7 @@ import { STATUS_META } from "./protocol-health";
 // Utils / types
 import { truncateAddress } from "@/utils/string";
 import { formatStakeNumber } from "@/utils/number";
-import { formatPct, type LoanPosition } from "@/utils/protocol-health";
+import { formatPct, ROLLABLE_COVERAGE, type LoanPosition } from "@/utils/protocol-health";
 import type { ColumnDef } from "@tanstack/react-table";
 import { ExternalLink, Landmark } from "lucide-react";
 
@@ -21,9 +21,7 @@ const num = (v: number, d = 4) => formatStakeNumber(v, d, true);
 
 function coverageClass(v: number | null): string {
   if (v == null) return "text-muted-foreground";
-  if (v < 1) return "text-destructive";
-  if (v < 1.1) return "text-primary";
-  return "text-foreground";
+  return v > ROLLABLE_COVERAGE ? "text-primary" : "text-foreground";
 }
 
 export default function LoanPositionsTable({
@@ -37,7 +35,7 @@ export default function LoanPositionsTable({
     () => [
       {
         id: "status",
-        header: "Health",
+        header: "State",
         cell: ({ row }) => {
           const meta = STATUS_META[row.original.status];
           return (
