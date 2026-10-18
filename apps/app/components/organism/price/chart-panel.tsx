@@ -35,7 +35,9 @@ export default function PriceChart({ poolAddress }: PriceChartProps) {
     hasData,
     chartType,
     setChartType,
+    interval,
     setInterval,
+    period,
     setPeriod,
     crosshairData,
     containerRef,
@@ -67,7 +69,7 @@ export default function PriceChart({ poolAddress }: PriceChartProps) {
           ) : (
             <>
               <Select
-                defaultValue="1h"
+                defaultValue={interval}
                 placeholder={t("interval")}
                 onValueChange={setInterval}
                 className="w-28"
@@ -77,7 +79,7 @@ export default function PriceChart({ poolAddress }: PriceChartProps) {
                 }))}
               />
               <Select
-                defaultValue="1m"
+                defaultValue={period}
                 placeholder={t("period")}
                 onValueChange={(v) => setPeriod(v as ChartPeriod)}
                 className="w-20"
