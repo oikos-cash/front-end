@@ -39,8 +39,8 @@ export default function usePriceChart(poolAddress?: string) {
   // State
   const [ready, setReady] = useState(false);
   const [hasData, setHasData] = useState(false);
-  const [period, setPeriod] = useState<ChartPeriod>("1m");
-  const [interval, setInterval] = useState("1h");
+  const [period, setPeriod] = useState<ChartPeriod>("1y");
+  const [interval, setInterval] = useState("1w");
   const [chartType, setChartType] = useState<ChartType>("line");
   const [crosshairData, setCrosshairData] =
     useState<CrosshairData>(CROSSHAIR_INITIAL);
