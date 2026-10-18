@@ -50,14 +50,19 @@ export default function VaultHealthTable({ rows }: { rows: VaultHealthRow[] }) {
         id: "solvency",
         header: () => <span className="block text-right">Solvency</span>,
         cell: ({ row }) => (
-          <div className={`text-right font-mono num text-sm ${solvencyClass(row.original.solvency)}`}>
-            {formatPct(row.original.solvency)}
+          <div className="text-right font-mono num">
+            <div className={`text-sm ${solvencyClass(row.original.solvency)}`}>
+              {formatPct(row.original.solvency)}
+            </div>
+            <div className="text-2xs text-muted-foreground">
+              contract {formatPct(row.original.contractSolvency)}
+            </div>
           </div>
         ),
       },
       {
         id: "capacity",
-        header: () => <span className="block text-right">Anchor + Floor cap.</span>,
+        header: () => <span className="block text-right">Backed capacity</span>,
         cell: ({ row }) => (
           <div className="text-right font-mono num">
             <div className="text-sm">
@@ -66,6 +71,15 @@ export default function VaultHealthTable({ rows }: { rows: VaultHealthRow[] }) {
             <div className="text-2xs text-muted-foreground">
               {tokens(row.original.anchorCapacity)} + {tokens(row.original.floorCapacity)}
             </div>
+          </div>
+        ),
+      },
+      {
+        id: "collateral",
+        header: () => <span className="block text-right">Loan collateral</span>,
+        cell: ({ row }) => (
+          <div className="text-right font-mono num text-sm text-muted-foreground">
+            {tokens(row.original.collateral)}
           </div>
         ),
       },
@@ -135,7 +149,7 @@ export default function VaultHealthTable({ rows }: { rows: VaultHealthRow[] }) {
           Solvency by Vault
         </SectionTitle>
       }
-      description="Solvency = (anchor + floor capacity) ÷ circulating supply, the invariant ModelHelper enforces (> 100%). Coverage = loan collateral at IMV ÷ debt"
+      description="Solvency = tokens the anchor + floor reserves can absorb ÷ circulating supply (> 100%). The contract's invariant also counts loan collateral as floor capacity (shown as “contract”). Coverage = loan collateral at IMV ÷ debt"
     >
       {rows.length === 0 ? (
         <Empty

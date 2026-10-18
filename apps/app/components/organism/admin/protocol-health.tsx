@@ -152,8 +152,10 @@ export default function ProtocolHealthSection({
           value={formatPct(solvency.weakest?.ratio ?? null)}
           secondary={
             solvency.weakest
-              ? `weakest vault: ${solvency.weakest.symbol} · floor 100%`
-              : "capacity ÷ circulating"
+              ? `weakest vault: ${solvency.weakest.symbol} · reserves ÷ circulating, floor 100%`
+              : isLoading
+                ? "reading vault collateral…"
+                : "reserves ÷ circulating"
           }
           description={solvency.vaults
             .map((v) => `${v.symbol} ${formatPct(v.ratio)}`)

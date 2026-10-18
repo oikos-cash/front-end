@@ -206,31 +206,44 @@ export function deriveProtocolHealth(
 export interface VaultSolvency {
   vaultAddress: string;
   symbol: string;
-  /** (anchor + floor capacity) / circulating supply; > 1 is solvent. */
+  /** BNB-backed (anchor + floor − collateral) / circulating; > 1 is solvent. */
   ratio: number;
 }
 
+type VaultCapacityInput = {
+  address: string;
+  tokenSymbol: string;
+  anchorCapacity: string;
+  floorCapacity: string;
+  circulatingSupply: string;
+};
+
 /**
- * On-chain solvency invariant, as enforced by
- * `ModelHelper.enforceSolvencyInvariant`: a vault stays solvent while
- * anchorCapacity + floorCapacity > circulatingSupply. Capacities are in token
- * units per vault, so vaults can't be summed; the protocol figure is the
- * weakest vault.
+ * BNB-backed buyback cover: how many circulating tokens the reserves in the
+ * anchor and floor positions can absorb. The contract's floorCapacity
+ * (`ModelHelper.getPositionCapacity`) also counts all loan collateral 1:1,
+ * which dominates the on-chain invariant; it's subtracted here so the figure
+ * reflects reserves actually sitting in the positions. Values in wei.
+ */
+function backedCapacity(v: VaultCapacityInput, collateralWei: bigint): number {
+  const floor = Math.max(Number(v.floorCapacity || "0") - Number(collateralWei), 0);
+  return Number(v.anchorCapacity || "0") + floor;
+}
+
+/**
+ * Per-vault solvency and the weakest vault (capacities are in each vault's
+ * own token, so vaults can't be summed). Empty until vault collateral is read.
  */
 export function deriveSolvency(
-  vaults: {
-    address: string;
-    tokenSymbol: string;
-    anchorCapacity: string;
-    floorCapacity: string;
-    circulatingSupply: string;
-  }[],
+  vaults: VaultCapacityInput[],
+  collateral: Map<string, bigint> | undefined,
 ): { vaults: VaultSolvency[]; weakest: VaultSolvency | null } {
+  if (!collateral) return { vaults: [], weakest: null };
   const rows: VaultSolvency[] = [];
   for (const v of vaults) {
     const circulating = Number(v.circulatingSupply || "0");
     if (!(circulating > 0)) continue;
-    const capacity = Number(v.anchorCapacity || "0") + Number(v.floorCapacity || "0");
+    const capacity = backedCapacity(v, collateral.get(v.address.toLowerCase()) ?? BigInt(0));
     rows.push({ vaultAddress: v.address, symbol: v.tokenSymbol, ratio: capacity / circulating });
   }
   rows.sort((a, b) => a.ratio - b.ratio);
@@ -241,10 +254,15 @@ export interface VaultHealthRow {
   vaultAddress: string;
   symbol: string;
   anchorCapacity: number;
+  /** Floor capacity backed by reserves, i.e. excluding loan collateral. */
   floorCapacity: number;
+  /** Loan collateral the contract counts inside floor capacity. */
+  collateral: number;
   circulatingSupply: number;
-  /** (anchor + floor) / circulating; null when nothing circulates. */
+  /** BNB-backed (anchor + floor) / circulating; null when unknown. */
   solvency: number | null;
+  /** On-chain invariant ratio (collateral included), as enforced by the contract. */
+  contractSolvency: number | null;
   marketCapBnb: number;
   activeLoans: number;
   expiringLoans: number;
@@ -258,22 +276,20 @@ export interface VaultHealthRow {
 
 /** Per-vault solvency + loan book, joining /vaults, market caps and positions. */
 export function buildVaultHealth(
-  vaults: {
-    address: string;
-    tokenSymbol: string;
-    anchorCapacity: string;
-    floorCapacity: string;
-    circulatingSupply: string;
-  }[],
+  vaults: VaultCapacityInput[],
   positions: LoanPosition[],
   marketCapByVault: Map<string, number>,
+  collateralByVault: Map<string, bigint> | undefined,
 ): VaultHealthRow[] {
   return vaults
     .map((v) => {
       const key = v.address.toLowerCase();
       const mine = positions.filter((p) => p.vaultAddress.toLowerCase() === key);
+      const collateralWei = collateralByVault?.get(key);
       const anchorCapacity = Number(v.anchorCapacity || "0") / WEI;
-      const floorCapacity = Number(v.floorCapacity || "0") / WEI;
+      const rawFloor = Number(v.floorCapacity || "0") / WEI;
+      const collateral = collateralWei != null ? toNum(collateralWei) : 0;
+      const floorCapacity = Math.max(rawFloor - collateral, 0);
       const circulatingSupply = Number(v.circulatingSupply || "0") / WEI;
       let debtBnb = 0;
       let imvBnb = 0;
@@ -293,9 +309,14 @@ export function buildVaultHealth(
         symbol: v.tokenSymbol,
         anchorCapacity,
         floorCapacity,
+        collateral,
         circulatingSupply,
         solvency:
-          circulatingSupply > 0 ? (anchorCapacity + floorCapacity) / circulatingSupply : null,
+          circulatingSupply > 0 && collateralWei != null
+            ? (anchorCapacity + floorCapacity) / circulatingSupply
+            : null,
+        contractSolvency:
+          circulatingSupply > 0 ? (anchorCapacity + rawFloor) / circulatingSupply : null,
         marketCapBnb,
         activeLoans: mine.length,
         expiringLoans: mine.filter((p) => p.status === "expiring").length,

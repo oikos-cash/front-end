@@ -43,7 +43,7 @@ export default function AdminTemplate({
 }) {
   const { bnbPrice } = useBnbPrice();
   const { loanActivity, loanEvents, loanAggregates } = useAdminStats();
-  const { loans, isLoading: healthLoading } = useProtocolHealth(initialVaults);
+  const { loans, collateral, isLoading: healthLoading } = useProtocolHealth(initialVaults);
 
   const health = useMemo(
     () =>
@@ -53,14 +53,17 @@ export default function AdminTemplate({
       ),
     [loans, initialTokens, initialVaults, bnbPrice],
   );
-  const solvency = useMemo(() => deriveSolvency(initialVaults), [initialVaults]);
+  const solvency = useMemo(
+    () => deriveSolvency(initialVaults, collateral),
+    [initialVaults, collateral],
+  );
   const vaultHealth = useMemo(() => {
     const mcap = new Map<string, number>();
     for (const t of initialTokens) {
       if (t.vaultAddress && t.marketCap) mcap.set(t.vaultAddress.toLowerCase(), t.marketCap);
     }
-    return buildVaultHealth(initialVaults, health.positions, mcap);
-  }, [initialVaults, initialTokens, health.positions]);
+    return buildVaultHealth(initialVaults, health.positions, mcap, collateral);
+  }, [initialVaults, initialTokens, health.positions, collateral]);
 
   const launchSeries = useMemo(
     () => buildLaunchSeries(initialTokens),

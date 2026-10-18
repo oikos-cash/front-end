@@ -54,7 +54,20 @@ const LOAN_COUNT_ABI = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [],
+    name: "getCollateralAmount",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;
+
+interface VaultLoans {
+  loans: LoanPositionRaw[];
+  /** Total collateral locked in the vault (wei); 0 for non-lending vaults. */
+  collateral: bigint;
+}
 
 async function readBorrowers(
   client: PublicClient,
@@ -80,18 +93,22 @@ async function readBorrowers(
 async function readVaultLoans(
   client: PublicClient,
   vault: VaultInfo,
-): Promise<LoanPositionRaw[]> {
+): Promise<VaultLoans> {
   const address = vault.address as Address;
   let count: number;
+  let collateral: bigint;
   try {
-    count = Number(
-      await client.readContract({ address, abi: LOAN_COUNT_ABI, functionName: "loanCount" }),
-    );
+    const [loanCount, collateralAmount] = await Promise.all([
+      client.readContract({ address, abi: LOAN_COUNT_ABI, functionName: "loanCount" }),
+      client.readContract({ address, abi: LOAN_COUNT_ABI, functionName: "getCollateralAmount" }),
+    ]);
+    count = Number(loanCount);
+    collateral = collateralAmount;
   } catch {
     // Vault without the lending facet ("Diamond: Function does not exist").
-    return [];
+    return { loans: [], collateral: BigInt(0) };
   }
-  if (count === 0) return [];
+  if (count === 0) return { loans: [], collateral };
 
   const borrowers = await readBorrowers(client, address, count);
   const results = await client.multicall({
@@ -103,7 +120,7 @@ async function readVaultLoans(
   });
 
   const spotPrice = Number(vault.spotPriceX96 || "0") / 1e18;
-  return borrowers.flatMap((borrower, i) => {
+  const loans = borrowers.flatMap((borrower, i) => {
     const loan = results[i * 2];
     const ltv = results[i * 2 + 1];
     if (loan.status !== "success") return [];
@@ -124,6 +141,7 @@ async function readVaultLoans(
       },
     ];
   });
+  return { loans, collateral };
 }
 
 /**
@@ -139,10 +157,12 @@ export function useProtocolHealth(vaults: VaultInfo[]) {
       const perVault = await Promise.all(
         vaults.map((v) => readVaultLoans(client, v)),
       );
-      return perVault.flat();
+      const collateral = new Map<string, bigint>();
+      vaults.forEach((v, i) => collateral.set(v.address.toLowerCase(), perVault[i].collateral));
+      return { loans: perVault.flatMap((v) => v.loans), collateral };
     },
     { revalidateOnFocus: false, refreshInterval: 300_000, dedupingInterval: 60_000 },
   );
 
-  return { loans: data ?? [], error, isLoading };
+  return { loans: data?.loans ?? [], collateral: data?.collateral, error, isLoading };
 }
