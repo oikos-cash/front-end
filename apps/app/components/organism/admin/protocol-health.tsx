@@ -157,9 +157,6 @@ export default function ProtocolHealthSection({
                 ? "reading vault collateral…"
                 : "reserves ÷ circulating"
           }
-          description={solvency.vaults
-            .map((v) => `${v.symbol} ${formatPct(v.ratio)}`)
-            .join(" · ")}
           icon={<HeartPulse className={ICON} />}
         />
         <KpiCard
