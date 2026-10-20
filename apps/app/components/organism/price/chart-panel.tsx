@@ -19,6 +19,7 @@ import {
   CHART_PERIODS,
   CHART_INTERVALS,
   type ChartPeriod,
+  type ChartInterval,
   type PriceChartProps,
 } from "@/types/interfaces";
 
@@ -69,9 +70,9 @@ export default function PriceChart({ poolAddress }: PriceChartProps) {
           ) : (
             <>
               <Select
-                defaultValue={interval}
+                value={interval}
                 placeholder={t("interval")}
-                onValueChange={setInterval}
+                onValueChange={(v) => setInterval(v as ChartInterval)}
                 className="w-28"
                 items={CHART_INTERVALS.map((v) => ({
                   value: v,
@@ -79,7 +80,7 @@ export default function PriceChart({ poolAddress }: PriceChartProps) {
                 }))}
               />
               <Select
-                defaultValue={period}
+                value={period}
                 placeholder={t("period")}
                 onValueChange={(v) => setPeriod(v as ChartPeriod)}
                 className="w-20"

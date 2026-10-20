@@ -8,6 +8,8 @@
     "3m": "3M",
     "6m": "6M",
     "1y": "1Y",
+    "2y": "2Y",
+    "max": "Max",
     "refresh": "Refresh",
     "bars": "Bars",
     "line": "Line",

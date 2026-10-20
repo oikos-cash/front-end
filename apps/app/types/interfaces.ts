@@ -664,8 +664,9 @@ export interface OHLCVBar {
   volume: number;
 }
 
-export const CHART_INTERVALS = ["1h", "4h", "1d", "1w"] as const;
-export const CHART_PERIODS = ["1d", "5d", "1m", "3m", "6m", "1y"] as const;
+export const CHART_INTERVALS = ["1h", "6h", "1d", "1w"] as const;
+export const CHART_PERIODS = ["1d", "5d", "1m", "3m", "6m", "1y", "2y", "max"] as const;
+export type ChartInterval = (typeof CHART_INTERVALS)[number];
 export type ChartPeriod = (typeof CHART_PERIODS)[number];
 export type ChartType = "bars" | "line";
 

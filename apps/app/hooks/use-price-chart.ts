@@ -13,11 +13,13 @@ import {
 } from "lightweight-charts";
 
 // Types
-import type {
-  ChartPeriod,
-  ChartType,
-  CrosshairData,
-  OHLCVBar,
+import {
+  CHART_INTERVALS,
+  type ChartInterval,
+  type ChartPeriod,
+  type ChartType,
+  type CrosshairData,
+  type OHLCVBar,
 } from "@/types/interfaces";
 
 // Hooks
@@ -25,6 +27,49 @@ import { useOhlcCandles } from "@/hooks/use-ohlc-candles";
 
 // Utils
 import { getThemeColors } from "@/utils/color";
+
+const DAY_MS = 86_400_000;
+
+/** Span of each period; "max" asks for as much history as the API returns. */
+const PERIOD_MS: Record<ChartPeriod, number> = {
+  "1d": DAY_MS,
+  "5d": 5 * DAY_MS,
+  "1m": 30 * DAY_MS,
+  "3m": 90 * DAY_MS,
+  "6m": 180 * DAY_MS,
+  "1y": 365 * DAY_MS,
+  "2y": 730 * DAY_MS,
+  max: Infinity,
+};
+
+const INTERVAL_MS: Record<ChartInterval, number> = {
+  "1h": 3_600_000,
+  "6h": 21_600_000,
+  "1d": DAY_MS,
+  "1w": 7 * DAY_MS,
+};
+
+/** Backend cap on candles per request (`MAX_LIMIT` in the OHLC service). */
+const MAX_CANDLES = 1000;
+
+/** Periods long enough to reach before the pool's first trade. */
+const LONG_PERIODS: ChartPeriod[] = ["1y", "2y", "max"];
+
+function candlesNeeded(period: ChartPeriod, interval: ChartInterval): number {
+  return Math.ceil(PERIOD_MS[period] / INTERVAL_MS[interval]) + 1;
+}
+
+/** Finest interval at or above `current` that fits `period` in one request. */
+function fitInterval(period: ChartPeriod, current: ChartInterval): ChartInterval {
+  const start = CHART_INTERVALS.indexOf(current);
+  for (const interval of CHART_INTERVALS.slice(start)) {
+    if (period !== "max" && candlesNeeded(period, interval) <= MAX_CANDLES) {
+      return interval;
+    }
+  }
+  // "max" (or anything too long): daily candles cover ~2.7 years.
+  return INTERVAL_MS[current] >= DAY_MS ? current : "1d";
+}
 
 const CROSSHAIR_INITIAL: CrosshairData = {
   visible: false,
@@ -40,7 +85,7 @@ export default function usePriceChart(poolAddress?: string) {
   const [ready, setReady] = useState(false);
   const [hasData, setHasData] = useState(false);
   const [period, setPeriod] = useState<ChartPeriod>("1y");
-  const [interval, setInterval] = useState("1w");
+  const [interval, setInterval] = useState<ChartInterval>("1w");
   const [chartType, setChartType] = useState<ChartType>("line");
   const [crosshairData, setCrosshairData] =
     useState<CrosshairData>(CROSSHAIR_INITIAL);
@@ -57,23 +102,28 @@ export default function usePriceChart(poolAddress?: string) {
   const barsRef = useRef<OHLCVBar[]>([]);
 
   // OHLC data: SWR poll of /api/price/ohlc — handles dedupe + refresh.
-  const { candles } = useOhlcCandles(poolAddress, interval);
+  const limit = Math.min(candlesNeeded(period, interval), MAX_CANDLES);
+  const { candles } = useOhlcCandles(poolAddress, interval, limit);
+
+  // Switching to a longer period coarsens the interval when the finer one
+  // would need more candles than the API returns in one request.
+  const selectPeriod = useCallback((next: ChartPeriod) => {
+    setPeriod(next);
+    setInterval((current) => fitInterval(next, current));
+  }, []);
 
   useEffect(() => {
     if (candles.length === 0) return;
 
     // Filter to selected period
-    const now = Date.now();
-    const periodMs: Record<string, number> = {
-      "1d": 86_400_000,
-      "5d": 5 * 86_400_000,
-      "1m": 30 * 86_400_000,
-      "3m": 90 * 86_400_000,
-      "6m": 180 * 86_400_000,
-      "1y": 365 * 86_400_000,
-    };
-    const cutoff = now - (periodMs[period] ?? 30 * 86_400_000);
-    const filtered = candles.filter((c) => c.timestamp >= cutoff);
+    const cutoff = Date.now() - PERIOD_MS[period];
+    let filtered = candles.filter((c) => c.timestamp >= cutoff);
+    // The API flat-fills empty periods back past the pool's creation; drop
+    // that leading zero-volume stretch so long periods start at the first trade.
+    if (LONG_PERIODS.includes(period)) {
+      const firstTrade = filtered.findIndex((c) => c.volume > 0);
+      if (firstTrade > 0) filtered = filtered.slice(firstTrade);
+    }
     if (filtered.length === 0) return;
 
     const bars: OHLCVBar[] = filtered.map((b) => ({
@@ -282,7 +332,7 @@ export default function usePriceChart(poolAddress?: string) {
     ready,
     hasData,
     period,
-    setPeriod,
+    setPeriod: selectPeriod,
     interval,
     setInterval,
     chartType,

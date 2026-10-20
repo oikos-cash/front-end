@@ -30,7 +30,7 @@ import type { UTCTimestamp } from "lightweight-charts";
 /**
  * Maps a chart period label to the corresponding number of calendar days.
  *
- * @param period - The chart period identifier (e.g. "1d", "5d", "1m", "3m", "6m", "1y")
+ * @param period - The chart period identifier (e.g. "1d", "5d", "1m", "3m", "6m", "1y", "2y", "max")
  * @returns The number of days represented by the period
  */
 export function getPeriodDays(period: ChartPeriod): number {
@@ -47,21 +47,25 @@ export function getPeriodDays(period: ChartPeriod): number {
       return 180;
     case "1y":
       return 365;
+    case "2y":
+      return 730;
+    case "max":
+      return 3650;
   }
 }
 
 /**
  * Maps a chart interval string to the corresponding number of minutes.
  *
- * @param interval - The interval identifier (e.g. "1h", "4h", "1d", "1w")
+ * @param interval - The interval identifier (e.g. "1h", "6h", "1d", "1w")
  * @returns The number of minutes in the interval, defaults to 60 for unrecognized values
  */
 export function getIntervalMinutes(interval: string): number {
   switch (interval) {
     case "1h":
       return 60;
-    case "4h":
-      return 240;
+    case "6h":
+      return 360;
     case "1d":
       return 1440;
     case "1w":
@@ -76,7 +80,7 @@ export function getIntervalMinutes(interval: string): number {
  * for a given chart period and interval. Prices start near 0.15 and walk randomly.
  *
  * @param period - The chart period determining the total time span (e.g. "1d", "1m", "1y")
- * @param interval - The candlestick interval (e.g. "1h", "4h", "1d", "1w")
+ * @param interval - The candlestick interval (e.g. "1h", "6h", "1d", "1w")
  * @returns An array of OHLCVBar objects with randomized price and volume data
  */
 export function generateMockOHLCV(
