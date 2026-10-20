@@ -84,7 +84,7 @@ export default function usePriceChart(poolAddress?: string) {
   // State
   const [ready, setReady] = useState(false);
   const [hasData, setHasData] = useState(false);
-  const [period, setPeriod] = useState<ChartPeriod>("1y");
+  const [period, setPeriod] = useState<ChartPeriod>("max");
   const [interval, setInterval] = useState<ChartInterval>("1w");
   const [chartType, setChartType] = useState<ChartType>("line");
   const [crosshairData, setCrosshairData] =
