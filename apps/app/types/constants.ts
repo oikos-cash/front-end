@@ -514,4 +514,8 @@ export const BLOCKED_TOKENS: ReadonlyArray<BlockedTokenEntry> = [
   { address: "0x6630a9ef5a96f73ed5d2161009081ac042f8f77d", reason: "DFS token" },
   { address: "0x2706C296B90D14Ee438fa2d85b65030F3684C60F", reason: "DFS vault" },
   { address: "0xff49bb14ff0775cd907ee7631ef7c858104094bf", reason: "DFS pool" },
+  { symbol: "DWS", reason: "hidden" },
+  { address: "0x50320F3305d3427f42e5EF452094Aa2d9e20Ff87", reason: "DWS token" },
+  { address: "0x6ae2BC7cef6f21B2be07e53Dd887F9ac20BA1D63", reason: "DWS vault" },
+  { address: "0x231340277a771352a5A69Af00E15f39d16F1D7D3", reason: "DWS pool" },
 ] as const;
