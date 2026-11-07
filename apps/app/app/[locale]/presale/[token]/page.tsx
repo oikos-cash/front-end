@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { isTokenBlocked } from "@/utils/token-blocklist";
 import PresaleTemplate from "@/components/templates/presale";
 import { getPageMetadata } from "@/utils/seo";
 import { fetchVaultByToken } from "@/utils/liquidity";
@@ -21,6 +23,7 @@ export default async function PresalePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  if (isTokenBlocked({ symbol: token, addresses: [token] })) notFound();
   const vault = await fetchVaultByToken(token);
 
   return <PresaleTemplate initialVault={vault} />;

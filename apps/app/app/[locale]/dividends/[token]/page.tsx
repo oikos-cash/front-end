@@ -1,3 +1,5 @@
+import { notFound } from "next/navigation";
+import { isTokenBlocked } from "@/utils/token-blocklist";
 import DividendTokenDetailTemplate from "@/components/templates/dividend/token-detail";
 import { getPageMetadata } from "@/utils/seo";
 
@@ -14,6 +16,12 @@ export async function generateMetadata({
   );
 }
 
-export default function DividendTokenDetailPage() {
+export default async function DividendTokenDetailPage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+  if (isTokenBlocked({ symbol: token, addresses: [token] })) notFound();
   return <DividendTokenDetailTemplate />;
 }

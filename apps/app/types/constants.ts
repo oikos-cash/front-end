@@ -511,4 +511,7 @@ export const BLOCKED_TOKENS: ReadonlyArray<BlockedTokenEntry> = [
   // { symbol: "SCAM", reason: "Reported phishing token" },
   // { address: "0x0000000000000000000000000000000000000000", reason: "Test deploy" },
   { symbol: "DFS", reason: "test deploy" },
+  { address: "0x6630a9ef5a96f73ed5d2161009081ac042f8f77d", reason: "DFS token" },
+  { address: "0x2706C296B90D14Ee438fa2d85b65030F3684C60F", reason: "DFS vault" },
+  { address: "0xff49bb14ff0775cd907ee7631ef7c858104094bf", reason: "DFS pool" },
 ] as const;
